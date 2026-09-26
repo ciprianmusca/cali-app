@@ -57,16 +57,14 @@ export async function GET(
           { status: 500 }
         );
       }
-      return new NextResponse(
-        new Blob([parsed.bytes], { type: parsed.contentType }),
-        {
-          status: 200,
-          headers: {
-            "Content-Type": parsed.contentType,
-            "Cache-Control": "private, max-age=3600",
-          },
-        }
-      );
+      const body = Uint8Array.from(parsed.bytes);
+      return new NextResponse(body, {
+        status: 200,
+        headers: {
+          "Content-Type": parsed.contentType,
+          "Cache-Control": "private, max-age=3600",
+        },
+      });
     }
 
     return NextResponse.json({ ok: false, error: "unsupported" }, { status: 400 });
