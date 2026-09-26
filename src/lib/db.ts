@@ -240,6 +240,17 @@ export async function listObservations(db: D1Database): Promise<Observation[]> {
   return (results ?? []).map(observationFromRow);
 }
 
+export async function getObservationById(
+  db: D1Database,
+  id: string
+): Promise<Observation | null> {
+  const row = await db
+    .prepare("SELECT * FROM observations WHERE id = ?")
+    .bind(id)
+    .first<ObsRow>();
+  return row ? observationFromRow(row) : null;
+}
+
 export async function upsertUser(db: D1Database, user: User): Promise<void> {
   await db
     .prepare(

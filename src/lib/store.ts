@@ -357,9 +357,15 @@ export const useCaliStore = create<CaliState>()(
             if ((o.validatedAt ?? "") !== (r.validatedAt ?? "")) return true;
             return false;
           });
-          const activeQueue = nextQueue.filter(
-            (o) => !sessionUserId || !o.authorId || o.authorId === sessionUserId
-          );
+          const sessionRole = data.user?.role ?? null;
+          const isStaff =
+            sessionRole === "admin" || sessionRole === "ranger";
+          // Staff must flush validations on others' rows; field users only own rows.
+          const activeQueue = nextQueue.filter((o) => {
+            if (!sessionUserId) return false;
+            if (!o.authorId || o.authorId === sessionUserId) return true;
+            return isStaff;
+          });
           const activeQueueIds = new Set(activeQueue.map((o) => o.id));
 
           const remoteCodes = new Set(remote.map((o) => o.code));
@@ -367,7 +373,9 @@ export const useCaliStore = create<CaliState>()(
             (o) =>
               !remoteIds.has(o.id) &&
               !remoteCodes.has(o.code) &&
-              (!sessionUserId || o.authorId === sessionUserId) &&
+              (!sessionUserId ||
+                o.authorId === sessionUserId ||
+                isStaff) &&
               (activeQueueIds.has(o.id) ||
                 o.syncStatus === "pending" ||
                 o.syncStatus === "error")
@@ -608,11 +616,15 @@ export const useCaliStore = create<CaliState>()(
         }
 
         const userId = get().currentUserId;
-        // Only flush the logged-in user's queue (never upload another role's
-        // leftover local rows from the same browser profile).
-        const ownedQueue = queue.filter(
-          (o) => !userId || !o.authorId || o.authorId === userId
-        );
+        const role = get().currentUser()?.role;
+        const isStaff = role === "admin" || role === "ranger";
+        // Field users: only own rows. Staff: also validations/edits on others.
+        // Never flush a different field-account's leftover offline creates.
+        const ownedQueue = queue.filter((o) => {
+          if (!userId) return false;
+          if (!o.authorId || o.authorId === userId) return true;
+          return isStaff;
+        });
         if (!ownedQueue.length) {
           set({ syncing: false });
           return { ok: true, uploaded: 0 };

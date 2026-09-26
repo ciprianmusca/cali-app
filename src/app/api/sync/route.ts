@@ -4,12 +4,19 @@ import {
   ensureSchema,
   ensureUniqueObservationCode,
   getDB,
+  getObservationById,
   seedIfEmpty,
   upsertObservation,
 } from "@/lib/db";
 import { getPhotosBucket, persistObservationPhotos } from "@/lib/r2";
 import { slimObservationPhotos } from "@/lib/photos";
 import type { Observation } from "@/lib/types";
+
+function hasUploadablePhotos(photos: string[] | undefined): boolean {
+  return (photos ?? []).some(
+    (p) => typeof p === "string" && p.startsWith("data:")
+  );
+}
 
 /**
  * Upload offline observations into D1 + R2. Requires authenticated session.
@@ -54,6 +61,7 @@ export async function POST(request: Request) {
       }
 
       try {
+        const existing = await getObservationById(db, obs.id);
         const base: Observation = isStaff
           ? obs
           : {
@@ -64,11 +72,25 @@ export async function POST(request: Request) {
             };
 
         const unique = await ensureUniqueObservationCode(db, base);
-        const photos = await persistObservationPhotos(
-          bucket,
-          unique.id,
-          unique.photos ?? []
-        );
+
+        // Don't wipe R2 photos when staff syncs a validation with API/idb refs only.
+        let photos: string[];
+        if (hasUploadablePhotos(unique.photos)) {
+          photos = await persistObservationPhotos(
+            bucket,
+            unique.id,
+            unique.photos ?? []
+          );
+        } else if (existing?.photos?.length) {
+          photos = existing.photos;
+        } else {
+          photos = await persistObservationPhotos(
+            bucket,
+            unique.id,
+            unique.photos ?? []
+          );
+        }
+
         const safe: Observation = { ...unique, photos };
         await upsertObservation(db, safe);
         ids.push(safe.id);
