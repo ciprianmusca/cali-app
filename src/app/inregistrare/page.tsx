@@ -135,7 +135,10 @@ export default function RegisterPage() {
           Confirm că sunt adult (18+)
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="submit" className="w-full">
+        <Button type="button" className="w-full" onClick={() => {
+          const fake = { preventDefault() {} } as FormEvent;
+          onSubmit(fake);
+        }}>
           Creează cont
         </Button>
       </form>

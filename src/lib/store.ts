@@ -445,6 +445,7 @@ export const useCaliStore = create<CaliState>()(
     }),
     {
       name: "cali-app-v1",
+      skipHydration: true,
       partialize: (s) => ({
         users: s.users,
         observations: s.observations,
@@ -452,9 +453,6 @@ export const useCaliStore = create<CaliState>()(
         offlineQueue: s.offlineQueue,
         settings: s.settings,
       }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated(true);
-      },
     }
   )
 );

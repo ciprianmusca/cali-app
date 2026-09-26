@@ -17,8 +17,7 @@ function LoginForm() {
   const [password, setPassword] = useState("Turist123!");
   const [error, setError] = useState<string | null>(null);
 
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const handleLogin = () => {
     const res = login(email, password);
     if (!res.ok) {
       setError(res.error ?? "Eroare");
@@ -26,6 +25,11 @@ function LoginForm() {
     }
     const next = params.get("next") || "/acasa";
     router.push(next);
+  };
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    handleLogin();
   };
 
   return (
@@ -40,6 +44,7 @@ function LoginForm() {
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
+            name="email"
             type="email"
             required
             value={email}
@@ -51,6 +56,7 @@ function LoginForm() {
           <Label htmlFor="password">Parolă</Label>
           <Input
             id="password"
+            name="password"
             type="password"
             required
             value={password}
@@ -59,7 +65,7 @@ function LoginForm() {
           />
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="submit" className="w-full">
+        <Button type="button" className="w-full" onClick={handleLogin}>
           Intră în cont
         </Button>
       </form>
@@ -86,7 +92,10 @@ function LoginForm() {
 
       <p className="mt-6 text-center text-sm">
         Nu aveți cont?{" "}
-        <Link href="/inregistrare" className="text-primary underline-offset-2 hover:underline">
+        <Link
+          href="/inregistrare"
+          className="text-primary underline-offset-2 hover:underline"
+        >
           Creare cont
         </Link>
       </p>
