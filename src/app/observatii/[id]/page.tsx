@@ -678,15 +678,17 @@ function ObservationDetail({ id }: { id: string }) {
                 >
                   {t("obs.approve")}
                 </Button>
-                <Button
-                  type="button"
-                  variant={
-                    decision === "aprobat_cu_corectii" ? "default" : "outline"
-                  }
-                  onClick={() => setDecision("aprobat_cu_corectii")}
-                >
-                  {t("obs.approveCorrections")}
-                </Button>
+                {obs.module === "fenologie" || obs.module === "perturbari" ? (
+                  <Button
+                    type="button"
+                    variant={
+                      decision === "aprobat_cu_corectii" ? "default" : "outline"
+                    }
+                    onClick={() => setDecision("aprobat_cu_corectii")}
+                  >
+                    {t("obs.approveCorrections")}
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   variant={
