@@ -70,8 +70,8 @@ La autentificare GitHub: [Personal Access Token](https://github.com/settings/tok
 |------|---------|
 | Worker name | `cali-lab` |
 | Production branch | `main` |
-| Build command | `npm run cf:build` |
-| Deploy command | `npm run cf:deploy` |
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy` |
 | Root directory | (gol) |
 
 5. **Save and Deploy** — build în cloud.
