@@ -414,7 +414,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "policy.version": "Version 2026.1 · CALI-LAB · Grant Agreement G-07-2025-2",
   "policy.operator": "Controller",
   "policy.operatorText":
-    "The controller of CALI-LAB application data is the Forest Research and Development Institute (ISV), in partnership with the Călimani National Park Administration (APNC).",
+    "The controller of CALI-LAB application data is the Institute for Life Sciences (ISV), in partnership with the Călimani National Park Administration (APNC).",
   "policy.categories": "Data categories",
   "policy.cat1":
     "Account data: name, email, role, GDPR consent, parental consent (students)",
@@ -569,7 +569,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "nav.contact": "Contact",
 
   "partners.band": "Partners",
-  "partners.isv": "Forest Research and Management Institute (ISV)",
+  "partners.isv": "Institute for Life Sciences (ISV)",
   "partners.apnc": "Călimani National Park Administration (APNC)",
   "partners.efi": "European Forest Institute (EFI)",
   "partners.forwards": "FORWARDS / ForestWard Observatory",
@@ -621,7 +621,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "contact.lead": "Questions about the project, accounts or data.",
   "contact.emailLabel": "Project email",
   "contact.isvLabel": "ISV",
-  "contact.isvBody": "Forest Research and Management Institute — data controller.",
+  "contact.isvBody": "Institute for Life Sciences — data controller.",
   "contact.apncLabel": "APNC",
   "contact.apncBody": "Călimani National Park Administration — field validation.",
 

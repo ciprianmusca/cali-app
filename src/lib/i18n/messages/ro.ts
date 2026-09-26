@@ -435,7 +435,7 @@ export const ro = {
   "policy.version": "Versiune 2026.1 · CALI-LAB · Grant Agreement G-07-2025-2",
   "policy.operator": "Operator",
   "policy.operatorText":
-    "Operatorul datelor aplicației CALI-LAB este Institutul de Cercetare-Dezvoltare în Silvicultură (ISV), în parteneriat cu Administrația Parcului Național Călimani (APNC).",
+    "Operatorul datelor aplicației CALI-LAB este Institutul pentru Științele Vieții (ISV), în parteneriat cu Administrația Parcului Național Călimani (APNC).",
   "policy.categories": "Categorii de date",
   "policy.cat1":
     "Date de cont: nume, email, rol, acord GDPR, acord parental (elevi)",
@@ -594,7 +594,7 @@ export const ro = {
 
   // Partners
   "partners.band": "Parteneri",
-  "partners.isv": "Institutul de Cercetări și Amenajări Silvice (ISV)",
+  "partners.isv": "Institutul pentru Științele Vieții (ISV)",
   "partners.apnc": "Administrația Parcului Național Călimani (APNC)",
   "partners.efi": "European Forest Institute (EFI)",
   "partners.forwards": "FORWARDS / ForestWard Observatory",
@@ -649,7 +649,7 @@ export const ro = {
   "contact.lead": "Pentru întrebări despre proiect, conturi sau date.",
   "contact.emailLabel": "Email proiect",
   "contact.isvLabel": "ISV",
-  "contact.isvBody": "Institutul de Cercetări și Amenajări Silvice — operator de date.",
+  "contact.isvBody": "Institutul pentru Științele Vieții — operator de date.",
   "contact.apncLabel": "APNC",
   "contact.apncBody": "Administrația Parcului Național Călimani — validare pe teren.",
 
