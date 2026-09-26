@@ -6,12 +6,22 @@ Proiect: CALI-LAB · Grant Agreement G-07-2025-2 · ISV & APNC.
 
 ## Rulează local
 
+**Cu D1/R2 (autentificare, sync, validare)** — Cloudflare preview:
+
 ```bash
 npm install
+npm run preview
+```
+
+Deschide [http://127.0.0.1:43124](http://127.0.0.1:43124) (sau portul afișat de `wrangler dev`).
+
+**Doar UI Next.js** (fără binding D1 — login API returnează 500):
+
+```bash
 npm run dev
 ```
 
-Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123).
+→ [http://127.0.0.1:43123](http://127.0.0.1:43123).
 
 ## Conturi demo
 
