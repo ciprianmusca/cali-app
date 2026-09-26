@@ -67,6 +67,21 @@ export function generateCode(
   return `${prefix}-${String(sequential).padStart(4, "0")}`;
 }
 
+/** Highest N from codes like DIST-0002 for a module; 0 if none. */
+export function maxCodeSequential(
+  codes: string[],
+  module: ObservationModule
+): number {
+  const prefix = moduleCodePrefix(module);
+  let max = 0;
+  for (const code of codes) {
+    if (!code.startsWith(`${prefix}-`)) continue;
+    const n = Number.parseInt(code.slice(prefix.length + 1), 10);
+    if (Number.isFinite(n) && n > max) max = n;
+  }
+  return max;
+}
+
 export function isValidPassword(password: string): boolean {
   return (
     password.length >= 8 &&

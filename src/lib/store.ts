@@ -10,7 +10,11 @@ import type {
   UserRole,
 } from "./types";
 import { GDPR_VERSION } from "./constants";
-import { generateCode, mockLocationNearPark } from "./format";
+import {
+  generateCode,
+  maxCodeSequential,
+  mockLocationNearPark,
+} from "./format";
 import { tKey } from "./i18n/store";
 import {
   deleteObservationPhotosFromIdb,
@@ -551,9 +555,13 @@ export const useCaliStore = create<CaliState>()(
       },
 
       nextCode: (module) => {
-        const count =
-          get().observations.filter((o) => o.module === module).length + 1;
-        return generateCode(module, count);
+        // Use max sequential+1 — count+1 collides when codes are sparse
+        // (e.g. server already has DIST-0002 → must mint DIST-0003).
+        const codes = [
+          ...get().observations.map((o) => o.code),
+          ...get().offlineQueue.map((o) => o.code),
+        ];
+        return generateCode(module, maxCodeSequential(codes, module) + 1);
       },
 
       addObservation: (obs) => {
@@ -708,8 +716,12 @@ export const useCaliStore = create<CaliState>()(
             observations: get().observations.map((o) => {
               if (!syncedIds.has(o.id)) return o;
               const fromServer = serverById.get(o.id);
+              // Server may remap code on UNIQUE collision (DIST-0002 → DIST-0003).
               return {
-                ...(fromServer ?? o),
+                ...o,
+                ...(fromServer ?? {}),
+                code: fromServer?.code ?? o.code,
+                photos: fromServer?.photos ?? o.photos,
                 syncStatus: "synced" as const,
                 syncedAt,
                 syncError: undefined,

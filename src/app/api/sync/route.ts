@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { canValidate, requireUser } from "@/lib/auth";
 import {
   ensureSchema,
+  ensureUniqueObservationCode,
   getDB,
   seedIfEmpty,
   upsertObservation,
@@ -14,6 +15,7 @@ import type { Observation } from "@/lib/types";
  * Upload offline observations into D1 + R2. Requires authenticated session.
  * Photos (data-URI) are written to R2; D1 stores only r2: keys.
  * Users may only upsert their own observations unless ranger/admin.
+ * Codes that collide with another id are remapped to the next free code.
  */
 export async function POST(request: Request) {
   const auth = await requireUser();
@@ -39,32 +41,55 @@ export async function POST(request: Request) {
 
     const ids: string[] = [];
     const saved: Observation[] = [];
+    const errors: { id: string; error: string }[] = [];
 
     for (const obs of list) {
       if (!obs?.id || !obs.code || !obs.module || !obs.location) continue;
 
       const isOwner = obs.authorId === session.id;
       const isStaff = canValidate(session.role);
-      if (!isOwner && !isStaff) continue;
+      if (!isOwner && !isStaff) {
+        errors.push({ id: obs.id, error: "forbidden" });
+        continue;
+      }
 
-      const base: Observation = isStaff
-        ? obs
-        : {
-            ...obs,
-            authorId: session.id,
-            authorRole: session.role,
-            authorName: session.name,
-          };
+      try {
+        const base: Observation = isStaff
+          ? obs
+          : {
+              ...obs,
+              authorId: session.id,
+              authorRole: session.role,
+              authorName: session.name,
+            };
 
-      const photos = await persistObservationPhotos(
-        bucket,
-        base.id,
-        base.photos ?? []
+        const unique = await ensureUniqueObservationCode(db, base);
+        const photos = await persistObservationPhotos(
+          bucket,
+          unique.id,
+          unique.photos ?? []
+        );
+        const safe: Observation = { ...unique, photos };
+        await upsertObservation(db, safe);
+        ids.push(safe.id);
+        saved.push(slimObservationPhotos(safe));
+      } catch (e) {
+        errors.push({
+          id: obs.id,
+          error: e instanceof Error ? e.message : "upsert_failed",
+        });
+      }
+    }
+
+    if (!ids.length) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: errors[0]?.error ?? "sync_failed",
+          errors,
+        },
+        { status: 500 }
       );
-      const safe: Observation = { ...base, photos };
-      await upsertObservation(db, safe);
-      ids.push(safe.id);
-      saved.push(slimObservationPhotos(safe));
     }
 
     return NextResponse.json({
@@ -72,6 +97,7 @@ export async function POST(request: Request) {
       received: ids.length,
       ids,
       observations: saved,
+      errors: errors.length ? errors : undefined,
       serverTime: new Date().toISOString(),
     });
   } catch (e) {

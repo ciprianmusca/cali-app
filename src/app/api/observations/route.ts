@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser, requireUser } from "@/lib/auth";
 import {
   ensureSchema,
+  ensureUniqueObservationCode,
   getDB,
   listObservations,
   seedIfEmpty,
@@ -43,23 +44,23 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const bucket = await getPhotosBucket();
-    const photos = await persistObservationPhotos(
-      bucket,
-      obs.id,
-      obs.photos ?? []
-    );
-    const safe: Observation = {
+    const db = await getDB();
+    await ensureSchema(db);
+    const unique = await ensureUniqueObservationCode(db, {
       ...obs,
-      photos,
       authorId: auth.user.id,
       authorRole: auth.user.role,
       authorName: auth.user.name,
-    };
-    const db = await getDB();
-    await ensureSchema(db);
+    });
+    const bucket = await getPhotosBucket();
+    const photos = await persistObservationPhotos(
+      bucket,
+      unique.id,
+      unique.photos ?? []
+    );
+    const safe: Observation = { ...unique, photos };
     await upsertObservation(db, safe);
-    return NextResponse.json({ ok: true, id: safe.id });
+    return NextResponse.json({ ok: true, id: safe.id, code: safe.code });
   } catch (e) {
     const message = e instanceof Error ? e.message : "create_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

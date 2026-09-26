@@ -2,6 +2,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type {
   FenologieObservation,
   Observation,
+  ObservationModule,
   PerturbariObservation,
   SolObservation,
   User,
@@ -9,6 +10,7 @@ import type {
   UserStatus,
 } from "@/lib/types";
 import { DEMO_ACCOUNTS, GDPR_VERSION } from "@/lib/constants";
+import { generateCode, maxCodeSequential, moduleCodePrefix } from "@/lib/format";
 import { hashPassword, isPbkdf2, needsRehash } from "@/lib/password";
 
 export type CloudflareEnv = {
@@ -273,6 +275,39 @@ export async function upsertUser(db: D1Database, user: User): Promise<void> {
       user.lastLoginAt ?? null
     )
     .run();
+}
+
+/** Next free PHEN-/DIST-/SOIL-NNNN code for the module. */
+export async function nextObservationCode(
+  db: D1Database,
+  module: ObservationModule
+): Promise<string> {
+  const prefix = moduleCodePrefix(module);
+  const rows = await db
+    .prepare(`SELECT code FROM observations WHERE code LIKE ?`)
+    .bind(`${prefix}-%`)
+    .all<{ code: string }>();
+  const max = maxCodeSequential(
+    (rows.results ?? []).map((r) => r.code),
+    module
+  );
+  return generateCode(module, max + 1);
+}
+
+/**
+ * If another row already owns this code, mint a new one so sync never dies on
+ * UNIQUE(observations.code).
+ */
+export async function ensureUniqueObservationCode(
+  db: D1Database,
+  obs: Observation
+): Promise<Observation> {
+  const row = await db
+    .prepare(`SELECT id FROM observations WHERE code = ?`)
+    .bind(obs.code)
+    .first<{ id: string }>();
+  if (!row || row.id === obs.id) return obs;
+  return { ...obs, code: await nextObservationCode(db, obs.module) };
 }
 
 export async function upsertObservation(
