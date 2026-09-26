@@ -24,32 +24,29 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123).
 
 Datele sunt stocate local în browser (localStorage) — fără backend. Potrivit pentru demonstrație și testare UI.
 
-## Deploy pe Cloudflare
+## Deploy pe Cloudflare → https://cali.ipsv.ro
 
-Proiectul e pregătit cu `@opennextjs/cloudflare` (Workers).
+Proiectul e pregătit cu `@opennextjs/cloudflare`. Subdomeniul **cali.ipsv.ro** este deja în `wrangler.jsonc`.
 
-### Varianta A — din terminal (pe calculatorul tău)
+**Condiție:** zona DNS `ipsv.ro` trebuie să fie pe același cont Cloudflare (nameservere Cloudflare).
+
+### Din terminal (recomandat)
 
 ```bash
 npm install
-npx wrangler login          # deschide browserul, autentifică-te cu contul Cloudflare
-npm run deploy              # build + upload pe Workers
+npx wrangler login          # autentificare Cloudflare
+npm run deploy              # creează Worker-ul + DNS/SSL pentru cali.ipsv.ro
 ```
 
-După deploy primești un URL de tip `https://cali-lab.<contul-tau>.workers.dev`.
+Cloudflare creează automat înregistrarea DNS și certificatul SSL pentru `cali.ipsv.ro`. Nu e nevoie să adaugi manual un CNAME.
 
-### Varianta B — din dashboard (Git)
+### Din dashboard (dacă Worker-ul există deja)
 
-1. Pune codul pe GitHub (Create repo în Cursor, sau push pe un repo al tău).
-2. În [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → conectează repo-ul.
-3. Build settings:
-   - **Build command:** `npx opennextjs-cloudflare build`
-   - **Deploy command:** `npx wrangler deploy` (sau lasă presetul Workers/OpenNext)
-4. Deploy.
+1. [Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages) → Worker **cali-lab**
+2. **Settings** → **Domains & Routes** → **Add** → **Custom Domain**
+3. Introdu: `cali.ipsv.ro` → **Add Custom Domain**
 
-### Domeniu propriu (ex. cali-lab.ro)
-
-Workers & Pages → proiectul `cali-lab` → **Custom domains** → adaugă domeniul. DNS-ul trebuie să fie pe Cloudflare (sau CNAME către workers.dev).
+URL public: **https://cali.ipsv.ro** (plus `*.workers.dev` pentru test).
 
 ## Funcționalități (slice livrat)
 

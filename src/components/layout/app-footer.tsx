@@ -37,7 +37,12 @@ export function AppFooter() {
           <Link href="/harta" className="underline-offset-2 hover:underline">
             Hartă observații
           </Link>
-          <span className="text-primary-foreground/60">cali-lab.ro</span>
+          <a
+            href="https://cali.ipsv.ro"
+            className="text-primary-foreground/60 underline-offset-2 hover:underline"
+          >
+            cali.ipsv.ro
+          </a>
         </div>
       </div>
     </footer>
