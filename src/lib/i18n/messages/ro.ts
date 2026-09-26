@@ -374,6 +374,7 @@ export const ro = {
   "offline.synced": "Sincronizat",
   "offline.syncNow": "Încarcă acum",
   "offline.syncError": "Încărcare eșuată — se reîncearcă automat",
+  "offline.resetCache": "Resetează cache local",
   "offline.syncAuth": "Sesiunea a expirat — autentificați-vă din nou",
   "offline.sessionExpired": "Sesiunea a expirat — autentificați-vă din nou",
   "offline.online": "Online",

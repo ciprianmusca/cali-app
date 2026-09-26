@@ -128,6 +128,26 @@ export function OfflineSyncBar() {
           <>
             <Loader2 className="size-4 shrink-0 animate-spin" />
             <span className="flex-1">{t("offline.syncing")}</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                useCaliStore.setState({
+                  syncing: false,
+                  lastSyncError: null,
+                  offlineQueue: [],
+                  observations: [],
+                });
+                try {
+                  localStorage.removeItem("cali-app-v1");
+                } catch {
+                  /* ignore */
+                }
+                void useCaliStore.getState().pullFromServer();
+              }}
+            >
+              {t("offline.resetCache")}
+            </Button>
           </>
         ) : authError ? (
           <>
@@ -151,6 +171,26 @@ export function OfflineSyncBar() {
             >
               <RefreshCw className="size-3.5" />
               {t("offline.syncNow")}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                useCaliStore.setState({
+                  syncing: false,
+                  lastSyncError: null,
+                  offlineQueue: [],
+                  observations: [],
+                });
+                try {
+                  localStorage.removeItem("cali-app-v1");
+                } catch {
+                  /* ignore */
+                }
+                void useCaliStore.getState().pullFromServer();
+              }}
+            >
+              {t("offline.resetCache")}
             </Button>
           </>
         ) : (

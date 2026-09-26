@@ -355,6 +355,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "offline.synced": "Synced",
   "offline.syncNow": "Upload now",
   "offline.syncError": "Upload failed — will retry automatically",
+  "offline.resetCache": "Reset local cache",
   "offline.syncAuth": "Your session has expired — please sign in again",
   "offline.sessionExpired": "Your session has expired — please sign in again",
   "offline.online": "Online",
