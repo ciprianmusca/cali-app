@@ -14,7 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ModuleBadge, StatusBadge } from "@/components/observations/badges";
+import {
+  ModuleBadge,
+  StatusBadge,
+  SyncBadge,
+} from "@/components/observations/badges";
 import { useCaliStore } from "@/lib/store";
 import {
   formatCoord,
@@ -165,6 +169,7 @@ function ObservationsList() {
                   </Link>
                   <StatusBadge status={o.status} />
                   <ModuleBadge module={o.module} />
+                  <SyncBadge status={o.syncStatus} />
                   {o.isSentinelTree ? (
                     <span className="inline-flex items-center gap-1 text-xs text-amber-800">
                       <Shield className="size-3" /> {t("obs.sentinel")}

@@ -18,9 +18,13 @@ interface CaliState {
   observations: Observation[];
   currentUserId: string | null;
   offlineQueue: Observation[];
+  syncing: boolean;
+  lastSyncAt: string | null;
+  lastSyncError: string | null;
   settings: AppSettings;
   hydrated: boolean;
   setHydrated: (v: boolean) => void;
+  flushOfflineQueue: () => Promise<{ ok: boolean; uploaded: number; error?: string }>;
   login: (email: string, password: string) => { ok: boolean; error?: string };
   logout: () => void;
   register: (data: {
@@ -123,7 +127,7 @@ function seedObservations(): Observation[] {
   const base = new Date("2026-09-10T10:00:00.000Z").getTime();
   const days = (n: number) => new Date(base + n * 86400000).toISOString();
 
-  return [
+  const rows: Observation[] = [
     {
       id: "o1",
       code: "PHEN-0001",
@@ -270,6 +274,12 @@ function seedObservations(): Observation[] {
       createdAt: days(10),
     },
   ];
+
+  return rows.map((o) => ({
+    ...o,
+    syncStatus: "synced" as const,
+    syncedAt: o.validatedAt ?? o.createdAt,
+  }));
 }
 
 export const useCaliStore = create<CaliState>()(
@@ -279,6 +289,9 @@ export const useCaliStore = create<CaliState>()(
       observations: seedObservations(),
       currentUserId: null,
       offlineQueue: [],
+      syncing: false,
+      lastSyncAt: null,
+      lastSyncError: null,
       settings: {
         passwordResetMinutesUser: 5,
         passwordResetMinutesAdmin: 240,
@@ -365,8 +378,100 @@ export const useCaliStore = create<CaliState>()(
         return generateCode(module, count);
       },
 
-      addObservation: (obs) =>
-        set({ observations: [obs, ...get().observations] }),
+      addObservation: (obs) => {
+        const pending: Observation = {
+          ...obs,
+          syncStatus: "pending",
+          syncError: undefined,
+        };
+        set({
+          observations: [pending, ...get().observations],
+          offlineQueue: [
+            pending,
+            ...get().offlineQueue.filter((o) => o.id !== pending.id),
+          ],
+        });
+        // Best-effort immediate upload when online
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          void get().flushOfflineQueue();
+        }
+      },
+
+      flushOfflineQueue: async () => {
+        const queue = get().offlineQueue;
+        if (!queue.length) {
+          return { ok: true, uploaded: 0 };
+        }
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          return { ok: false, uploaded: 0, error: "offline" };
+        }
+        if (get().syncing) {
+          return { ok: false, uploaded: 0, error: "busy" };
+        }
+
+        set({ syncing: true, lastSyncError: null });
+        try {
+          const res = await fetch("/api/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              observations: queue,
+              uploadedAt: new Date().toISOString(),
+            }),
+          });
+          if (!res.ok) {
+            const msg = `HTTP ${res.status}`;
+            set({
+              syncing: false,
+              lastSyncError: msg,
+              observations: get().observations.map((o) =>
+                queue.some((q) => q.id === o.id)
+                  ? { ...o, syncStatus: "error", syncError: msg }
+                  : o
+              ),
+              offlineQueue: get().offlineQueue.map((o) => ({
+                ...o,
+                syncStatus: "error" as const,
+                syncError: msg,
+              })),
+            });
+            return { ok: false, uploaded: 0, error: msg };
+          }
+
+          const syncedAt = new Date().toISOString();
+          const ids = new Set(queue.map((o) => o.id));
+          set({
+            syncing: false,
+            lastSyncAt: syncedAt,
+            lastSyncError: null,
+            offlineQueue: get().offlineQueue.filter((o) => !ids.has(o.id)),
+            observations: get().observations.map((o) =>
+              ids.has(o.id)
+                ? {
+                    ...o,
+                    syncStatus: "synced",
+                    syncedAt,
+                    syncError: undefined,
+                  }
+                : o
+            ),
+          });
+          return { ok: true, uploaded: queue.length };
+        } catch (e) {
+          const msg =
+            e instanceof Error ? e.message : "network";
+          set({
+            syncing: false,
+            lastSyncError: msg,
+            observations: get().observations.map((o) =>
+              queue.some((q) => q.id === o.id)
+                ? { ...o, syncStatus: "error", syncError: msg }
+                : o
+            ),
+          });
+          return { ok: false, uploaded: 0, error: msg };
+        }
+      },
 
       updateObservation: (id, patch) =>
         set({
@@ -452,6 +557,7 @@ export const useCaliStore = create<CaliState>()(
         observations: s.observations,
         currentUserId: s.currentUserId,
         offlineQueue: s.offlineQueue,
+        lastSyncAt: s.lastSyncAt,
         settings: s.settings,
       }),
     }

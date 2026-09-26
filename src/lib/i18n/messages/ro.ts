@@ -364,6 +364,19 @@ export const ro = {
   "footer.euEmblem": "Emblema Uniunii Europene",
   "footer.dataPolicy": "Politica de date",
   "footer.obsMap": "Hartă observații",
+
+  // Offline / sync
+  "offline.banner": "Offline — observațiile se salvează pe dispozitiv",
+  "offline.savedLocal": "Salvat local pe dispozitiv",
+  "offline.pending": "{count} în așteptare de încărcare",
+  "offline.syncing": "Se încarcă…",
+  "offline.synced": "Sincronizat",
+  "offline.syncNow": "Încarcă acum",
+  "offline.syncError": "Încărcare eșuată — se reîncearcă automat",
+  "offline.online": "Online",
+  "offline.statusPending": "Nesincronizat",
+  "offline.statusSynced": "Încărcat",
+  "offline.statusError": "Eroare sync",
 } as const;
 
 export type RoMessages = typeof ro;

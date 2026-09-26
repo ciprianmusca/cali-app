@@ -2,6 +2,8 @@ export type UserRole = "admin" | "ranger" | "rezident" | "turist" | "elev";
 export type UserStatus = "activ" | "inactiv";
 export type ObservationModule = "fenologie" | "perturbari" | "sol";
 export type ObservationStatus = "in_asteptare" | "aprobat" | "respins";
+/** Local persistence vs server upload */
+export type SyncStatus = "pending" | "synced" | "error";
 
 export type PhenologyStage = 1 | 2 | 3 | 4 | 5;
 
@@ -66,6 +68,10 @@ export interface ObservationBase {
   validationComment?: string;
   isSentinelTree?: boolean;
   species?: Species;
+  /** pending until successfully uploaded when online */
+  syncStatus?: SyncStatus;
+  syncError?: string;
+  syncedAt?: string;
 }
 
 export interface FenologieObservation extends ObservationBase {

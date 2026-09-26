@@ -3,7 +3,11 @@
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { moduleKey, statusKey } from "@/lib/i18n/labels";
-import type { ObservationModule, ObservationStatus } from "@/lib/types";
+import type {
+  ObservationModule,
+  ObservationStatus,
+  SyncStatus,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function StatusBadge({ status }: { status: ObservationStatus }) {
@@ -34,6 +38,25 @@ export function ModuleBadge({ module }: { module: ObservationModule }) {
       )}
     >
       {t(moduleKey(module))}
+    </Badge>
+  );
+}
+
+export function SyncBadge({ status }: { status?: SyncStatus }) {
+  const { t } = useI18n();
+  if (!status || status === "synced") return null;
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        status === "pending" &&
+          "border-sky-700/30 bg-sky-50 text-sky-900",
+        status === "error" && "border-red-700/30 bg-red-50 text-red-800"
+      )}
+    >
+      {status === "error"
+        ? t("offline.statusError")
+        : t("offline.statusPending")}
     </Badge>
   );
 }

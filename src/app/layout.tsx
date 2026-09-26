@@ -3,6 +3,10 @@ import { Fraunces, Figtree } from "next/font/google";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppFooter } from "@/components/layout/app-footer";
 import { StoreHydration } from "@/components/layout/store-hydration";
+import {
+  OfflineSyncBar,
+  ServiceWorkerRegister,
+} from "@/components/layout/offline-sync";
 import "./globals.css";
 
 const display = Fraunces({
@@ -35,7 +39,9 @@ export default function RootLayout({
     <html lang="ro" className={`${display.variable} ${body.variable} h-full`}>
       <body className="flex min-h-full flex-col font-sans">
         <StoreHydration />
+        <ServiceWorkerRegister />
         <AppHeader />
+        <OfflineSyncBar />
         <main className="flex-1">{children}</main>
         <AppFooter />
       </body>

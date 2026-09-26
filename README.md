@@ -28,6 +28,16 @@ Datele sunt stocate local în browser (localStorage) — fără backend. Potrivi
 
 Interfața este disponibilă în **română** și **engleză**. Selectorul **RO | EN** este în header (și în meniul mobil). Preferința se salvează în `localStorage` (`cali-locale`).
 
+## Offline + sync
+
+CALI-LAB e PWA:
+- **Service Worker** (`/sw.js`) cache-uiește shell-ul aplicației pentru utilizare fără semnal
+- Observațiile noi se **salvează local** (localStorage) imediat
+- Când dispozitivul e din nou online, coada se **încarcă** automat prin `POST /api/sync`
+- Bara de sub header arată starea Offline / În așteptare / Se încarcă
+
+Pe telefon: deschide o dată aplicația online, apoi „Add to Home Screen” / Instalează — ulterior merge și offline în teren.
+
 ## Deploy pe Cloudflare → https://cali.ipsv.ro
 
 Proiectul e pregătit cu `@opennextjs/cloudflare`. Subdomeniul **cali.ipsv.ro** este în `wrangler.jsonc`.

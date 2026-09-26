@@ -345,4 +345,17 @@ export const en: { [K in keyof RoMessages]: string } = {
   "footer.euEmblem": "European Union emblem",
   "footer.dataPolicy": "Data policy",
   "footer.obsMap": "Observations map",
+
+  // Offline / sync
+  "offline.banner": "Offline — observations are saved on this device",
+  "offline.savedLocal": "Saved locally on this device",
+  "offline.pending": "{count} waiting to upload",
+  "offline.syncing": "Uploading…",
+  "offline.synced": "Synced",
+  "offline.syncNow": "Upload now",
+  "offline.syncError": "Upload failed — will retry automatically",
+  "offline.online": "Online",
+  "offline.statusPending": "Not synced",
+  "offline.statusSynced": "Uploaded",
+  "offline.statusError": "Sync error",
 };
