@@ -19,7 +19,7 @@
     {
       "binding": "DB",
       "database_name": "cali-lab-db",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "303e2808-3d31-4083-83f7-e915e1b432b2",
       "migrations_dir": "migrations",
       "preview_database_id": "local-cali-lab-db"
     }
