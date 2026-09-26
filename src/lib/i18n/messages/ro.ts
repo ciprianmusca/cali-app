@@ -104,7 +104,7 @@ export const ro = {
   "home.toValidate": "De validat",
   "home.newUsers": "Utilizatori noi (30 zile)",
   "home.myObs": "Observațiile mele",
-  "home.modPhenDesc": "Stadiu fenologic al arborilor (muguri → stres)",
+  "home.modPhenDesc": "Stadiu fenologic și starea coroanei arborilor",
   "home.modDistDesc": "Insecte, doborâtură, uscare și alte perturbări",
   "home.modSoilDesc": "Mușchi, litieră, plante și sol gol — suma 100%",
   "home.newObs": "Observație nouă →",
