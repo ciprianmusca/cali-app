@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ModuleBadge, StatusBadge } from "@/components/observations/badges";
+import { ObservationThumb } from "@/components/observations/observation-thumb";
 import { ObservationsMap } from "@/components/map/observations-map";
 import { useCaliStore } from "@/lib/store";
 import type { Observation } from "@/lib/types";
@@ -132,12 +133,12 @@ function ObservationDetail({ id }: { id: string }) {
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {obs.photos.map((src, i) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={i}
+          <ObservationThumb
+            key={`${obs.id}-${i}-${src}`}
+            module={obs.module}
             src={src}
-            alt={`${t("obs.photos")} ${i + 1}`}
-            className="w-full rounded-lg border object-cover"
+            className="aspect-[4/3] w-full rounded-lg border"
+            imgClassName="object-cover"
           />
         ))}
       </div>

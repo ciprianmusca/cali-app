@@ -337,8 +337,14 @@ export const useCaliStore = create<CaliState>()(
           const remoteById = new Map(remote.map((o) => [o.id, o]));
           const remoteIds = new Set(remoteById.keys());
 
+          const sessionUserId = data.user?.id ?? null;
           const queue = get().offlineQueue;
+          // Preserve other accounts' offline rows in storage, but never surface
+          // them while another user is logged in (same browser profile).
           const nextQueue = queue.filter((o) => {
+            if (sessionUserId && o.authorId && o.authorId !== sessionUserId) {
+              return true; // keep for when that user logs back in
+            }
             const r = remoteById.get(o.id);
             if (!r) return true;
             if (o.syncStatus === "error") return false;
@@ -347,19 +353,23 @@ export const useCaliStore = create<CaliState>()(
             if ((o.validatedAt ?? "") !== (r.validatedAt ?? "")) return true;
             return false;
           });
-          const queueIds = new Set(nextQueue.map((o) => o.id));
+          const activeQueue = nextQueue.filter(
+            (o) => !sessionUserId || !o.authorId || o.authorId === sessionUserId
+          );
+          const activeQueueIds = new Set(activeQueue.map((o) => o.id));
 
           const localOnly = get().observations.filter(
             (o) =>
               !remoteIds.has(o.id) &&
-              (queueIds.has(o.id) ||
+              (!sessionUserId || o.authorId === sessionUserId) &&
+              (activeQueueIds.has(o.id) ||
                 o.syncStatus === "pending" ||
                 o.syncStatus === "error")
           );
 
           const merged = [
             ...remote.map((r) => {
-              const q = nextQueue.find((o) => o.id === r.id);
+              const q = activeQueue.find((o) => o.id === r.id);
               return q ?? r;
             }),
             ...localOnly,
@@ -583,13 +593,24 @@ export const useCaliStore = create<CaliState>()(
           return { ok: false, uploaded: 0, error: "busy" };
         }
 
+        const userId = get().currentUserId;
+        // Only flush the logged-in user's queue (never upload another role's
+        // leftover local rows from the same browser profile).
+        const ownedQueue = queue.filter(
+          (o) => !userId || !o.authorId || o.authorId === userId
+        );
+        if (!ownedQueue.length) {
+          set({ syncing: false });
+          return { ok: true, uploaded: 0 };
+        }
+
         set({ syncing: true, lastSyncError: null });
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 60000);
         try {
           // Hydrate idb: / leftover data: photos before upload to R2 via /api/sync.
           const hydrated = await Promise.all(
-            queue.map(async (o) => ({
+            ownedQueue.map(async (o) => ({
               ...o,
               photos: await hydratePhotosForSync(o.id, o.photos ?? []),
             }))
@@ -618,7 +639,7 @@ export const useCaliStore = create<CaliState>()(
                 currentUserId: null,
                 lastSyncError: "session_expired",
                 observations: get().observations.map((o) =>
-                  queue.some((q) => q.id === o.id)
+                  ownedQueue.some((q) => q.id === o.id)
                     ? { ...o, syncStatus: "pending", syncError: undefined }
                     : o
                 ),
@@ -626,19 +647,20 @@ export const useCaliStore = create<CaliState>()(
               return { ok: false, uploaded: 0, error: "session_expired" };
             }
             const msg = `HTTP ${res.status}`;
+            const ownedIds = new Set(ownedQueue.map((o) => o.id));
             set({
               syncing: false,
               lastSyncError: msg,
               observations: get().observations.map((o) =>
-                queue.some((q) => q.id === o.id)
+                ownedIds.has(o.id)
                   ? { ...o, syncStatus: "error", syncError: msg }
                   : o
               ),
-              offlineQueue: get().offlineQueue.map((o) => ({
-                ...o,
-                syncStatus: "error" as const,
-                syncError: msg,
-              })),
+              offlineQueue: get().offlineQueue.map((o) =>
+                ownedIds.has(o.id)
+                  ? { ...o, syncStatus: "error" as const, syncError: msg }
+                  : o
+              ),
             });
             return { ok: false, uploaded: 0, error: msg };
           }
@@ -696,11 +718,12 @@ export const useCaliStore = create<CaliState>()(
               : e instanceof Error
                 ? e.message
                 : "network";
+          const ownedIds = new Set(ownedQueue.map((o) => o.id));
           set({
             syncing: false,
             lastSyncError: msg,
             observations: get().observations.map((o) =>
-              queue.some((q) => q.id === o.id)
+              ownedIds.has(o.id)
                 ? { ...o, syncStatus: "error", syncError: msg }
                 : o
             ),
