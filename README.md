@@ -68,11 +68,12 @@ La autentificare GitHub: [Personal Access Token](https://github.com/settings/tok
 
 | Câmp | Valoare |
 |------|---------|
-| Worker name | `cali-lab` |
+| Worker name | `cali-lab` (trebuie să coincidă cu `name` din `wrangler.jsonc`) |
 | Production branch | `main` |
-| Build command | `npm run build` |
+| Build command | `npm run cf:build` |
 | Deploy command | `npx wrangler deploy` |
 | Root directory | (gol) |
+| GitHub repo | `ciprianmusca/cali-app` |
 
 5. **Save and Deploy** — build în cloud.
 6. Verifică `cali.ipsv.ro` (deja în `wrangler.jsonc`) la **Settings → Domains & Routes**.
