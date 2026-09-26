@@ -14,7 +14,8 @@ import { useCaliStore } from "@/lib/store";
 import { PHENOLOGY_STAGES } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
-import { ModuleBadge, StatusBadge } from "@/components/observations/badges";
+import { StatusBadge } from "@/components/observations/badges";
+import { ObservationThumb } from "@/components/observations/observation-thumb";
 import type { DisturbanceType, PhenologyStage, UserRole } from "@/lib/types";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import {
@@ -55,14 +56,12 @@ export function PublicStats() {
     ? observations
     : observations.filter((o) => o.status === "aprobat");
 
-  const monthAgo = Date.now() - 30 * 86400000;
-  const recent = visible.filter(
-    (o) => new Date(o.createdAt).getTime() >= monthAgo
-  );
-  const activeUsers = users.filter(
-    (u) =>
-      u.lastLoginAt && new Date(u.lastLoginAt).getTime() >= monthAgo
-  ).length;
+  // DES-11: cumulative totals since launch (not last 30 days).
+  const totalUsers = users.filter((u) => u.status === "activ").length;
+  const totalObs = visible.length;
+  const approvedCount = visible.filter((o) => o.status === "aprobat").length;
+  const distCount = visible.filter((o) => o.module === "perturbari").length;
+
   const validated = visible
     .filter((o) => o.status === "aprobat")
     .sort(
@@ -72,7 +71,10 @@ export function PublicStats() {
     )
     .slice(0, 5);
 
-  const byRole = (["rezident", "turist", "elev"] as UserRole[]).map((role) => ({
+  // UI-05: include Ranger in role chart
+  const byRole = (
+    ["rezident", "turist", "elev", "ranger"] as UserRole[]
+  ).map((role) => ({
     name: t(roleKey(role)),
     count: visible.filter((o) => o.authorRole === role).length,
   }));
@@ -93,19 +95,15 @@ export function PublicStats() {
     ).length,
   })).filter((d) => d.count > 0);
 
-  const approvedCount = visible.filter((o) => o.status === "aprobat").length;
-
   return (
     <div className="space-y-10">
+      {/* UI-07: render immediately — no scroll-triggered delay */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: t("stats.activeUsers"), value: activeUsers },
-          { label: t("stats.obsMonth"), value: recent.length },
+          { label: t("stats.activeUsers"), value: totalUsers },
+          { label: t("stats.obsMonth"), value: totalObs },
           { label: t("stats.validated"), value: approvedCount },
-          {
-            label: t("stats.distMonth"),
-            value: recent.filter((o) => o.module === "perturbari").length,
-          },
+          { label: t("stats.distMonth"), value: distCount },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -206,7 +204,9 @@ export function PublicStats() {
       ) : null}
 
       <section className="space-y-3">
-        <h2 className="font-display text-xl">{t("stats.last5")}</h2>
+        <h2 className="font-display text-xl">
+          {t("stats.lastN", { n: validated.length || 5 })}
+        </h2>
         <div className="divide-y rounded-lg border bg-card/70">
           {validated.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">
@@ -218,7 +218,12 @@ export function PublicStats() {
                 key={o.id}
                 className="flex flex-wrap items-center gap-3 px-4 py-3"
               >
-                <ModuleBadge module={o.module} />
+                <ObservationThumb
+                  module={o.module}
+                  src={o.photos[0]}
+                  alt={t(moduleKey(o.module))}
+                  className="relative h-14 w-20 shrink-0 rounded-md"
+                />
                 <StatusBadge status={o.status} />
                 <span className="font-medium">{o.code}</span>
                 <span className="text-sm text-muted-foreground">

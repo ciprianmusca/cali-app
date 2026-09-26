@@ -4,7 +4,6 @@ import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Shield, Trash2 } from "lucide-react";
-import { AuthGate } from "@/components/layout/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,7 +63,8 @@ function ObservationDetail({ id }: { id: string }) {
   const loc = locale === "en" ? "en" : "ro";
   const router = useRouter();
   const observations = useCaliStore((s) => s.observations);
-  const user = useCaliStore((s) => s.currentUser())!;
+  const hydrated = useCaliStore((s) => s.hydrated);
+  const user = useCaliStore((s) => s.currentUser());
   const validateObservation = useCaliStore((s) => s.validateObservation);
   const replyToClarification = useCaliStore((s) => s.replyToClarification);
   const deleteObservation = useCaliStore((s) => s.deleteObservation);
@@ -72,12 +72,10 @@ function ObservationDetail({ id }: { id: string }) {
   const [creatingTree, setCreatingTree] = useState(false);
   const [activity, setActivity] = useState<FieldActivity | null>(null);
 
+  const viewer = user ? { id: user.id, role: user.role } : null;
   const candidate = observations.find((o) => o.id === id);
   const obs =
-    candidate &&
-    canViewObservation(candidate, { id: user.id, role: user.role })
-      ? candidate
-      : undefined;
+    candidate && canViewObservation(candidate, viewer) ? candidate : undefined;
   const [decision, setDecision] = useState<DecisionChoice>("");
   const [comment, setComment] = useState("");
   const [sentinel, setSentinel] = useState(false);
@@ -129,7 +127,8 @@ function ObservationDetail({ id }: { id: string }) {
               .getState()
               .offlineQueue.filter((o) => o.id !== id),
           });
-          router.replace("/observatii");
+          const loggedIn = Boolean(useCaliStore.getState().currentUserId);
+          router.replace(loggedIn ? "/observatii" : "/");
           return;
         }
         if (!res.ok) return;
@@ -153,31 +152,46 @@ function ObservationDetail({ id }: { id: string }) {
     };
   }, [id, router]);
 
+  if (!hydrated) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 text-muted-foreground">
+        {t("auth.loading")}
+      </div>
+    );
+  }
+
   if (!obs) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <p>{t("obs.notFound")}</p>
-        <Link href="/observatii" className="text-primary underline">
-          {t("obs.backList")}
+        <Link href={user ? "/observatii" : "/"} className="text-primary underline">
+          {user ? t("obs.backList") : t("nav.stats")}
         </Link>
       </div>
     );
   }
 
-  const isStaff = user.role === "ranger" || user.role === "admin";
+  const isStaff = Boolean(
+    user && (user.role === "ranger" || user.role === "admin")
+  );
   const canValidate = isStaff && obs.status === "in_asteptare";
   const canReopen =
     isStaff && (obs.status === "aprobat" || obs.status === "respins");
   const canDelete =
+    Boolean(user) &&
     (obs.status === "in_asteptare" || obs.status === "clarificare") &&
-    obs.authorId === user.id;
+    obs.authorId === user!.id;
   const canEdit =
+    Boolean(user) &&
     (obs.status === "in_asteptare" || obs.status === "clarificare") &&
-    obs.authorId === user.id;
+    obs.authorId === user!.id;
   const canReplyClarify =
-    obs.status === "clarificare" && obs.authorId === user.id;
+    Boolean(user) &&
+    obs.status === "clarificare" &&
+    obs.authorId === user!.id;
   const canCreateTree = isStaff && Boolean(obs.species);
-  const isOwn = obs.authorId === user.id;
+  const isOwn = Boolean(user && obs.authorId === user.id);
+  const showNames = canSeeFullNames(user?.role);
 
   const createSentinel = async () => {
     if (!obs.species) return;
@@ -324,7 +338,12 @@ function ObservationDetail({ id }: { id: string }) {
       <h1 className="mt-3 font-display text-3xl text-forest">{obs.code}</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {formatDateTime(obs.createdAt)} ·{" "}
-        {displayAuthorName(obs.authorName, obs.authorRole, user.role, isOwn)}
+        {displayAuthorName(
+          obs.authorName,
+          obs.authorRole,
+          user?.role,
+          isOwn
+        )}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         {canEdit ? (
@@ -361,10 +380,11 @@ function ObservationDetail({ id }: { id: string }) {
             <ObservationThumb
               module={obs.module}
               src={src}
+              alt={`${obs.code} ${i + 1}`}
               className="aspect-[4/3] w-full rounded-lg border"
               imgClassName="object-cover"
             />
-            {user.role === "admin" ? (
+            {user?.role === "admin" ? (
               <Button
                 size="sm"
                 variant="destructive"
@@ -670,11 +690,11 @@ function ObservationDetail({ id }: { id: string }) {
       {obs.validatedAt ? (
         <div className="mt-8 rounded-lg border bg-card/80 p-4 text-sm">
           <p>
-            {canSeeFullNames(user.role) ? (
+            {showNames ? (
               <>
                 {t("obs.validatedBy")}{" "}
                 <strong>
-                  {displayValidatorName(obs.validatorName, user.role)}
+                  {displayValidatorName(obs.validatorName, user?.role)}
                 </strong>{" "}
                 {t("obs.at")} {formatDateTime(obs.validatedAt)}
               </>
@@ -734,7 +754,7 @@ function ObservationDetail({ id }: { id: string }) {
       {canValidate ? (
         <section className="mt-10 space-y-4 rounded-xl border border-primary/20 bg-card p-5">
           <h2 className="font-display text-xl text-forest">{t("obs.validation")}</h2>
-          {obs.authorId === user.id && user.role === "ranger" ? (
+          {user && obs.authorId === user.id && user.role === "ranger" ? (
             <Alert>
               <AlertTitle>{t("obs.selfValidateBlocked")}</AlertTitle>
               <AlertDescription>{t("obs.selfValidateMsg")}</AlertDescription>
@@ -915,9 +935,6 @@ export default function ObservationPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  return (
-    <AuthGate>
-      <ObservationDetail id={id} />
-    </AuthGate>
-  );
+  // UI-01: approved observations are publicly viewable (names masked).
+  return <ObservationDetail id={id} />;
 }

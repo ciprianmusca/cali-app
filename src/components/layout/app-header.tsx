@@ -15,6 +15,10 @@ import {
   BarChart3,
   UserRound,
   GraduationCap,
+  Info,
+  BookOpen,
+  HelpCircle,
+  Mail,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,9 +44,17 @@ export function AppHeader() {
   const observations = useCaliStore((s) => s.observations);
   const logout = useCaliStore((s) => s.logout);
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   const user = users.find((u) => u.id === currentUserId) ?? null;
   const pending = observations.filter((o) => o.status === "in_asteptare").length;
+
+  const guestInfoLinks = [
+    { href: "/despre", label: t("nav.about"), icon: Info },
+    { href: "/ghid", label: t("nav.guide"), icon: BookOpen },
+    { href: "/intrebari-frecvente", label: t("nav.faq"), icon: HelpCircle },
+    { href: "/contact", label: t("nav.contact"), icon: Mail },
+  ];
 
   const authLinks = user
     ? [
@@ -68,11 +80,20 @@ export function AppHeader() {
     : [
         { href: "/", label: t("nav.stats"), icon: BarChart3 },
         { href: "/harta", label: t("nav.map"), icon: Map },
+        ...guestInfoLinks,
       ];
 
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  // UI-11: solid sticky header after scroll on mobile
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const NavLinks = ({ mobile = false }: { mobile?: boolean }) => (
     <nav className={cn("flex gap-1", mobile ? "flex-col" : "items-center")}>
@@ -106,11 +127,18 @@ export function AppHeader() {
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4">
+    <header
+      className={cn(
+        "sticky top-0 z-40 border-b transition-[background-color,box-shadow,backdrop-filter]",
+        scrolled
+          ? "border-border bg-background shadow-sm"
+          : "border-border/60 bg-background/90 backdrop-blur-md"
+      )}
+    >
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4">
         <Link
           href={user ? "/acasa" : "/"}
-          className="flex items-center gap-2 font-display text-lg tracking-tight"
+          className="flex shrink-0 items-center gap-2 font-display text-lg tracking-tight"
         >
           <span className="flex size-8 items-center justify-center rounded-md bg-forest text-primary-foreground">
             <Leaf className="size-4" />
@@ -120,10 +148,11 @@ export function AppHeader() {
           </span>
         </Link>
 
-        <div className="hidden md:block">{hydrated ? <NavLinks /> : null}</div>
+        <div className="hidden lg:block">{hydrated ? <NavLinks /> : null}</div>
 
         <div className="flex items-center gap-2">
-          <LanguageSwitcher className="hidden sm:inline-flex" />
+          {/* DES-09: language always visible in header (not only mobile menu) */}
+          <LanguageSwitcher className="inline-flex" />
 
           {hydrated && user ? (
             <div className="hidden items-center gap-3 sm:flex">
@@ -159,7 +188,7 @@ export function AppHeader() {
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
               render={
-                <Button variant="outline" size="icon" className="md:hidden" />
+                <Button variant="outline" size="icon" className="lg:hidden" />
               }
             >
               <Menu className="size-4" />

@@ -14,6 +14,7 @@ import {
 import { hashPassword } from "@/lib/password";
 import type { User } from "@/lib/types";
 import { isValidPassword } from "@/lib/format";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export async function POST(request: Request) {
   try {
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
       isAdult?: boolean;
       gdprAccepted?: boolean;
       gdprVersion?: string;
+      turnstileToken?: string;
     };
 
     const name = body.name?.trim() ?? "";
@@ -35,6 +37,17 @@ export async function POST(request: Request) {
     if (!name || !email || !password) {
       return NextResponse.json(
         { ok: false, error: "invalid" },
+        { status: 400 }
+      );
+    }
+
+    const ip =
+      request.headers.get("cf-connecting-ip") ??
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    const captchaOk = await verifyTurnstileToken(body.turnstileToken, ip);
+    if (!captchaOk) {
+      return NextResponse.json(
+        { ok: false, error: "captcha" },
         { status: 400 }
       );
     }

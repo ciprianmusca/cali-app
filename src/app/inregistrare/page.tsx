@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 import { useCaliStore } from "@/lib/store";
 import { isValidPassword } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/use-i18n";
@@ -24,9 +25,12 @@ export default function RegisterPage() {
   const [role, setRole] = useState<"turist" | "rezident">("turist");
   const [isAdult, setIsAdult] = useState(false);
   const [gdprOk, setGdprOk] = useState(false);
-  const [captcha, setCaptcha] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const captchaAnswer = "7";
+
+  const onToken = useCallback((token: string | null) => {
+    setTurnstileToken(token);
+  }, []);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -39,7 +43,7 @@ export default function RegisterPage() {
       setError(t("error.passwordRules"));
       return;
     }
-    if (captcha.trim() !== captchaAnswer) {
+    if (!turnstileToken) {
       setError(t("error.captcha"));
       return;
     }
@@ -59,6 +63,7 @@ export default function RegisterPage() {
       isAdult,
       gdprAccepted: gdprOk,
       gdprVersion: GDPR_VERSION,
+      turnstileToken,
     });
     if (!res.ok) {
       setError(res.error ?? t("obs.error"));
@@ -132,13 +137,8 @@ export default function RegisterPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="captcha">{t("auth.captcha")}</Label>
-          <Input
-            id="captcha"
-            required
-            value={captcha}
-            onChange={(e) => setCaptcha(e.target.value)}
-          />
+          <Label>{t("auth.turnstile")}</Label>
+          <TurnstileWidget onToken={onToken} />
         </div>
         <label className="flex items-start gap-2 text-sm">
           <Checkbox
@@ -161,14 +161,7 @@ export default function RegisterPage() {
           </span>
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button
-          type="button"
-          className="w-full"
-          onClick={() => {
-            const fake = { preventDefault() {} } as FormEvent;
-            void onSubmit(fake);
-          }}
-        >
+        <Button type="submit" className="w-full">
           {t("auth.submitRegister")}
         </Button>
       </form>

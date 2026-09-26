@@ -37,6 +37,11 @@ export default function HartaPage() {
         ? "in_asteptare"
         : "all");
 
+  const moduleLabel =
+    module === "all" ? t("obs.all") : t(moduleKey(module));
+  const statusLabel =
+    status === "all" ? t("obs.all") : t(statusKey(status));
+
   const filtered = useMemo(() => {
     const viewer = user ? { id: user.id, role: user.role } : null;
     let list = filterObservationsForViewer(observations, viewer);
@@ -46,7 +51,6 @@ export default function HartaPage() {
   }, [observations, module, status, user]);
 
   const exportGeoJSON = () => {
-    // Server applies the same visibility rule as list/map (SEC-04).
     window.location.href = "/api/export?format=geojson";
   };
 
@@ -60,13 +64,27 @@ export default function HartaPage() {
             {user ? t("map.subAuth") : ""}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={exportGeoJSON}
-          className="rounded-md border bg-card px-3 py-2 text-sm hover:bg-muted"
-        >
-          {t("map.export")}
-        </button>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            type="button"
+            onClick={exportGeoJSON}
+            className="rounded-md border bg-card px-3 py-2 text-sm hover:bg-muted"
+          >
+            {t("map.export")}
+          </button>
+          <p className="max-w-xs text-right text-[11px] leading-snug text-muted-foreground">
+            {t("map.exportLicense")}{" "}
+            <a
+              href="https://creativecommons.org/licenses/by/4.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline-offset-2 hover:underline"
+            >
+              CC BY 4.0
+            </a>
+            . {t("map.exportCite")}
+          </p>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -77,7 +95,7 @@ export default function HartaPage() {
             onValueChange={(v) => setModule((v ?? "all") as typeof module)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue>{moduleLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("obs.all")}</SelectItem>
@@ -98,7 +116,7 @@ export default function HartaPage() {
             }
           >
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue>{statusLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("obs.all")}</SelectItem>

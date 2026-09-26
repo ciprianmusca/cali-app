@@ -15,8 +15,8 @@ export const ro = {
   // Roles
   "role.admin": "Administrator",
   "role.ranger": "Ranger",
-  "role.rezident": "Rezident",
-  "role.turist": "Turist",
+  "role.rezident": "Proprietar / administrator de pădure",
+  "role.turist": "Localnic",
   "role.elev": "Elev",
   "role.elevAnon": "Elev (anonimizat)",
 
@@ -32,10 +32,10 @@ export const ro = {
   "status.clarificare": "Clarificare",
 
   // Landing
-  "landing.heroAlt": "Pădure în ceață",
-  "landing.headline": "Observații din pădure pentru Climate-Smart Forestry",
+  "landing.heroAlt": "Peisaj forestier din Parcul Național Călimani",
+  "landing.headline": "Observații de teren pentru pădurile de mâine",
   "landing.sub":
-    "Colectați fenologie, perturbări și acoperire de sol — date validate de rangeri.",
+    "Fenologie, perturbări și sol, documentate de oameni și validate de specialiști. Pilot în Parcul Național Călimani.",
   "landing.ctaStart": "Începeți o observație",
   "landing.ctaMap": "Explorați harta",
   "landing.statsTitle": "Statistici publice",
@@ -53,13 +53,13 @@ export const ro = {
   "auth.hasAccount": "Aveți deja cont?",
   "auth.registerTitle": "Creare cont",
   "auth.registerSub":
-    "Conturile de Elev și Ranger sunt create de administrator. Aici vă puteți înregistra ca Turist sau Rezident.",
+    "Conturile de Elev și Ranger sunt create de administrator. Aici vă puteți înregistra ca Localnic sau Proprietar / administrator de pădure.",
   "auth.name": "Nume și prenume",
   "auth.requestedRole": "Rol solicitat",
-  "auth.roleTourist": "Turist",
-  "auth.roleResident": "Rezident (deținător de pădure)",
+  "auth.roleTourist": "Localnic",
+  "auth.roleResident": "Proprietar / administrator de pădure",
   "auth.passwordConfirm": "Verificare parolă",
-  "auth.captcha": "Cât face 3 + 4?",
+  "auth.captcha": "Verificare de securitate",
   "auth.adult": "Confirm că sunt adult (18+)",
   "auth.submitRegister": "Creează cont",
   "auth.loading": "Se încarcă…",
@@ -73,7 +73,7 @@ export const ro = {
   "error.passwordMismatch": "Parolele nu coincid.",
   "error.passwordRules":
     "Parola trebuie să aibă minim 8 caractere, litere, o cifră și un caracter special.",
-  "error.captcha": "Codul captcha este incorect.",
+  "error.captcha": "Verificarea de securitate a eșuat. Reîncercați.",
   "error.confirmAdult": "Confirmați că sunteți adult.",
   "error.onlyRangers": "Doar rangerii pot valida.",
   "error.obsMissing": "Observație inexistentă.",
@@ -416,14 +416,15 @@ export const ro = {
 
   // Stats
   "stats.loading": "Se încarcă statisticile…",
-  "stats.activeUsers": "Utilizatori activi (30 zile)",
-  "stats.obsMonth": "Observații (30 zile)",
+  "stats.activeUsers": "Utilizatori (total)",
+  "stats.obsMonth": "Observații (total)",
   "stats.validated": "Observații validate",
-  "stats.distMonth": "Perturbări (30 zile)",
+  "stats.distMonth": "Perturbări (total)",
   "stats.byRole": "Observații pe rol",
   "stats.phenStages": "Stadii fenologice",
   "stats.distTypes": "Tipuri de perturbări",
   "stats.last5": "Ultimele 5 observații validate",
+  "stats.lastN": "Ultimele {n} observații validate",
   "stats.noneValidated": "Nicio observație validată încă.",
   "stats.role": "Rol",
   "stats.count": "Număr",
@@ -580,6 +581,95 @@ export const ro = {
   "glossary.zona_activitate.title": "Zona activității",
   "glossary.zona_activitate.body":
     "Aria geografică a activității de teren școlare.",
+
+  // Meta (DES-10)
+  "meta.title": "CALI-LAB · Observații de teren pentru pădurile de mâine",
+  "meta.description": "Fenologie, perturbări și sol, documentate de oameni și validate de specialiști. Pilot în Parcul Național Călimani.",
+
+  // Nav extras (DES-05)
+  "nav.about": "Despre",
+  "nav.guide": "Ghid",
+  "nav.faq": "Întrebări frecvente",
+  "nav.contact": "Contact",
+
+  // Partners
+  "partners.band": "Parteneri",
+  "partners.isv": "Institutul de Cercetări și Amenajări Silvice (ISV)",
+  "partners.apnc": "Administrația Parcului Național Călimani (APNC)",
+  "partners.efi": "European Forest Institute (EFI)",
+
+  // Footer extras
+  "footer.fundedBy": "Funded by the European Union",
+  "footer.disclaimer": "Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Forest Institute. Neither the European Union nor the granting authority can be held responsible for them.",
+  "footer.apncFull": "Administrația Parcului Național Călimani (APNC)",
+  "footer.apncSite": "Site APNC",
+
+  // Landing how-it-works
+  "landing.howTitle": "Cum funcționează",
+  "landing.howSub": "De pe teren până la ForestWard Observatory, în trei pași.",
+  "landing.how1Title": "Observi pe teren",
+  "landing.how1Body": "Înregistrați fenologie, perturbări sau acoperirea solului cu GPS și fotografii.",
+  "landing.how2Title": "Un specialist validează",
+  "landing.how2Body": "Rangerii parcului verifică și aprobă observațiile înainte de publicare.",
+  "landing.how3Title": "Datele ajung în ForestWard Observatory",
+  "landing.how3Body": "Datele anonimizate alimentează observatorul EFI / FORWARDS.",
+
+  // About / guide / contact / FAQ
+  "about.title": "Despre CALI-LAB",
+  "about.lead": "Proiect pilot pentru Climate-Smart Forestry în Parcul Național Călimani.",
+  "about.projectTitle": "Proiectul",
+  "about.projectBody": "CALI-LAB este o aplicație de tip PWA care colectează observații științifice din teren — fenologie, perturbări și acoperire de sol — validate de specialiști și publicate conform principiilor FAIR (CC BY 4.0).",
+  "about.partnersTitle": "Parteneri",
+  "about.partnersBody": "Parteneriat între ISV, APNC și ecosistemul ForestWard (EFI), finanțat prin Grant Agreement G-07-2025-2.",
+  "about.teamTitle": "Echipa",
+  "about.teamIsv": "coordonare științifică și tehnică a aplicației",
+  "about.teamApnc": "validare pe teren și cunoaștere locală a pădurii",
+  "about.teamEfi": "cadrul ForestWard Observatory / FORWARDS",
+  "about.dataFlowTitle": "Cum circulă datele",
+  "about.dataFlow1": "Utilizatorii autentificați trimit observații cu GPS și fotografii.",
+  "about.dataFlow2": "Rangerii APNC validează, corectă sau cer clarificări.",
+  "about.dataFlow3": "Observațiile aprobate apar pe hartă și în statistici publice (fără nume).",
+  "about.dataFlow4": "Exportul FAIR (CSV/GeoJSON) alimentează ForestWard Observatory.",
+
+  "guide.title": "Ghid de teren",
+  "guide.lead": "Fișe scurte pentru fiecare modul, cu exemple de fotografii bune și greșite.",
+  "guide.phenTitle": "Fenologie",
+  "guide.phenBody": "Fotografiați coroana clar, pe lumină bună, fără umbre puternice pe frunze. Notați stadiul și starea coroanei.",
+  "guide.distTitle": "Perturbări",
+  "guide.distBody": "Încadrați zona afectată și detaliile (galerii, rupturi). Evitați cadre neclare sau prea îndepărtate.",
+  "guide.soilTitle": "Sol",
+  "guide.soilBody": "Fotografiați parcela 1×1 m de sus. Cele patru acoperiri trebuie să însumeze 100%.",
+  "guide.goodAlt": "Exemplu de fotografie bună",
+  "guide.badAlt": "Exemplu de fotografie greșită",
+  "guide.goodCaption": "Exemplu bun",
+  "guide.badCaption": "De evitat",
+
+  "contact.title": "Contact",
+  "contact.lead": "Pentru întrebări despre proiect, conturi sau date.",
+  "contact.emailLabel": "Email proiect",
+  "contact.isvLabel": "ISV",
+  "contact.isvBody": "Institutul de Cercetări și Amenajări Silvice — operator de date.",
+  "contact.apncLabel": "APNC",
+  "contact.apncBody": "Administrația Parcului Național Călimani — validare pe teren.",
+
+  "faq.title": "Întrebări frecvente",
+  "faq.lead": "Răspunsuri scurte despre conturi, validare și date.",
+  "faq.q1": "Cine poate crea un cont?",
+  "faq.a1": "Oricine adult se poate înregistra ca Localnic sau Proprietar / administrator de pădure. Conturile de elev și ranger sunt create de administrator.",
+  "faq.q2": "Când apare observația pe hartă?",
+  "faq.a2": "După ce un ranger o aprobă. Până atunci o vedeți doar dvs. (și rangerii/admin).",
+  "faq.q3": "Ce se întâmplă cu fotografiile mele?",
+  "faq.a3": "Sunt stocate securizat și folosite pentru validare științifică. La exportul FAIR, textul liber este exclus implicit.",
+  "faq.q4": "Unde ajung datele?",
+  "faq.a4": "Observațiile aprobate pot fi exportate anonimizat către ForestWard Observatory (EFI/FORWARDS), sub licență CC BY 4.0.",
+  "faq.q5": "Cum aleg modulul potrivit?",
+  "faq.a5": "Fenologie = stadiul arborelui; Perturbări = daune/insecte; Sol = acoperirea pe parcela 1×1 m. Consultați Ghidul.",
+  "faq.q6": "Pot șterge contul?",
+  "faq.a6": "Da, din Profil. Observațiile rămân pseudonimizate pentru cercetare.",
+
+  "auth.turnstile": "Verificare de securitate",
+  "map.exportLicense": "Licență:",
+  "map.exportCite": "Citați: CALI-LAB (ISV & APNC), Grant Agreement G-07-2025-2. CRS: EPSG:4326.",
 } as const;
 
 export type RoMessages = typeof ro;

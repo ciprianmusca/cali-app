@@ -161,7 +161,9 @@ function ValidationQueue() {
             onValueChange={(v) => setModule((v ?? "all") as typeof module)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {module === "all" ? t("obs.all") : t(moduleKey(module))}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("obs.all")}</SelectItem>
@@ -180,7 +182,11 @@ function ValidationQueue() {
             onValueChange={(v) => setAuthorRole(v ?? "all")}
           >
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {authorRole === "all"
+                  ? t("obs.all")
+                  : t(roleKey(authorRole as UserRole))}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("obs.all")}</SelectItem>

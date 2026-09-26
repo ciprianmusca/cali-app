@@ -11,11 +11,14 @@ export function ObservationThumb({
   src,
   className,
   imgClassName,
+  alt = "",
 }: {
   module: ObservationModule;
   src?: string | null;
   className?: string;
   imgClassName?: string;
+  /** UI-13: meaningful alt for photos when provided */
+  alt?: string;
 }) {
   const fallback = modulePlaceholder(module);
   const [current, setCurrent] = useState(src || fallback);
@@ -36,7 +39,6 @@ export function ObservationThumb({
           setCurrent(data);
           return;
         }
-        // IndexedDB miss (other account / cleared) → try API if we know the id.
         setCurrent(
           `/api/observations/${parsed.obsId}/photo/${parsed.index}`
         );
@@ -46,7 +48,21 @@ export function ObservationThumb({
       };
     }
 
-    setCurrent(resolved);
+    // Absolute/local placeholders always load from /public
+    if (
+      resolved.startsWith("/placeholders/") ||
+      resolved.startsWith("/guide/") ||
+      resolved.endsWith(".svg") ||
+      resolved.endsWith(".jpg") ||
+      resolved.endsWith(".png") ||
+      resolved.startsWith("http") ||
+      resolved.startsWith("data:") ||
+      resolved.startsWith("/api/")
+    ) {
+      setCurrent(resolved);
+    } else {
+      setCurrent(fallback);
+    }
     return () => {
       cancelled = true;
     };
@@ -57,7 +73,7 @@ export function ObservationThumb({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={current}
-        alt=""
+        alt={alt}
         className={cn("size-full object-cover", imgClassName)}
         onError={() => {
           if (current !== fallback) setCurrent(fallback);

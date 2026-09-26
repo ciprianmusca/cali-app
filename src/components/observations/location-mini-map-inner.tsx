@@ -98,6 +98,13 @@ export default function LocationMiniMapInner({
           <TileLayer
             attribution="© OSM · OpenTopoMap"
             url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+            eventHandlers={{
+              load: (e) => {
+                const el = (e.target as { getContainer?: () => HTMLElement })
+                  .getContainer?.();
+                if (el) el.setAttribute("aria-hidden", "true");
+              },
+            }}
           />
           <DraggableMarker value={value} onChange={onChange} />
         </MapContainer>

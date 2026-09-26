@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AuthGate } from "@/components/layout/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
@@ -192,16 +193,34 @@ function SolForm() {
                     {t(COVER_MSG[key].hint)}
                   </div>
                 </div>
-                <div className="font-display text-xl tabular-nums">
-                  {cover[key]}%
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={100}
+                    step={5}
+                    aria-label={t(COVER_MSG[key].title)}
+                    className="h-11 w-20 text-right tabular-nums"
+                    value={cover[key]}
+                    onChange={(e) => {
+                      const n = Number(e.target.value);
+                      if (Number.isNaN(n)) return;
+                      const clamped = Math.max(0, Math.min(100, n));
+                      const stepped = Math.round(clamped / 5) * 5;
+                      setPct(key, stepped);
+                    }}
+                  />
+                  <span className="text-sm text-muted-foreground">%</span>
                 </div>
               </div>
               <Slider
-                className="mt-4"
+                className="mt-4 min-h-11"
                 min={0}
                 max={100}
                 step={5}
                 value={[cover[key]]}
+                aria-label={t(COVER_MSG[key].title)}
                 onValueChange={(v) => {
                   const arr = Array.isArray(v) ? v : [v];
                   setPct(key, arr[0] ?? 0);

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PartnerLogos } from "@/components/layout/partner-logos";
 import { useI18n } from "@/lib/i18n/use-i18n";
 
 export function AppFooter() {
@@ -8,46 +9,91 @@ export function AppFooter() {
 
   return (
     <footer className="mt-auto border-t border-border/60 bg-forest text-primary-foreground">
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 md:grid-cols-[1fr_auto] md:items-start">
-        <div className="space-y-3 text-sm leading-relaxed text-primary-foreground/90">
-          <div className="flex flex-wrap items-center gap-4">
-            <div
-              className="flex h-12 w-16 items-center justify-center rounded-sm bg-[#003399] text-[10px] font-bold tracking-wide text-yellow-300"
-              aria-label={t("footer.euEmblem")}
-            >
-              EU
+      <div className="mx-auto max-w-6xl space-y-8 px-4 py-10">
+        <div className="grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-start">
+          <div className="space-y-3 text-sm leading-relaxed text-primary-foreground/90">
+            <div className="flex flex-wrap items-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logos/eu.svg"
+                alt={t("footer.euEmblem")}
+                className="h-12 w-auto rounded-sm shadow-sm"
+                width={72}
+                height={48}
+              />
+              <div>
+                <p className="font-medium">{t("footer.fundedBy")}</p>
+                <p className="text-primary-foreground/70">
+                  EFI · FORWARDS · Climate-Smart Forestry
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-medium">Funded by the European Union</p>
-              <p className="text-primary-foreground/70">
-                EFI · FORWARDS · Climate-Smart Forestry
-              </p>
-            </div>
+            <p className="max-w-2xl text-xs text-primary-foreground/65">
+              {t("footer.disclaimer")}
+            </p>
+            <p className="text-xs text-primary-foreground/70">
+              CALI-LAB · Grant Agreement G-07-2025-2 · ISV &amp;{" "}
+              {t("footer.apncFull")}
+            </p>
+            <p className="text-xs">
+              <a
+                href="mailto:contact@cali.ipsv.ro"
+                className="underline-offset-2 hover:underline"
+              >
+                contact@cali.ipsv.ro
+              </a>
+            </p>
           </div>
-          <p className="max-w-2xl text-xs text-primary-foreground/65">
-            Views and opinions expressed are however those of the author(s) only
-            and do not necessarily reflect those of the European Union or the
-            European Forest Institute. Neither the European Union nor the
-            granting authority can be held responsible for them.
-          </p>
-          <p className="text-xs text-primary-foreground/70">
-            CALI-LAB · Grant Agreement G-07-2025-2 · ISV &amp; Administrația
-            Parcului Național Călimani (APNC)
-          </p>
+
+          <div className="flex flex-col gap-2 text-sm">
+            <Link href="/despre" className="underline-offset-2 hover:underline">
+              {t("nav.about")}
+            </Link>
+            <Link href="/ghid" className="underline-offset-2 hover:underline">
+              {t("nav.guide")}
+            </Link>
+            <Link
+              href="/intrebari-frecvente"
+              className="underline-offset-2 hover:underline"
+            >
+              {t("nav.faq")}
+            </Link>
+            <Link href="/contact" className="underline-offset-2 hover:underline">
+              {t("nav.contact")}
+            </Link>
+            <Link
+              href="/politica-date"
+              className="underline-offset-2 hover:underline"
+            >
+              {t("footer.dataPolicy")}
+            </Link>
+            <Link href="/harta" className="underline-offset-2 hover:underline">
+              {t("footer.obsMap")}
+            </Link>
+            <a
+              href="https://www.ipsv.ro"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline-offset-2 hover:underline"
+            >
+              ipsv.ro
+            </a>
+            <a
+              href="https://calimani.info"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline-offset-2 hover:underline"
+            >
+              {t("footer.apncSite")}
+            </a>
+          </div>
         </div>
-        <div className="flex flex-col gap-2 text-sm">
-          <Link href="/politica-date" className="underline-offset-2 hover:underline">
-            {t("footer.dataPolicy")}
-          </Link>
-          <Link href="/harta" className="underline-offset-2 hover:underline">
-            {t("footer.obsMap")}
-          </Link>
-          <a
-            href="https://cali.ipsv.ro"
-            className="text-primary-foreground/60 underline-offset-2 hover:underline"
-          >
-            cali.ipsv.ro
-          </a>
+
+        <div className="border-t border-primary-foreground/15 pt-6">
+          <p className="mb-4 text-center text-xs text-primary-foreground/60">
+            {t("partners.band")}
+          </p>
+          <PartnerLogos />
         </div>
       </div>
     </footer>

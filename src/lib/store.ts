@@ -59,6 +59,7 @@ interface CaliState {
     isAdult: boolean;
     gdprAccepted: boolean;
     gdprVersion: string;
+    turnstileToken: string;
   }) => Promise<{ ok: boolean; error?: string }>;
   acceptGdpr: () => void;
   notifications: AppNotification[];
@@ -600,6 +601,7 @@ export const useCaliStore = create<CaliState>()(
         isAdult,
         gdprAccepted,
         gdprVersion,
+        turnstileToken,
       }) => {
         if (!isAdult)
           return {
@@ -621,6 +623,7 @@ export const useCaliStore = create<CaliState>()(
               isAdult,
               gdprAccepted,
               gdprVersion,
+              turnstileToken,
             }),
           });
           const data = (await res.json().catch(() => ({}))) as {
@@ -634,6 +637,9 @@ export const useCaliStore = create<CaliState>()(
             }
             if (data.error === "password_rules") {
               return { ok: false, error: tKey("error.passwordRules") };
+            }
+            if (data.error === "captcha") {
+              return { ok: false, error: tKey("error.captcha") };
             }
             if (data.error === "gdpr_required") {
               return { ok: false, error: tKey("error.gdprRequired") };

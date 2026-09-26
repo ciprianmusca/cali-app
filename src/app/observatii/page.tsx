@@ -116,7 +116,9 @@ function ObservationsList() {
             onValueChange={(v) => setModule((v ?? "all") as typeof module)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {module === "all" ? t("obs.all") : t(moduleKey(module))}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("obs.all")}</SelectItem>
@@ -135,7 +137,9 @@ function ObservationsList() {
             onValueChange={(v) => setStatus((v ?? "all") as typeof status)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue />
+              <SelectValue>
+                {status === "all" ? t("obs.all") : t(statusKey(status))}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("obs.all")}</SelectItem>

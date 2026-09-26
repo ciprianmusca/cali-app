@@ -16,8 +16,8 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   admin: "Administrator",
   ranger: "Ranger",
   profesor: "Profesor",
-  rezident: "Rezident",
-  turist: "Turist",
+  rezident: "Proprietar / administrator de pădure",
+  turist: "Localnic",
   elev: "Elev",
 };
 

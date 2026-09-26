@@ -61,9 +61,17 @@ export default function ObservationsMapInner({
         style={{ height: "100%", width: "100%" }}
         scrollWheelZoom
       >
+        {/* UI-13: decorative map tiles */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> · <a href="https://opentopomap.org">OpenTopoMap</a>'
           url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+          eventHandlers={{
+            load: (e) => {
+              const el = (e.target as { getContainer?: () => HTMLElement })
+                .getContainer?.();
+              if (el) el.setAttribute("aria-hidden", "true");
+            },
+          }}
         />
         <FitBounds observations={observations} />
         {observations.map((o) => (
@@ -92,6 +100,7 @@ export default function ObservationsMapInner({
                 <ObservationThumb
                   module={o.module}
                   src={o.photos[0]}
+                  alt={t(moduleKey(o.module))}
                   className="mt-1 h-20 w-full rounded"
                 />
                 <Link
