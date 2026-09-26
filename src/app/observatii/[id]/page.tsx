@@ -16,6 +16,7 @@ import { useCaliStore } from "@/lib/store";
 import type { Observation } from "@/lib/types";
 import {
   displayAuthorName,
+  displayValidatorName,
   formatCoord,
   formatDateTime,
   mapsDirectionsUrl,
@@ -279,7 +280,10 @@ function ObservationDetail({ id }: { id: string }) {
       {obs.validatedAt ? (
         <div className="mt-8 rounded-lg border bg-card/80 p-4 text-sm">
           <p>
-            {t("obs.validatedBy")} <strong>{obs.validatorName}</strong>{" "}
+            {t("obs.validatedBy")}{" "}
+            <strong>
+              {displayValidatorName(obs.validatorName, user.role)}
+            </strong>{" "}
             {t("obs.at")} {formatDateTime(obs.validatedAt)}
           </p>
           {obs.validationComment ? (

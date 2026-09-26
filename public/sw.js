@@ -1,5 +1,5 @@
 /* CALI-LAB service worker — offline app shell + asset cache */
-const VERSION = "cali-lab-sw-v6";
+const VERSION = "cali-lab-sw-v7";
 const SHELL = [
   "/",
   "/acasa",

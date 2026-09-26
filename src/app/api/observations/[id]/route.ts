@@ -8,6 +8,7 @@ import {
   upsertObservation,
 } from "@/lib/db";
 import type { Observation } from "@/lib/types";
+import { maskObservationNames } from "@/lib/privacy";
 
 /** Full observation including inline photos (bootstrap strips data-URIs). */
 export async function GET(
@@ -35,10 +36,16 @@ export async function GET(
           { status: 401 }
         );
       }
-      return NextResponse.json({ ok: true, observation: existing });
+      return NextResponse.json({
+        ok: true,
+        observation: maskObservationNames(existing, null),
+      });
     }
 
-    return NextResponse.json({ ok: true, observation: existing });
+    return NextResponse.json({
+      ok: true,
+      observation: maskObservationNames(existing, session.role),
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "get_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
@@ -87,7 +94,10 @@ export async function PATCH(
 
     const merged = { ...existing, ...safePatch, id } as Observation;
     await upsertObservation(db, merged);
-    return NextResponse.json({ ok: true, observation: merged });
+    return NextResponse.json({
+      ok: true,
+      observation: maskObservationNames(merged, auth.user.role),
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "update_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

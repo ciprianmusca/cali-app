@@ -8,11 +8,11 @@ import {
   ensureSchema,
   findUserByEmail,
   getDB,
-  migratePlaintextPasswords,
+  migratePasswords,
   seedIfEmpty,
   upsertUser,
 } from "@/lib/db";
-import { verifyPassword } from "@/lib/password";
+import { hashPassword, needsRehash, verifyPassword } from "@/lib/password";
 
 export async function POST(request: Request) {
   try {
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const db = await getDB();
     await ensureSchema(db);
     await seedIfEmpty(db);
-    await migratePlaintextPasswords(db);
+    await migratePasswords(db);
 
     const user = await findUserByEmail(db, email);
     if (!user || user.status !== "activ") {
@@ -51,7 +51,14 @@ export async function POST(request: Request) {
     }
 
     const lastLoginAt = new Date().toISOString();
-    const updated = { ...user, lastLoginAt };
+    const updated = {
+      ...user,
+      lastLoginAt,
+      // Upgrade legacy bcrypt/plaintext to PBKDF2 after a successful check.
+      password: needsRehash(user.password)
+        ? await hashPassword(password)
+        : user.password,
+    };
     await upsertUser(db, updated);
 
     const token = await createSessionToken(updated);

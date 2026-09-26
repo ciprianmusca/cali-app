@@ -1,28 +1,29 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, toPublicUser, canValidate } from "@/lib/auth";
+import { getSessionUser, toPublicUser } from "@/lib/auth";
 import {
   ensureSchema,
   getDB,
   listObservations,
   listUsers,
-  migratePlaintextPasswords,
+  migratePasswords,
   seedIfEmpty,
 } from "@/lib/db";
 import { slimObservationPhotos } from "@/lib/photos";
+import { maskObservations } from "@/lib/privacy";
 
 /**
  * Canonical data from D1.
  * - Never returns passwords.
- * - Unauthenticated: only approved observations, no user directory.
- * - Authenticated: observations + user directory only for admin.
- * - Inline photo payloads are replaced with /api/observations/:id/photo/:i URLs.
+ * - Unauthenticated: only approved observations, no user directory, masked names.
+ * - Authenticated: session user; full names only for admin/ranger.
+ * - Inline photo payloads → /api/observations/:id/photo/:i URLs.
  */
 export async function GET() {
   try {
     const db = await getDB();
     await ensureSchema(db);
     await seedIfEmpty(db);
-    await migratePlaintextPasswords(db);
+    await migratePasswords(db);
 
     const session = await getSessionUser();
     const allObservations = (await listObservations(db)).map(
@@ -34,7 +35,10 @@ export async function GET() {
         ok: true,
         user: null,
         users: [],
-        observations: allObservations.filter((o) => o.status === "aprobat"),
+        observations: maskObservations(
+          allObservations.filter((o) => o.status === "aprobat"),
+          null
+        ),
         serverTime: new Date().toISOString(),
       });
     }
@@ -44,15 +48,11 @@ export async function GET() {
         ? (await listUsers(db)).map(toPublicUser)
         : [toPublicUser(session)];
 
-    const observations = canValidate(session.role)
-      ? allObservations
-      : allObservations;
-
     return NextResponse.json({
       ok: true,
       user: toPublicUser(session),
       users,
-      observations,
+      observations: maskObservations(allObservations, session.role),
       serverTime: new Date().toISOString(),
     });
   } catch (e) {

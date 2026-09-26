@@ -9,6 +9,7 @@ import {
 } from "@/lib/db";
 import type { Observation } from "@/lib/types";
 import { slimObservationPhotos } from "@/lib/photos";
+import { maskObservations } from "@/lib/privacy";
 
 export async function GET() {
   try {
@@ -20,10 +21,16 @@ export async function GET() {
     if (!session) {
       return NextResponse.json({
         ok: true,
-        observations: all.filter((o) => o.status === "aprobat"),
+        observations: maskObservations(
+          all.filter((o) => o.status === "aprobat"),
+          null
+        ),
       });
     }
-    return NextResponse.json({ ok: true, observations: all });
+    return NextResponse.json({
+      ok: true,
+      observations: maskObservations(all, session.role),
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "list_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

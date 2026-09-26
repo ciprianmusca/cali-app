@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { CloudOff, CloudUpload, Loader2, RefreshCw, Wifi } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useCaliStore } from "@/lib/store";
@@ -22,6 +23,8 @@ export function ServiceWorkerRegister() {
 
 export function OfflineSyncBar() {
   const { t } = useI18n();
+  const router = useRouter();
+  const pathname = usePathname();
   const [online, setOnline] = useState(true);
   const offlineQueue = useCaliStore((s) => s.offlineQueue);
   const syncing = useCaliStore((s) => s.syncing);
@@ -45,7 +48,12 @@ export function OfflineSyncBar() {
     if (!hydrated || !online) return;
     if (offlineQueue.length === 0) return;
     if (!currentUserId) return;
-    if (lastSyncError === "unauthorized") return;
+    if (
+      lastSyncError === "session_expired" ||
+      lastSyncError === "unauthorized"
+    ) {
+      return;
+    }
     void flushOfflineQueue();
   }, [
     hydrated,
@@ -65,14 +73,30 @@ export function OfflineSyncBar() {
     return () => window.clearTimeout(t);
   }, [syncing]);
 
+  // SEC-10: expired session → login (preserve offline queue in store).
+  useEffect(() => {
+    if (!hydrated) return;
+    if (lastSyncError !== "session_expired" && lastSyncError !== "unauthorized") {
+      return;
+    }
+    if (currentUserId) return;
+    if (pathname.startsWith("/autentificare")) return;
+    router.replace(
+      `/autentificare?next=${encodeURIComponent(pathname || "/acasa")}`
+    );
+  }, [hydrated, lastSyncError, currentUserId, pathname, router]);
+
   if (!hydrated) return null;
 
   const pending = offlineQueue.length;
-  const authError = lastSyncError === "unauthorized";
+  const authError =
+    lastSyncError === "session_expired" || lastSyncError === "unauthorized";
   const show =
     !online || pending > 0 || syncing || Boolean(lastSyncError);
 
   if (!show) return null;
+
+  const loginHref = `/autentificare?next=${encodeURIComponent(pathname || "/acasa")}`;
 
   return (
     <div
@@ -100,9 +124,9 @@ export function OfflineSyncBar() {
         ) : authError ? (
           <>
             <CloudUpload className="size-4 shrink-0" />
-            <span className="flex-1">{t("offline.syncAuth")}</span>
+            <span className="flex-1">{t("offline.sessionExpired")}</span>
             <Link
-              href="/autentificare"
+              href={loginHref}
               className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
             >
               {t("nav.login")}

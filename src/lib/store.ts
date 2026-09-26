@@ -57,6 +57,8 @@ interface CaliState {
   nextCode: (module: Observation["module"]) => string;
   currentUser: () => PublicUser | null;
   pendingCount: () => number;
+  /** Clear local session on 401 — keeps offlineQueue intact. */
+  clearExpiredSession: () => void;
 }
 
 /** Offline fallback directory — never includes passwords. */
@@ -378,6 +380,15 @@ export const useCaliStore = create<CaliState>()(
       pendingCount: () =>
         get().observations.filter((o) => o.status === "in_asteptare").length,
 
+      clearExpiredSession: () => {
+        set({
+          currentUserId: null,
+          syncing: false,
+          lastSyncError: "session_expired",
+          // offlineQueue intentionally preserved
+        });
+      },
+
       login: async (email, password) => {
         try {
           const res = await fetch("/api/auth/login", {
@@ -403,14 +414,14 @@ export const useCaliStore = create<CaliState>()(
               data.user,
               ...get().users.filter((u) => u.id !== data.user!.id),
             ],
+            lastSyncError: null,
           });
           // Pull/sync must not fail the login — large bootstrap payloads were
           // causing a false "invalid password" after a successful auth.
+          // After login, always try to flush the preserved offline queue.
           void get()
             .pullFromServer()
-            .then((r) => {
-              if (r.ok) void get().flushOfflineQueue();
-            })
+            .then(() => get().flushOfflineQueue())
             .catch(() => undefined);
           return { ok: true };
         } catch {
@@ -535,9 +546,9 @@ export const useCaliStore = create<CaliState>()(
         if (!get().currentUserId) {
           set({
             syncing: false,
-            lastSyncError: "unauthorized",
+            lastSyncError: "session_expired",
           });
-          return { ok: false, uploaded: 0, error: "unauthorized" };
+          return { ok: false, uploaded: 0, error: "session_expired" };
         }
         if (get().syncing) {
           return { ok: false, uploaded: 0, error: "busy" };
@@ -563,11 +574,24 @@ export const useCaliStore = create<CaliState>()(
             };
             const unauthorized =
               res.status === 401 || body.error === "unauthorized";
-            const msg = unauthorized ? "unauthorized" : `HTTP ${res.status}`;
+            if (unauthorized) {
+              // Keep offlineQueue; clear local session so UI redirects to login.
+              set({
+                syncing: false,
+                currentUserId: null,
+                lastSyncError: "session_expired",
+                observations: get().observations.map((o) =>
+                  queue.some((q) => q.id === o.id)
+                    ? { ...o, syncStatus: "pending", syncError: undefined }
+                    : o
+                ),
+              });
+              return { ok: false, uploaded: 0, error: "session_expired" };
+            }
+            const msg = `HTTP ${res.status}`;
             set({
               syncing: false,
               lastSyncError: msg,
-              currentUserId: unauthorized ? null : get().currentUserId,
               observations: get().observations.map((o) =>
                 queue.some((q) => q.id === o.id)
                   ? { ...o, syncStatus: "error", syncError: msg }
@@ -749,7 +773,7 @@ export const useCaliStore = create<CaliState>()(
       partialize: (s) => ({
         users: s.users,
         observations: s.observations,
-        currentUserId: s.currentUserId,
+        // currentUserId is NOT persisted — auth comes from /api/bootstrap.
         offlineQueue: s.offlineQueue,
         lastSyncAt: s.lastSyncAt,
         settings: s.settings,
@@ -765,15 +789,12 @@ export const useCaliStore = create<CaliState>()(
           }
           return u;
         });
-        // Never restore ephemeral flags — a persisted syncing:true freezes the UI.
+        // Never restore ephemeral flags or a stale local session.
         return {
           ...current,
           users,
           observations: p.observations ?? current.observations,
-          currentUserId:
-            p.currentUserId !== undefined
-              ? p.currentUserId
-              : current.currentUserId,
+          currentUserId: null,
           offlineQueue: p.offlineQueue ?? current.offlineQueue,
           lastSyncAt: p.lastSyncAt ?? current.lastSyncAt,
           settings: p.settings ?? current.settings,

@@ -3,6 +3,7 @@ import { ro } from "date-fns/locale";
 import type { GeoLocation, ObservationModule, UserRole } from "./types";
 import { tKey } from "./i18n/store";
 import { roleKey } from "./i18n/labels";
+import { PUBLIC_ROLE_LABEL, canSeeFullNames } from "./privacy";
 
 export function formatDate(iso: string): string {
   return format(new Date(iso), "dd.MM.yyyy", { locale: ro });
@@ -32,13 +33,19 @@ export function displayAuthorName(
   isOwn = false
 ): string {
   if (isOwn) return name;
-  if (role === "elev" && viewerRole !== "admin" && viewerRole !== "ranger") {
-    return tKey("role.elevAnon");
-  }
-  if (!viewerRole || viewerRole === "turist" || viewerRole === "rezident" || viewerRole === "elev") {
-    return tKey(roleKey(role));
-  }
-  return name;
+  if (canSeeFullNames(viewerRole)) return name;
+  // Field roles / anonymous: show role label, never a person name.
+  if (role === "ranger") return PUBLIC_ROLE_LABEL.ranger;
+  return tKey(roleKey(role));
+}
+
+export function displayValidatorName(
+  name: string | undefined,
+  viewerRole?: UserRole | null
+): string {
+  if (!name) return PUBLIC_ROLE_LABEL.ranger;
+  if (canSeeFullNames(viewerRole)) return name;
+  return PUBLIC_ROLE_LABEL.ranger;
 }
 
 export function moduleCodePrefix(module: ObservationModule): string {

@@ -8,8 +8,8 @@ import type {
   UserRole,
   UserStatus,
 } from "@/lib/types";
-import { GDPR_VERSION } from "@/lib/constants";
-import { hashPassword, looksHashed } from "@/lib/password";
+import { DEMO_ACCOUNTS, GDPR_VERSION } from "@/lib/constants";
+import { hashPassword, isPbkdf2, needsRehash } from "@/lib/password";
 
 export type CloudflareEnv = {
   DB: D1Database;
@@ -413,18 +413,45 @@ export async function seedIfEmpty(db: D1Database): Promise<boolean> {
   for (const u of SEED_USERS) {
     await upsertUser(db, {
       ...u,
+      // Demo seed passwords are hashed with PBKDF2 — never stored in clear.
       password: await hashPassword(u.password),
     });
   }
   return true;
 }
 
-/** Re-hash any legacy plaintext passwords still stored in D1. */
-export async function migratePlaintextPasswords(db: D1Database): Promise<number> {
+/**
+ * Ensure every user password in D1 is PBKDF2.
+ * - Demo accounts: re-hash from known demo plaintext (also converts legacy bcrypt).
+ * - Other plaintext rows: hash as-is.
+ * - Other bcrypt rows: left for upgrade-on-login (cannot reverse).
+ */
+export async function migratePasswords(db: D1Database): Promise<number> {
   const users = await listUsers(db);
+  const knownPlain = new Map<string, string>();
+  for (const d of DEMO_ACCOUNTS) {
+    knownPlain.set(d.email.toLowerCase(), d.password);
+  }
+  for (const s of SEED_USERS) {
+    knownPlain.set(s.email.toLowerCase(), s.password);
+  }
+
   let n = 0;
   for (const u of users) {
-    if (!looksHashed(u.password)) {
+    if (isPbkdf2(u.password)) continue;
+
+    const known = knownPlain.get(u.email.toLowerCase());
+    if (known) {
+      await upsertUser(db, {
+        ...u,
+        password: await hashPassword(known),
+      });
+      n += 1;
+      continue;
+    }
+
+    if (needsRehash(u.password) && !u.password.startsWith("$2")) {
+      // Plaintext legacy
       await upsertUser(db, {
         ...u,
         password: await hashPassword(u.password),
@@ -434,3 +461,6 @@ export async function migratePlaintextPasswords(db: D1Database): Promise<number>
   }
   return n;
 }
+
+/** @deprecated use migratePasswords */
+export const migratePlaintextPasswords = migratePasswords;
