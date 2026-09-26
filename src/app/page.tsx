@@ -32,7 +32,7 @@ export default function HomePage() {
           aria-hidden
         />
 
-        <div className="relative mx-auto flex min-h-[88dvh] max-w-6xl flex-col justify-end px-4 pb-16 pt-28 text-white sm:justify-center sm:pb-20">
+        <div className="relative mx-auto flex min-h-[88dvh] max-w-6xl flex-col justify-center px-4 py-24 text-white">
           <div className="max-w-xl">
             <h1 className="animate-rise font-display text-3xl font-medium leading-snug tracking-tight text-white sm:text-4xl md:text-5xl">
               {t("landing.headline")}
