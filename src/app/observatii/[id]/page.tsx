@@ -38,6 +38,7 @@ function ObservationDetail({ id }: { id: string }) {
   const user = useCaliStore((s) => s.currentUser())!;
   const validateObservation = useCaliStore((s) => s.validateObservation);
   const deleteObservation = useCaliStore((s) => s.deleteObservation);
+  const updateObservation = useCaliStore((s) => s.updateObservation);
 
   const candidate = observations.find((o) => o.id === id);
   const obs =
