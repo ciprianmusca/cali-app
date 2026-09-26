@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a8c5b8"/>
+      <stop offset="100%" stop-color="#d4e4dc"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#sky)"/>
+  <path d="M0 420 Q200 380 400 430 T800 400 L800 600 L0 600 Z" fill="#3d5a45"/>
+  <path d="M280 420 L400 160 L520 420 Z" fill="#1a3c2a"/>
+  <path d="M310 420 L400 220 L490 420 Z" fill="#2d6a4f"/>
+  <rect x="385" y="420" width="30" height="60" fill="#5c4033"/>
+  <text x="40" y="560" fill="#1a3c2a" font-family="Georgia, serif" font-size="22">CALI · Fenologie</text>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#6b8f71"/>
+  <ellipse cx="200" cy="300" rx="120" ry="80" fill="#3d6b4f"/>
+  <ellipse cx="400" cy="340" rx="160" ry="70" fill="#8b7345"/>
+  <ellipse cx="600" cy="310" rx="100" ry="90" fill="#a89070"/>
+  <path d="M480 280 Q520 200 540 280" stroke="#2d5a3a" stroke-width="6" fill="none"/>
+  <text x="40" y="560" fill="#1a3c2a" font-family="Georgia, serif" font-size="22">CALI · Sol</text>
+</svg>

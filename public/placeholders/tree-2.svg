@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#c5d5c8"/>
+  <path d="M0 450 L800 430 L800 600 L0 600 Z" fill="#4a6741"/>
+  <path d="M300 450 L390 200 L420 450 Z" fill="#6b7c3a" opacity="0.85"/>
+  <path d="M420 280 L560 460 L400 460 Z" fill="#8b7355"/>
+  <circle cx="430" cy="270" r="18" fill="#5c4033"/>
+  <text x="40" y="560" fill="#3d2914" font-family="Georgia, serif" font-size="22">CALI · Arbore stres</text>
+</svg>

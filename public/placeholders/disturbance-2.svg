@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#9aab9e"/>
+  <path d="M100 480 L350 200 L280 480 Z" fill="#5a6b4a" transform="rotate(-35 280 400)"/>
+  <rect x="120" y="420" width="520" height="80" rx="8" fill="#6b5b3e"/>
+  <text x="40" y="560" fill="#2a1810" font-family="Georgia, serif" font-size="22">CALI · Doborâtur</text>
+</svg>
