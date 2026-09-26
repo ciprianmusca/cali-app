@@ -99,7 +99,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "home.toValidate": "To validate",
   "home.newUsers": "New users (30 days)",
   "home.myObs": "My observations",
-  "home.modPhenDesc": "Tree phenological stage (buds → stress)",
+  "home.modPhenDesc": "Tree phenological stage and crown condition",
   "home.modDistDesc": "Insects, windthrow, dieback and other disturbances",
   "home.modSoilDesc": "Moss, litter, plants and bare soil — sum 100%",
   "home.newObs": "New observation →",
