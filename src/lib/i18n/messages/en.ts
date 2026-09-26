@@ -174,6 +174,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "obs.detailsOptional": "Details (optional)",
   "obs.save": "Save",
   "obs.saveAndNew": "Save and new form",
+  "obs.formIncomplete": "Fill in the required fields marked above before saving.",
   "obs.error": "Error",
 
   "phen.title": "Phenology observation",

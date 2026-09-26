@@ -181,6 +181,7 @@ export const ro = {
   "obs.detailsOptional": "Detalii (opțional)",
   "obs.save": "Salvare",
   "obs.saveAndNew": "Salvare și formular nou",
+  "obs.formIncomplete": "Completează câmpurile obligatorii marcate înainte de salvare.",
   "obs.error": "Eroare",
 
   // Phenology form
