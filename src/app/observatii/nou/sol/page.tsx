@@ -35,24 +35,20 @@ function SolForm() {
   const formRef = useRef<HTMLFormElement>(null);
 
   const [photos, setPhotos] = useState<string[]>([]);
-  const [cover, setCover] = useState<Partial<Record<CoverKey, number>>>({});
+  // Initialize all classes to 0 so the visible sum matches validation
+  // (previously untouched sliders stayed null while sum treated them as 0).
+  const [cover, setCover] = useState<Record<CoverKey, number>>({
+    moss: 0,
+    litter: 0,
+    plants: 0,
+    bare: 0,
+  });
   const [seedlings, setSeedlings] = useState(false);
   const [details, setDetails] = useState("");
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const values = {
-    moss: cover.moss ?? null,
-    litter: cover.litter ?? null,
-    plants: cover.plants ?? null,
-    bare: cover.bare ?? null,
-  };
-
-  const sum =
-    (values.moss ?? 0) +
-    (values.litter ?? 0) +
-    (values.plants ?? 0) +
-    (values.bare ?? 0);
+  const sum = cover.moss + cover.litter + cover.plants + cover.bare;
 
   const setPct = (key: CoverKey, pct: number) => {
     setCover((c) => ({ ...c, [key]: pct }));
@@ -61,14 +57,7 @@ function SolForm() {
   const validate = () => {
     const e: Record<string, string> = {};
     if (!photos.length) e.photos = t("error.photoRequired");
-    if (
-      values.moss == null ||
-      values.litter == null ||
-      values.plants == null ||
-      values.bare == null
-    ) {
-      e.cover = t("error.coverUnset");
-    } else if (sum !== 100) {
+    if (sum !== 100) {
       e.cover = t("error.coverSum", { sum });
     }
     if (!location) e.location = t("error.locationRequired");
@@ -93,26 +82,31 @@ function SolForm() {
       authorId: user.id,
       authorRole: user.role,
       authorName: user.name,
-      mossPct: values.moss!,
-      litterPct: values.litter!,
-      plantsPct: values.plants!,
-      barePct: values.bare!,
+      mossPct: cover.moss,
+      litterPct: cover.litter,
+      plantsPct: cover.plants,
+      barePct: cover.bare,
       seedlingsPresent: seedlings,
       details: details.trim() || undefined,
       photos,
       location,
       createdAt: new Date().toISOString(),
     };
-    addObservation(obs);
+    try {
+      addObservation(obs);
+    } catch {
+      /* persist quota — still navigate; observation is in memory */
+    }
     if (andNew) {
       setPhotos([]);
-      setCover({});
+      setCover({ moss: 0, litter: 0, plants: 0, bare: 0 });
       setSeedlings(false);
       setDetails("");
+      setLocation(null);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      router.push("/observatii");
+      router.replace("/observatii");
     }
   };
 
@@ -161,7 +155,7 @@ function SolForm() {
                   </div>
                 </div>
                 <div className="font-display text-xl tabular-nums">
-                  {values[key] == null ? "—" : `${values[key]}%`}
+                  {cover[key]}%
                 </div>
               </div>
               <Slider
@@ -169,7 +163,7 @@ function SolForm() {
                 min={0}
                 max={100}
                 step={5}
-                value={values[key] != null ? [values[key]!] : [0]}
+                value={[cover[key]]}
                 onValueChange={(v) => {
                   const arr = Array.isArray(v) ? v : [v];
                   setPct(key, arr[0] ?? 0);

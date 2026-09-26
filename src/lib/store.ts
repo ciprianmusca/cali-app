@@ -506,16 +506,20 @@ export const useCaliStore = create<CaliState>()(
           syncStatus: "pending",
           syncError: undefined,
         };
+        // Clear a stuck spinner from a previous session before queuing.
         set({
+          syncing: false,
           observations: [pending, ...get().observations],
           offlineQueue: [
             pending,
             ...get().offlineQueue.filter((o) => o.id !== pending.id),
           ],
         });
-        // Best-effort immediate upload when online
+        // Defer upload so navigation / UI updates are never blocked by sync.
         if (typeof navigator !== "undefined" && navigator.onLine) {
-          void get().flushOfflineQueue();
+          setTimeout(() => {
+            void get().flushOfflineQueue();
+          }, 0);
         }
       },
 

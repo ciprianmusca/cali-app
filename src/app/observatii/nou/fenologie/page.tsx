@@ -91,7 +91,11 @@ function FenologieForm() {
       location,
       createdAt: new Date().toISOString(),
     };
-    addObservation(obs);
+    try {
+      addObservation(obs);
+    } catch {
+      /* persist quota — still navigate */
+    }
     if (andNew) {
       setPhotos([]);
       setStage(null);
@@ -101,7 +105,7 @@ function FenologieForm() {
       setSaving(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      router.push("/observatii");
+      router.replace("/observatii");
     }
   };
 

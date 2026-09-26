@@ -56,6 +56,15 @@ export function OfflineSyncBar() {
     lastSyncError,
   ]);
 
+  // Safety valve: never leave the banner spinning forever.
+  useEffect(() => {
+    if (!syncing) return;
+    const t = window.setTimeout(() => {
+      useCaliStore.setState({ syncing: false, lastSyncError: "timeout" });
+    }, 35000);
+    return () => window.clearTimeout(t);
+  }, [syncing]);
+
   if (!hydrated) return null;
 
   const pending = offlineQueue.length;

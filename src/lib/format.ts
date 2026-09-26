@@ -71,8 +71,8 @@ export function isValidPassword(password: string): boolean {
 
 export function compressImage(
   file: File,
-  maxWidth = 1600,
-  quality = 0.72
+  maxWidth = 1280,
+  quality = 0.62
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

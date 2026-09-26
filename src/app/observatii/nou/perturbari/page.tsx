@@ -115,7 +115,11 @@ function PerturbariForm() {
       location,
       createdAt: new Date().toISOString(),
     };
-    addObservation(obs);
+    try {
+      addObservation(obs);
+    } catch {
+      /* persist quota — still navigate */
+    }
     if (andNew) {
       setPhotos([]);
       setTypes([]);
@@ -127,7 +131,7 @@ function PerturbariForm() {
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      router.push("/observatii");
+      router.replace("/observatii");
     }
   };
 
