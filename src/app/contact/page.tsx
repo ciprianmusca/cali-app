@@ -15,10 +15,10 @@ export default function ContactPage() {
           <dt className="font-medium text-forest">{t("contact.emailLabel")}</dt>
           <dd className="mt-1">
             <a
-              href="mailto:contact@cali.ipsv.ro"
+              href="mailto:contact@ipsv.ro"
               className="text-primary underline-offset-2 hover:underline"
             >
-              contact@cali.ipsv.ro
+              contact@ipsv.ro
             </a>
           </dd>
         </div>

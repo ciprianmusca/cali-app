@@ -38,10 +38,10 @@ export function AppFooter() {
             </p>
             <p className="text-xs">
               <a
-                href="mailto:contact@cali.ipsv.ro"
+                href="mailto:contact@ipsv.ro"
                 className="underline-offset-2 hover:underline"
               >
-                contact@cali.ipsv.ro
+                contact@ipsv.ro
               </a>
             </p>
           </div>
