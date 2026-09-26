@@ -1,4 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Pdure i muni stilizai">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Stylized forest and mountains">
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#1a2e24"/>
@@ -30,11 +31,9 @@
     </linearGradient>
   </defs>
 
-  <!-- Sky -->
   <rect width="1600" height="900" fill="url(#sky)"/>
   <rect width="1600" height="900" fill="url(#glow)"/>
 
-  <!-- Far mountains (geometric facets) -->
   <g opacity="0.85">
     <path d="M120 520 L320 220 L420 360 L520 180 L720 480 L820 300 L980 500 L1120 240 L1280 460 L1420 280 L1600 480 L1600 560 L0 560 Z" fill="url(#mtFar)"/>
     <path d="M320 220 L420 360 L360 360 Z" fill="#5a7a66" opacity="0.55"/>
@@ -43,22 +42,17 @@
     <path d="M1420 280 L1520 420 L1340 420 Z" fill="#2f4a3c" opacity="0.45"/>
   </g>
 
-  <!-- Mid ridge -->
   <path d="M0 540 L180 420 L340 500 L500 380 L680 510 L860 400 L1040 520 L1220 390 L1400 500 L1600 430 L1600 620 L0 620 Z" fill="url(#mtMid)" opacity="0.95"/>
   <path d="M180 420 L260 500 L140 500 Z" fill="#4d6e5c" opacity="0.4"/>
   <path d="M500 380 L580 480 L440 480 Z" fill="#243d32" opacity="0.45"/>
   <path d="M1220 390 L1320 500 L1140 500 Z" fill="#4d6e5c" opacity="0.35"/>
 
-  <!-- Near foothills -->
   <path d="M0 600 Q200 540 400 590 T800 570 T1200 600 T1600 560 L1600 720 L0 720 Z" fill="url(#mtNear)"/>
 
-  <!-- Mist band above treeline -->
   <ellipse cx="800" cy="620" rx="980" ry="70" fill="url(#mistBand)"/>
   <rect x="0" y="580" width="1600" height="90" fill="url(#mistBand)" opacity="0.7"/>
 
-  <!-- Dense conifer silhouettes (bottom) -->
   <g fill="#0a1610">
-    <!-- row of firs, denser on the right for object-right-bottom framing -->
     <path d="M40 720 L70 620 L100 720 Z"/>
     <path d="M90 720 L125 580 L160 720 Z"/>
     <path d="M150 720 L190 600 L230 720 Z"/>
@@ -75,7 +69,6 @@
     <path d="M1150 720 L1235 470 L1320 720 Z"/>
     <path d="M1280 720 L1365 430 L1450 720 Z"/>
     <path d="M1410 720 L1495 450 L1580 720 Z"/>
-    <!-- secondary shorter layer for density -->
     <path d="M60 740 L85 660 L110 740 Z"/>
     <path d="M200 740 L235 650 L270 740 Z"/>
     <path d="M340 740 L380 640 L420 740 Z"/>
@@ -86,9 +79,7 @@
     <path d="M1240 740 L1315 550 L1390 740 Z"/>
     <path d="M1420 740 L1490 540 L1560 740 Z"/>
   </g>
-  <!-- solid ground strip -->
   <rect x="0" y="720" width="1600" height="180" fill="#0a1610"/>
-  <!-- subtle foreground tree tips overlapping ground -->
   <g fill="#07110c" opacity="0.95">
     <path d="M100 780 L140 680 L180 780 Z"/>
     <path d="M280 800 L330 670 L380 800 Z"/>
