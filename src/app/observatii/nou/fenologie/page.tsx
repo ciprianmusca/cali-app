@@ -209,7 +209,7 @@ function FenologieForm() {
 
         {Object.keys(errors).length > 0 ? (
           <p className="text-sm text-destructive" data-field="auth">
-            {t("obs.fixIncomplete")}
+            {t("obs.formIncomplete")}
           </p>
         ) : null}
 
