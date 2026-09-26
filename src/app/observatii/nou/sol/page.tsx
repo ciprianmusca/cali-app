@@ -11,6 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { GeoCapture } from "@/components/observations/geo-capture";
 import { PhotoCapture } from "@/components/observations/photo-capture";
 import { useCaliStore } from "@/lib/store";
+import { enqueueObservationSave } from "@/lib/save-observation";
 import type { GeoLocation, SolObservation } from "@/lib/types";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { MsgKey } from "@/lib/i18n/store";
@@ -29,14 +30,11 @@ const COVER_MSG: Record<CoverKey, { title: MsgKey; hint: MsgKey }> = {
 function SolForm() {
   const { t } = useI18n();
   const router = useRouter();
-  const user = useCaliStore((s) => s.currentUser())!;
-  const addObservation = useCaliStore((s) => s.addObservation);
+  const user = useCaliStore((s) => s.currentUser());
   const nextCode = useCaliStore((s) => s.nextCode);
   const formRef = useRef<HTMLFormElement>(null);
 
   const [photos, setPhotos] = useState<string[]>([]);
-  // Initialize all classes to 0 so the visible sum matches validation
-  // (previously untouched sliders stayed null while sum treated them as 0).
   const [cover, setCover] = useState<Record<CoverKey, number>>({
     moss: 0,
     litter: 0,
@@ -56,6 +54,7 @@ function SolForm() {
 
   const validate = () => {
     const e: Record<string, string> = {};
+    if (!user) e.auth = t("error.invalidLogin");
     if (!photos.length) e.photos = t("error.photoRequired");
     if (sum !== 100) {
       e.cover = t("error.coverSum", { sum });
@@ -72,8 +71,19 @@ function SolForm() {
     return true;
   };
 
+  const resetForm = () => {
+    setPhotos([]);
+    setCover({ moss: 0, litter: 0, plants: 0, bare: 0 });
+    setSeedlings(false);
+    setDetails("");
+    setLocation(null);
+    setErrors({});
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const save = (andNew: boolean) => {
-    if (!validate() || !location) return;
+    if (!validate() || !user || !location) return;
+
     const obs: SolObservation = {
       id: `o-${crypto.randomUUID().slice(0, 8)}`,
       code: nextCode("sol"),
@@ -92,22 +102,10 @@ function SolForm() {
       location,
       createdAt: new Date().toISOString(),
     };
-    try {
-      addObservation(obs);
-    } catch {
-      /* persist quota — still navigate; observation is in memory */
-    }
-    if (andNew) {
-      setPhotos([]);
-      setCover({ moss: 0, litter: 0, plants: 0, bare: 0 });
-      setSeedlings(false);
-      setDetails("");
-      setLocation(null);
-      setErrors({});
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      router.replace("/observatii");
-    }
+
+    if (andNew) resetForm();
+    else router.replace("/observatii");
+    enqueueObservationSave(obs);
   };
 
   const onSubmit = (e: FormEvent) => {
@@ -200,6 +198,12 @@ function SolForm() {
             <p className="mt-2 text-sm text-destructive">{errors.location}</p>
           ) : null}
         </div>
+
+        {Object.keys(errors).length > 0 ? (
+          <p className="text-sm text-destructive" data-field="auth">
+            {t("obs.formIncomplete")}
+          </p>
+        ) : null}
 
         <div className="flex flex-wrap gap-3">
           <Button type="submit">{t("obs.save")}</Button>

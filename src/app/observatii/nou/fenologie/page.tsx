@@ -16,6 +16,7 @@ import {
 import { GeoCapture } from "@/components/observations/geo-capture";
 import { PhotoCapture } from "@/components/observations/photo-capture";
 import { useCaliStore } from "@/lib/store";
+import { enqueueObservationSave } from "@/lib/save-observation";
 import { PHENOLOGY_STAGES } from "@/lib/constants";
 import type {
   FenologieObservation,
@@ -44,8 +45,7 @@ const SPECIES: Species[] = [
 function FenologieForm() {
   const { t } = useI18n();
   const router = useRouter();
-  const user = useCaliStore((s) => s.currentUser())!;
-  const addObservation = useCaliStore((s) => s.addObservation);
+  const user = useCaliStore((s) => s.currentUser());
   const nextCode = useCaliStore((s) => s.nextCode);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -55,10 +55,10 @@ function FenologieForm() {
   const [details, setDetails] = useState("");
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState(false);
 
   const validate = () => {
     const e: Record<string, string> = {};
+    if (!user) e.auth = t("error.invalidLogin");
     if (!photos.length) e.photos = t("error.photoRequired");
     if (!stage) e.stage = t("error.stageRequired");
     if (!species) e.species = t("error.speciesRequired");
@@ -73,9 +73,19 @@ function FenologieForm() {
     return true;
   };
 
+  const resetForm = () => {
+    setPhotos([]);
+    setStage(null);
+    setSpecies("");
+    setDetails("");
+    setLocation(null);
+    setErrors({});
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const save = (andNew: boolean) => {
-    if (!validate() || !location || !stage || !species) return;
-    setSaving(true);
+    if (!validate() || !user || !location || !stage || !species) return;
+
     const obs: FenologieObservation = {
       id: `o-${crypto.randomUUID().slice(0, 8)}`,
       code: nextCode("fenologie"),
@@ -91,22 +101,11 @@ function FenologieForm() {
       location,
       createdAt: new Date().toISOString(),
     };
-    try {
-      addObservation(obs);
-    } catch {
-      /* persist quota — still navigate */
-    }
-    if (andNew) {
-      setPhotos([]);
-      setStage(null);
-      setSpecies("");
-      setDetails("");
-      setErrors({});
-      setSaving(false);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      router.replace("/observatii");
-    }
+
+    // Leave the form immediately — persist/sync runs in the background.
+    if (andNew) resetForm();
+    else router.replace("/observatii");
+    enqueueObservationSave(obs);
   };
 
   const onSubmit = (e: FormEvent) => {
@@ -133,8 +132,8 @@ function FenologieForm() {
             {t("obs.species")} <span className="text-destructive">*</span>
           </Label>
           <Select
-            value={species}
-            onValueChange={(v) => setSpecies(v as Species)}
+            value={species || undefined}
+            onValueChange={(v) => setSpecies((v ?? "") as Species)}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder={t("obs.selectSpecies")} />
@@ -208,14 +207,17 @@ function FenologieForm() {
           ) : null}
         </div>
 
+        {Object.keys(errors).length > 0 ? (
+          <p className="text-sm text-destructive" data-field="auth">
+            {t("obs.fixIncomplete")}
+          </p>
+        ) : null}
+
         <div className="flex flex-wrap gap-3 pt-2">
-          <Button type="submit" disabled={saving}>
-            {t("obs.save")}
-          </Button>
+          <Button type="submit">{t("obs.save")}</Button>
           <Button
             type="button"
             variant="secondary"
-            disabled={saving}
             onClick={() => save(true)}
           >
             {t("obs.saveAndNew")}

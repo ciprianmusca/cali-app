@@ -18,6 +18,7 @@ import {
 import { GeoCapture } from "@/components/observations/geo-capture";
 import { PhotoCapture } from "@/components/observations/photo-capture";
 import { useCaliStore } from "@/lib/store";
+import { enqueueObservationSave } from "@/lib/save-observation";
 import type {
   DisturbanceType,
   GeoLocation,
@@ -52,8 +53,7 @@ const DISTURBANCE_TYPES: DisturbanceType[] = [
 function PerturbariForm() {
   const { t } = useI18n();
   const router = useRouter();
-  const user = useCaliStore((s) => s.currentUser())!;
-  const addObservation = useCaliStore((s) => s.addObservation);
+  const user = useCaliStore((s) => s.currentUser());
   const nextCode = useCaliStore((s) => s.nextCode);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -75,6 +75,7 @@ function PerturbariForm() {
 
   const validate = () => {
     const e: Record<string, string> = {};
+    if (!user) e.auth = t("error.invalidLogin");
     if (!photos.length) e.photos = t("error.photoRequired");
     if (!types.length) e.types = t("error.disturbanceType");
     if (!species) e.species = t("error.speciesRequired");
@@ -93,8 +94,22 @@ function PerturbariForm() {
     return true;
   };
 
+  const resetForm = () => {
+    setPhotos([]);
+    setTypes([]);
+    setInsectType("");
+    setSeverity(null);
+    setArea("");
+    setSpecies("");
+    setDetails("");
+    setLocation(null);
+    setErrors({});
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const save = (andNew: boolean) => {
-    if (!validate() || !location || !severity || !species) return;
+    if (!validate() || !user || !location || !severity || !species) return;
+
     const obs: PerturbariObservation = {
       id: `o-${crypto.randomUUID().slice(0, 8)}`,
       code: nextCode("perturbari"),
@@ -115,24 +130,10 @@ function PerturbariForm() {
       location,
       createdAt: new Date().toISOString(),
     };
-    try {
-      addObservation(obs);
-    } catch {
-      /* persist quota — still navigate */
-    }
-    if (andNew) {
-      setPhotos([]);
-      setTypes([]);
-      setInsectType("");
-      setSeverity(null);
-      setArea("");
-      setSpecies("");
-      setDetails("");
-      setErrors({});
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      router.replace("/observatii");
-    }
+
+    if (andNew) resetForm();
+    else router.replace("/observatii");
+    enqueueObservationSave(obs);
   };
 
   const onSubmit = (e: FormEvent) => {
@@ -159,7 +160,7 @@ function PerturbariForm() {
             {t("obs.species")} <span className="text-destructive">*</span>
           </Label>
           <Select
-            value={species}
+            value={species || undefined}
             onValueChange={(v) => setSpecies((v ?? "") as Species)}
           >
             <SelectTrigger className="w-full">
@@ -271,6 +272,12 @@ function PerturbariForm() {
             <p className="mt-2 text-sm text-destructive">{errors.location}</p>
           ) : null}
         </div>
+
+        {Object.keys(errors).length > 0 ? (
+          <p className="text-sm text-destructive" data-field="auth">
+            {t("obs.formIncomplete")}
+          </p>
+        ) : null}
 
         <div className="flex flex-wrap gap-3">
           <Button type="submit">{t("obs.save")}</Button>
