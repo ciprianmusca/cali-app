@@ -47,3 +47,6 @@ next-env.d.ts
 
 # User uploads (source specs)
 uploads/
+
+# Live production dumps (D1/R2) — do not commit
+backups/
