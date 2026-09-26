@@ -44,9 +44,9 @@ function UsersAdmin() {
     [users, roleFilter, statusFilter]
   );
 
-  const onCreate = (e: FormEvent) => {
+  const onCreate = async (e: FormEvent) => {
     e.preventDefault();
-    const res = createUser({
+    const res = await createUser({
       name,
       email,
       role,

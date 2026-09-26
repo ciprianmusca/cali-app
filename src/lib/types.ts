@@ -41,6 +41,7 @@ export interface User {
   name: string;
   role: UserRole;
   status: UserStatus;
+  /** Server-only password hash; never sent to clients. */
   password: string;
   isAdult: boolean;
   parentalConsent?: boolean;
@@ -49,6 +50,9 @@ export interface User {
   registeredAt: string;
   lastLoginAt?: string;
 }
+
+/** Safe user shape for API / client state (no password). */
+export type PublicUser = Omit<User, "password">;
 
 export interface ObservationBase {
   id: string;

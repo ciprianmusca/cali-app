@@ -5,7 +5,7 @@ import { persist } from "zustand/middleware";
 import type {
   AppSettings,
   Observation,
-  User,
+  PublicUser,
   ObservationStatus,
   UserRole,
 } from "./types";
@@ -14,7 +14,7 @@ import { generateCode, mockLocationNearPark } from "./format";
 import { tKey } from "./i18n/store";
 
 interface CaliState {
-  users: User[];
+  users: PublicUser[];
   observations: Observation[];
   currentUserId: string | null;
   offlineQueue: Observation[];
@@ -26,15 +26,18 @@ interface CaliState {
   setHydrated: (v: boolean) => void;
   pullFromServer: () => Promise<{ ok: boolean; error?: string }>;
   flushOfflineQueue: () => Promise<{ ok: boolean; uploaded: number; error?: string }>;
-  login: (email: string, password: string) => { ok: boolean; error?: string };
-  logout: () => void;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ ok: boolean; error?: string }>;
+  logout: () => Promise<void>;
   register: (data: {
     name: string;
     email: string;
     password: string;
     role: "rezident" | "turist";
     isAdult: boolean;
-  }) => { ok: boolean; error?: string };
+  }) => Promise<{ ok: boolean; error?: string }>;
   acceptGdpr: () => void;
   addObservation: (obs: Observation) => void;
   updateObservation: (id: string, patch: Partial<Observation>) => void;
@@ -50,20 +53,20 @@ interface CaliState {
     email: string;
     role: UserRole;
     parentalConsent?: boolean;
-  }) => { ok: boolean; error?: string };
+  }) => Promise<{ ok: boolean; error?: string }>;
   nextCode: (module: Observation["module"]) => string;
-  currentUser: () => User | null;
+  currentUser: () => PublicUser | null;
   pendingCount: () => number;
 }
 
-const seedUsers: User[] = [
+/** Offline fallback directory — never includes passwords. */
+const seedUsers: PublicUser[] = [
   {
     id: "u-admin",
     email: "admin@cali-lab.ro",
     name: "Admin ISV",
     role: "admin",
     status: "activ",
-    password: "Admin123!",
     isAdult: true,
     gdprAcceptedAt: "2026-09-01T10:00:00.000Z",
     gdprVersion: GDPR_VERSION,
@@ -76,7 +79,6 @@ const seedUsers: User[] = [
     name: "Mitache Petronela",
     role: "ranger",
     status: "activ",
-    password: "Ranger123!",
     isAdult: true,
     gdprAcceptedAt: "2026-09-01T10:00:00.000Z",
     gdprVersion: GDPR_VERSION,
@@ -89,7 +91,6 @@ const seedUsers: User[] = [
     name: "Andrei Popescu",
     role: "turist",
     status: "activ",
-    password: "Turist123!",
     isAdult: true,
     gdprAcceptedAt: "2026-09-05T12:00:00.000Z",
     gdprVersion: GDPR_VERSION,
@@ -102,7 +103,6 @@ const seedUsers: User[] = [
     name: "Ioana Vasile",
     role: "rezident",
     status: "activ",
-    password: "Rezident123!",
     isAdult: true,
     gdprAcceptedAt: "2026-09-02T11:00:00.000Z",
     gdprVersion: GDPR_VERSION,
@@ -114,7 +114,6 @@ const seedUsers: User[] = [
     name: "Maria Ionescu",
     role: "elev",
     status: "activ",
-    password: "Elev1234!",
     isAdult: false,
     parentalConsent: true,
     gdprAcceptedAt: "2026-09-10T09:00:00.000Z",
@@ -304,7 +303,10 @@ export const useCaliStore = create<CaliState>()(
 
       pullFromServer: async () => {
         try {
-          const res = await fetch("/api/bootstrap", { cache: "no-store" });
+          const res = await fetch("/api/bootstrap", {
+            cache: "no-store",
+            credentials: "include",
+          });
           if (!res.ok) {
             const body = (await res.json().catch(() => ({}))) as {
               error?: string;
@@ -315,7 +317,8 @@ export const useCaliStore = create<CaliState>()(
             };
           }
           const data = (await res.json()) as {
-            users: User[];
+            user: PublicUser | null;
+            users: PublicUser[];
             observations: Observation[];
           };
           const pendingIds = new Set(get().offlineQueue.map((o) => o.id));
@@ -334,9 +337,16 @@ export const useCaliStore = create<CaliState>()(
             (a, b) =>
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
+
+          let users = data.users ?? [];
+          if (data.user && !users.some((u) => u.id === data.user!.id)) {
+            users = [data.user, ...users];
+          }
+
           set({
-            users: data.users ?? get().users,
+            users: users.length ? users : get().users,
             observations: merged,
+            currentUserId: data.user?.id ?? get().currentUserId,
             lastSyncAt: new Date().toISOString(),
             lastSyncError: null,
           });
@@ -357,63 +367,87 @@ export const useCaliStore = create<CaliState>()(
       pendingCount: () =>
         get().observations.filter((o) => o.status === "in_asteptare").length,
 
-      login: (email, password) => {
-        const user = get().users.find(
-          (u) =>
-            u.email.toLowerCase() === email.toLowerCase() &&
-            u.password === password
-        );
-        if (!user) return { ok: false, error: tKey("error.invalidLogin") };
-        if (user.status !== "activ")
-          return {
-            ok: false,
-            error: tKey("error.inactiveAccount"),
-          };
-        const lastLoginAt = new Date().toISOString();
-        const updated = { ...user, lastLoginAt };
-        set({
-          users: get().users.map((u) => (u.id === user.id ? updated : u)),
-          currentUserId: user.id,
-        });
-        if (typeof navigator !== "undefined" && navigator.onLine) {
-          void fetch("/api/users", {
+      login: async (email, password) => {
+        try {
+          const res = await fetch("/api/auth/login", {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updated),
-          }).catch(() => undefined);
+            body: JSON.stringify({ email, password }),
+          });
+          const data = (await res.json().catch(() => ({}))) as {
+            ok?: boolean;
+            error?: string;
+            user?: PublicUser;
+          };
+          if (!res.ok || !data.ok || !data.user) {
+            if (data.error === "inactive") {
+              return { ok: false, error: tKey("error.inactiveAccount") };
+            }
+            return { ok: false, error: tKey("error.invalidLogin") };
+          }
+          set({
+            currentUserId: data.user.id,
+            users: [
+              data.user,
+              ...get().users.filter((u) => u.id !== data.user!.id),
+            ],
+          });
+          await get().pullFromServer();
+          return { ok: true };
+        } catch {
+          return { ok: false, error: tKey("error.invalidLogin") };
         }
-        return { ok: true };
       },
 
-      logout: () => set({ currentUserId: null }),
+      logout: async () => {
+        try {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
+          });
+        } catch {
+          /* ignore */
+        }
+        set({ currentUserId: null });
+      },
 
-      register: ({ name, email, password, role, isAdult }) => {
+      register: async ({ name, email, password, role, isAdult }) => {
         if (!isAdult)
           return {
             ok: false,
             error: tKey("error.mustBeAdult"),
           };
-        if (get().users.some((u) => u.email.toLowerCase() === email.toLowerCase()))
-          return { ok: false, error: tKey("error.emailExists") };
-        const user: User = {
-          id: `u-${crypto.randomUUID().slice(0, 8)}`,
-          email,
-          name,
-          role,
-          status: "activ",
-          password,
-          isAdult,
-          registeredAt: new Date().toISOString(),
-        };
-        set({ users: [...get().users, user], currentUserId: user.id });
-        if (typeof navigator !== "undefined" && navigator.onLine) {
-          void fetch("/api/users", {
+        try {
+          const res = await fetch("/api/auth/register", {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(user),
-          }).catch(() => undefined);
+            body: JSON.stringify({ name, email, password, role, isAdult }),
+          });
+          const data = (await res.json().catch(() => ({}))) as {
+            ok?: boolean;
+            error?: string;
+            user?: PublicUser;
+          };
+          if (!res.ok || !data.ok || !data.user) {
+            if (data.error === "email_exists") {
+              return { ok: false, error: tKey("error.emailExists") };
+            }
+            if (data.error === "password_rules") {
+              return { ok: false, error: tKey("error.passwordRules") };
+            }
+            return { ok: false, error: tKey("obs.error") };
+          }
+          set({
+            currentUserId: data.user.id,
+            users: [data.user, ...get().users.filter((u) => u.id !== data.user!.id)],
+          });
+          await get().pullFromServer();
+          return { ok: true };
+        } catch {
+          return { ok: false, error: tKey("obs.error") };
         }
-        return { ok: true };
       },
 
       acceptGdpr: () => {
@@ -429,16 +463,10 @@ export const useCaliStore = create<CaliState>()(
             : u
         );
         set({ users: next });
-        const updated = next.find((u) => u.id === id);
-        if (
-          updated &&
-          typeof navigator !== "undefined" &&
-          navigator.onLine
-        ) {
-          void fetch("/api/users", {
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          void fetch("/api/auth/gdpr", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updated),
+            credentials: "include",
           }).catch(() => undefined);
         }
       },
@@ -484,6 +512,7 @@ export const useCaliStore = create<CaliState>()(
         try {
           const res = await fetch("/api/sync", {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               observations: queue,
@@ -557,9 +586,10 @@ export const useCaliStore = create<CaliState>()(
           offlineQueue: get().offlineQueue.filter((o) => o.id !== id),
         });
         if (typeof navigator !== "undefined" && navigator.onLine) {
-          void fetch(`/api/observations/${id}`, { method: "DELETE" }).catch(
-            () => undefined
-          );
+          void fetch(`/api/observations/${id}`, {
+            method: "DELETE",
+            credentials: "include",
+          }).catch(() => undefined);
         }
       },
 
@@ -614,7 +644,7 @@ export const useCaliStore = create<CaliState>()(
         return { ok: true };
       },
 
-      createUser: ({ name, email, role, parentalConsent }) => {
+      createUser: async ({ name, email, role, parentalConsent }) => {
         if (get().users.some((u) => u.email.toLowerCase() === email.toLowerCase()))
           return { ok: false, error: tKey("error.emailUsed") };
         if (role === "elev" && !parentalConsent)
@@ -622,26 +652,45 @@ export const useCaliStore = create<CaliState>()(
             ok: false,
             error: tKey("error.parental"),
           };
-        const user: User = {
+        const user: PublicUser = {
           id: `u-${crypto.randomUUID().slice(0, 8)}`,
           email,
           name,
           role,
           status: "inactiv",
-          password: "Temp1234!",
           isAdult: role !== "elev",
           parentalConsent: role === "elev" ? true : undefined,
           registeredAt: new Date().toISOString(),
         };
-        set({ users: [...get().users, user] });
-        if (typeof navigator !== "undefined" && navigator.onLine) {
-          void fetch("/api/users", {
+        try {
+          const res = await fetch("/api/users", {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(user),
-          }).catch(() => undefined);
+            body: JSON.stringify({ ...user, password: "Temp1234!" }),
+          });
+          const data = (await res.json().catch(() => ({}))) as {
+            error?: string;
+            user?: PublicUser;
+          };
+          if (!res.ok) {
+            if (data.error === "email_used") {
+              return { ok: false, error: tKey("error.emailUsed") };
+            }
+            return { ok: false, error: tKey("obs.error") };
+          }
+          set({
+            users: [
+              ...get().users,
+              data.user ?? user,
+            ].filter(
+              (u, i, arr) => arr.findIndex((x) => x.id === u.id) === i
+            ),
+          });
+          return { ok: true };
+        } catch {
+          return { ok: false, error: tKey("obs.error") };
         }
-        return { ok: true };
       },
     }),
     {
@@ -655,6 +704,19 @@ export const useCaliStore = create<CaliState>()(
         lastSyncAt: s.lastSyncAt,
         settings: s.settings,
       }),
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<CaliState> & {
+          users?: Array<PublicUser & { password?: string }>;
+        };
+        const users = (p.users ?? current.users).map((u) => {
+          if (u && typeof u === "object" && "password" in u) {
+            const { password: _drop, ...rest } = u;
+            return rest;
+          }
+          return u;
+        });
+        return { ...current, ...p, users };
+      },
     }
   )
 );

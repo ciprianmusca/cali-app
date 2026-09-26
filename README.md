@@ -22,7 +22,7 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123).
 | Turist | turist@cali-lab.ro | Turist123! |
 | Elev | elev@cali-lab.ro | Elev1234! |
 
-Datele sunt stocate local în browser (localStorage) — fără backend. Potrivit pentru demonstrație și testare UI.
+Autentificarea rulează pe server (sesiune JWT în cookie `httpOnly`). Parolele sunt stocate cu **bcrypt** în D1; API-urile nu returnează niciodată câmpul `password`. Lista de utilizatori (`GET /api/users`) e doar pentru admin.
 
 ## Limbă / Language
 
@@ -35,9 +35,11 @@ Interfața este disponibilă în **română** și **engleză**. Selectorul **RO 
 | Unde | Rol |
 |------|-----|
 | Cloudflare D1 | Date persistente (utilizatori + observații), partajate între dispozitive |
-| Browser localStorage | Cache + coadă offline |
-| `POST /api/sync` | Upload observații offline → D1 |
-| `GET /api/bootstrap` | Descarcă starea din D1 la pornire |
+| Browser localStorage | Cache + coadă offline (fără parole) |
+| `POST /api/auth/login` | Autentificare; setează cookie de sesiune |
+| `POST /api/sync` | Upload observații offline → D1 (necesită sesiune) |
+| `GET /api/bootstrap` | Stare din D1; fără parole; lista useri doar pentru admin |
+| `GET /api/users` | Director utilizatori — **doar admin** |
 
 ### Creare D1 (o singură dată)
 

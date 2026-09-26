@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { canValidate, requireUser } from "@/lib/auth";
 import {
   ensureSchema,
   getDB,
@@ -8,9 +9,14 @@ import {
 import type { Observation } from "@/lib/types";
 
 /**
- * Upload offline observations into D1 (source of truth).
+ * Upload offline observations into D1. Requires authenticated session.
+ * Users may only upsert their own observations unless ranger/admin.
  */
 export async function POST(request: Request) {
+  const auth = await requireUser();
+  if (auth.error) return auth.error;
+  const session = auth.user;
+
   try {
     const body = (await request.json()) as {
       observations?: Observation[];
@@ -30,8 +36,18 @@ export async function POST(request: Request) {
     const ids: string[] = [];
     for (const obs of list) {
       if (!obs?.id || !obs.code || !obs.module || !obs.location) continue;
-      await upsertObservation(db, obs);
-      ids.push(obs.id);
+
+      const isOwner = obs.authorId === session.id;
+      const isStaff = canValidate(session.role);
+      if (!isOwner && !isStaff) continue;
+
+      // Non-staff cannot forge another author's id
+      const safe: Observation = isStaff
+        ? obs
+        : { ...obs, authorId: session.id, authorRole: session.role, authorName: session.name };
+
+      await upsertObservation(db, safe);
+      ids.push(safe.id);
     }
 
     return NextResponse.json({

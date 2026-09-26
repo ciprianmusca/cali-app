@@ -1,19 +1,26 @@
 import { NextResponse } from "next/server";
+import { requireAdmin, toPublicUser } from "@/lib/auth";
 import {
   ensureSchema,
+  findUserByEmail,
   getDB,
   listUsers,
   seedIfEmpty,
   upsertUser,
 } from "@/lib/db";
-import type { User } from "@/lib/types";
+import { hashPassword } from "@/lib/password";
+import type { User, UserRole } from "@/lib/types";
 
+/** Admin-only directory. Passwords are never returned. */
 export async function GET() {
+  const auth = await requireAdmin();
+  if (auth.error) return auth.error;
+
   try {
     const db = await getDB();
     await ensureSchema(db);
     await seedIfEmpty(db);
-    const users = await listUsers(db);
+    const users = (await listUsers(db)).map(toPublicUser);
     return NextResponse.json({ ok: true, users });
   } catch (e) {
     const message = e instanceof Error ? e.message : "list_failed";
@@ -21,19 +28,62 @@ export async function GET() {
   }
 }
 
+/** Admin-only user create / update. Password hashed if provided. */
 export async function POST(request: Request) {
+  const auth = await requireAdmin();
+  if (auth.error) return auth.error;
+
   try {
-    const user = (await request.json()) as User;
-    if (!user?.id || !user.email) {
+    const body = (await request.json()) as Partial<User> & {
+      password?: string;
+    };
+    if (!body.id || !body.email || !body.name || !body.role) {
       return NextResponse.json(
         { ok: false, error: "invalid" },
         { status: 400 }
       );
     }
+
     const db = await getDB();
     await ensureSchema(db);
+
+    const existing = (await listUsers(db)).find((u) => u.id === body.id);
+    const emailOwner = await findUserByEmail(db, body.email);
+    if (emailOwner && emailOwner.id !== body.id) {
+      return NextResponse.json(
+        { ok: false, error: "email_used" },
+        { status: 409 }
+      );
+    }
+
+    let passwordHash = existing?.password;
+    if (body.password && body.password.length > 0) {
+      passwordHash = await hashPassword(body.password);
+    }
+    if (!passwordHash) {
+      return NextResponse.json(
+        { ok: false, error: "password_required" },
+        { status: 400 }
+      );
+    }
+
+    const user: User = {
+      id: body.id,
+      email: body.email,
+      name: body.name,
+      role: body.role as UserRole,
+      status: body.status ?? "inactiv",
+      password: passwordHash,
+      isAdult: body.isAdult ?? body.role !== "elev",
+      parentalConsent: body.parentalConsent,
+      gdprAcceptedAt: body.gdprAcceptedAt,
+      gdprVersion: body.gdprVersion,
+      registeredAt: body.registeredAt ?? new Date().toISOString(),
+      lastLoginAt: body.lastLoginAt,
+    };
+
     await upsertUser(db, user);
-    return NextResponse.json({ ok: true, id: user.id });
+    return NextResponse.json({ ok: true, user: toPublicUser(user) });
   } catch (e) {
     const message = e instanceof Error ? e.message : "create_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

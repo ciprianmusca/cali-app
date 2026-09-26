@@ -61,8 +61,9 @@ function GdprGate({ children }: { children: React.ReactNode }) {
         <Button
           variant="outline"
           onClick={() => {
-            logout();
-            window.location.href = "/";
+            void logout().then(() => {
+              window.location.href = "/";
+            });
           }}
         >
           {t("gdpr.decline")}

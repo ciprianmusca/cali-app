@@ -26,7 +26,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const captchaAnswer = "7";
 
-  const onSubmit = (e: FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     if (password !== password2) {
@@ -45,7 +45,7 @@ export default function RegisterPage() {
       setError(t("error.confirmAdult"));
       return;
     }
-    const res = register({ name, email, password, role, isAdult });
+    const res = await register({ name, email, password, role, isAdult });
     if (!res.ok) {
       setError(res.error ?? t("obs.error"));
       return;
@@ -134,10 +134,14 @@ export default function RegisterPage() {
           {t("auth.adult")}
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="button" className="w-full" onClick={() => {
-          const fake = { preventDefault() {} } as FormEvent;
-          onSubmit(fake);
-        }}>
+        <Button
+          type="button"
+          className="w-full"
+          onClick={() => {
+            const fake = { preventDefault() {} } as FormEvent;
+            void onSubmit(fake);
+          }}
+        >
           {t("auth.submitRegister")}
         </Button>
       </form>

@@ -9,6 +9,7 @@ import type {
   UserStatus,
 } from "@/lib/types";
 import { GDPR_VERSION } from "@/lib/constants";
+import { hashPassword, looksHashed } from "@/lib/password";
 
 export type CloudflareEnv = {
   DB: D1Database;
@@ -76,7 +77,7 @@ export async function ensureSchema(db: D1Database): Promise<void> {
   ]);
 }
 
-type UserRow = {
+export type UserRow = {
   id: string;
   email: string;
   name: string;
@@ -207,11 +208,26 @@ function payloadFor(obs: Observation): Record<string, unknown> {
   };
 }
 
-export async function listUsers(db: D1Database): Promise<User[]> {
+export async function listUsersRaw(db: D1Database): Promise<UserRow[]> {
   const { results } = await db
     .prepare("SELECT * FROM users ORDER BY registered_at ASC")
     .all<UserRow>();
-  return (results ?? []).map(userFromRow);
+  return results ?? [];
+}
+
+export async function listUsers(db: D1Database): Promise<User[]> {
+  return (await listUsersRaw(db)).map(userFromRow);
+}
+
+export async function findUserByEmail(
+  db: D1Database,
+  email: string
+): Promise<User | null> {
+  const row = await db
+    .prepare("SELECT * FROM users WHERE lower(email) = lower(?)")
+    .bind(email)
+    .first<UserRow>();
+  return row ? userFromRow(row) : null;
 }
 
 export async function listObservations(db: D1Database): Promise<Observation[]> {
@@ -395,7 +411,26 @@ export async function seedIfEmpty(db: D1Database): Promise<boolean> {
     .first<{ c: number }>();
   if ((row?.c ?? 0) > 0) return false;
   for (const u of SEED_USERS) {
-    await upsertUser(db, u);
+    await upsertUser(db, {
+      ...u,
+      password: await hashPassword(u.password),
+    });
   }
   return true;
+}
+
+/** Re-hash any legacy plaintext passwords still stored in D1. */
+export async function migratePlaintextPasswords(db: D1Database): Promise<number> {
+  const users = await listUsers(db);
+  let n = 0;
+  for (const u of users) {
+    if (!looksHashed(u.password)) {
+      await upsertUser(db, {
+        ...u,
+        password: await hashPassword(u.password),
+      });
+      n += 1;
+    }
+  }
+  return n;
 }

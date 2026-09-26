@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionUser, requireUser } from "@/lib/auth";
 import {
   ensureSchema,
   getDB,
@@ -13,8 +14,15 @@ export async function GET() {
     const db = await getDB();
     await ensureSchema(db);
     await seedIfEmpty(db);
-    const observations = await listObservations(db);
-    return NextResponse.json({ ok: true, observations });
+    const session = await getSessionUser();
+    const all = await listObservations(db);
+    if (!session) {
+      return NextResponse.json({
+        ok: true,
+        observations: all.filter((o) => o.status === "aprobat"),
+      });
+    }
+    return NextResponse.json({ ok: true, observations: all });
   } catch (e) {
     const message = e instanceof Error ? e.message : "list_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
@@ -22,6 +30,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireUser();
+  if (auth.error) return auth.error;
+
   try {
     const obs = (await request.json()) as Observation;
     if (!obs?.id || !obs.code || !obs.module) {
@@ -30,10 +41,16 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    const safe: Observation = {
+      ...obs,
+      authorId: auth.user.id,
+      authorRole: auth.user.role,
+      authorName: auth.user.name,
+    };
     const db = await getDB();
     await ensureSchema(db);
-    await upsertObservation(db, obs);
-    return NextResponse.json({ ok: true, id: obs.id });
+    await upsertObservation(db, safe);
+    return NextResponse.json({ ok: true, id: safe.id });
   } catch (e) {
     const message = e instanceof Error ? e.message : "create_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

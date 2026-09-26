@@ -20,19 +20,27 @@ function LoginForm() {
   const [password, setPassword] = useState("Turist123!");
   const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = () => {
-    const res = login(email, password);
-    if (!res.ok) {
-      setError(res.error ?? t("obs.error"));
-      return;
+  const [busy, setBusy] = useState(false);
+
+  const handleLogin = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await login(email, password);
+      if (!res.ok) {
+        setError(res.error ?? t("obs.error"));
+        return;
+      }
+      const next = params.get("next") || "/acasa";
+      router.push(next);
+    } finally {
+      setBusy(false);
     }
-    const next = params.get("next") || "/acasa";
-    router.push(next);
   };
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    handleLogin();
+    void handleLogin();
   };
 
   return (
@@ -66,8 +74,13 @@ function LoginForm() {
           />
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="button" className="w-full" onClick={handleLogin}>
-          {t("auth.submitLogin")}
+        <Button
+          type="button"
+          className="w-full"
+          disabled={busy}
+          onClick={() => void handleLogin()}
+        >
+          {busy ? t("auth.loading") : t("auth.submitLogin")}
         </Button>
       </form>
 

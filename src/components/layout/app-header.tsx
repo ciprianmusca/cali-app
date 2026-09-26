@@ -132,7 +132,7 @@ export function AppHeader() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={logout}
+                onClick={() => void logout()}
                 aria-label={t("nav.logout")}
               >
                 <LogOut className="size-4" />
@@ -168,7 +168,11 @@ export function AppHeader() {
                 <LanguageSwitcher />
                 <NavLinks mobile />
                 {user ? (
-                  <Button variant="outline" className="w-full" onClick={logout}>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => void logout()}
+                  >
                     <LogOut className="mr-2 size-4" /> {t("nav.logout")}
                   </Button>
                 ) : (
