@@ -18,45 +18,48 @@ export default function HomePage() {
       <section className="relative min-h-[88dvh] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/hero-calimani.jpg"
+          src="/hero-padure.svg"
           alt={t("landing.heroAlt")}
-          className="absolute inset-0 size-full object-cover"
+          className="absolute inset-0 size-full object-cover object-right-bottom"
         />
+        {/* Soft left shade for copy readability — no floating mist ellipse */}
         <div
-          className="absolute inset-0 bg-gradient-to-t from-[#0a1610]/92 via-[#0a1610]/55 to-[#0a1610]/35"
+          className="absolute inset-0 bg-gradient-to-r from-[#0a1610]/75 via-[#0a1610]/35 to-transparent"
           aria-hidden
         />
         <div
-          className="animate-mist absolute top-[18%] left-[10%] h-24 w-2/3 rounded-full bg-white/10 blur-3xl"
+          className="absolute inset-0 bg-gradient-to-t from-[#0a1610]/55 via-transparent to-[#0a1610]/25"
           aria-hidden
         />
 
-        <div className="relative mx-auto flex min-h-[88dvh] max-w-6xl flex-col justify-end px-4 pb-16 pt-28 text-white">
-          <h1 className="animate-rise max-w-2xl font-display text-3xl font-medium leading-snug tracking-tight text-white sm:text-4xl md:text-5xl">
-            {t("landing.headline")}
-          </h1>
-          <p className="animate-rise-delay-1 mt-4 max-w-xl text-base text-white/85 sm:text-lg">
-            {t("landing.sub")}
-          </p>
-          <div className="animate-rise-delay-2 mt-8 flex flex-wrap gap-3">
-            <Link
-              href={startHref}
-              className={cn(
-                buttonVariants({ size: "lg" }),
-                "bg-white text-forest hover:bg-white/90"
-              )}
-            >
-              {t("landing.ctaStart")}
-            </Link>
-            <Link
-              href="/harta"
-              className={cn(
-                buttonVariants({ size: "lg", variant: "outline" }),
-                "border-white/40 bg-transparent text-white hover:bg-white/10"
-              )}
-            >
-              {t("landing.ctaMap")}
-            </Link>
+        <div className="relative mx-auto flex min-h-[88dvh] max-w-6xl flex-col justify-end px-4 pb-16 pt-28 text-white sm:justify-center sm:pb-20">
+          <div className="max-w-xl">
+            <h1 className="animate-rise font-display text-3xl font-medium leading-snug tracking-tight text-white sm:text-4xl md:text-5xl">
+              {t("landing.headline")}
+            </h1>
+            <p className="animate-rise-delay-1 mt-4 text-base text-white/90 sm:text-lg">
+              {t("landing.sub")}
+            </p>
+            <div className="animate-rise-delay-2 mt-8 flex flex-wrap gap-3">
+              <Link
+                href={startHref}
+                className={cn(
+                  buttonVariants({ size: "lg" }),
+                  "bg-white text-forest hover:bg-white/90"
+                )}
+              >
+                {t("landing.ctaStart")}
+              </Link>
+              <Link
+                href="/harta"
+                className={cn(
+                  buttonVariants({ size: "lg", variant: "outline" }),
+                  "border-white/40 bg-transparent text-white hover:bg-white/10"
+                )}
+              >
+                {t("landing.ctaMap")}
+              </Link>
+            </div>
           </div>
         </div>
       </section>

@@ -1,5 +1,5 @@
 /* CALI-LAB service worker — offline app shell + asset cache */
-const VERSION = "cali-lab-sw-v7";
+const VERSION = "cali-lab-sw-v8";
 const SHELL = [
   "/",
   "/acasa",
@@ -10,7 +10,7 @@ const SHELL = [
   "/politica-date",
   "/manifest.webmanifest",
   "/offline.html",
-  "/hero-calimani.svg",
+  "/hero-padure.svg",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/placeholders/tree-1.svg",
