@@ -330,19 +330,39 @@ export const useCaliStore = create<CaliState>()(
             observations: Observation[];
           };
           // SEC-06: merge server data with local unsynced — never wipe the queue.
-          const pendingIds = new Set(get().offlineQueue.map((o) => o.id));
-          const localPending = get().observations.filter(
-            (o) =>
-              pendingIds.has(o.id) ||
-              o.syncStatus === "pending" ||
-              o.syncStatus === "error"
-          );
-          const localPendingById = new Map(localPending.map((o) => [o.id, o]));
+          // - Local-only (airplane mode): keep
+          // - Same id + stale sync error: prefer remote (recover after R2/outage)
+          // - Same id + pending mutation (e.g. ranger validation): keep local
           const remote = data.observations ?? [];
-          const remoteIds = new Set(remote.map((o) => o.id));
+          const remoteById = new Map(remote.map((o) => [o.id, o]));
+          const remoteIds = new Set(remoteById.keys());
+
+          const queue = get().offlineQueue;
+          const nextQueue = queue.filter((o) => {
+            const r = remoteById.get(o.id);
+            if (!r) return true;
+            if (o.syncStatus === "error") return false;
+            // Keep real pending edits (status / validation differ from server).
+            if (o.status !== r.status) return true;
+            if ((o.validatedAt ?? "") !== (r.validatedAt ?? "")) return true;
+            return false;
+          });
+          const queueIds = new Set(nextQueue.map((o) => o.id));
+
+          const localOnly = get().observations.filter(
+            (o) =>
+              !remoteIds.has(o.id) &&
+              (queueIds.has(o.id) ||
+                o.syncStatus === "pending" ||
+                o.syncStatus === "error")
+          );
+
           const merged = [
-            ...remote.map((r) => localPendingById.get(r.id) ?? r),
-            ...localPending.filter((o) => !remoteIds.has(o.id)),
+            ...remote.map((r) => {
+              const q = nextQueue.find((o) => o.id === r.id);
+              return q ?? r;
+            }),
+            ...localOnly,
           ].sort(
             (a, b) =>
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -365,6 +385,7 @@ export const useCaliStore = create<CaliState>()(
           set({
             users: nextUsers,
             observations: merged,
+            offlineQueue: nextQueue,
             currentUserId: nextUserId,
             lastSyncAt: new Date().toISOString(),
             lastSyncError: null,

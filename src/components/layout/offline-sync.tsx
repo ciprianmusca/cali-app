@@ -69,9 +69,17 @@ export function OfflineSyncBar() {
     if (!syncing) return;
     const t = window.setTimeout(() => {
       useCaliStore.setState({ syncing: false, lastSyncError: "timeout" });
-    }, 35000);
+    }, 20000);
     return () => window.clearTimeout(t);
   }, [syncing]);
+
+  // Clear a stuck spinner left in memory from a previous tab/session.
+  useEffect(() => {
+    if (!hydrated) return;
+    if (useCaliStore.getState().syncing) {
+      useCaliStore.setState({ syncing: false });
+    }
+  }, [hydrated]);
 
   // SEC-10: expired session → login (preserve offline queue in store).
   useEffect(() => {
