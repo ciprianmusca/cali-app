@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  Leaf,
   Menu,
   LogOut,
   Map,
@@ -140,12 +139,13 @@ export function AppHeader() {
           href={user ? "/acasa" : "/"}
           className="flex shrink-0 items-center gap-2 font-display text-lg tracking-tight"
         >
-          <span className="flex size-8 items-center justify-center rounded-md bg-forest text-primary-foreground">
-            <Leaf className="size-4" />
-          </span>
-          <span>
-            CALI<span className="text-moss">-LAB</span>
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logos/cali-lab.svg"
+            alt="CALI-LAB"
+            className="h-8 w-auto max-w-[9.5rem] rounded-sm object-contain sm:max-w-[11rem]"
+          />
+          <span className="sr-only">CALI-LAB</span>
         </Link>
 
         <div className="hidden lg:block">{hydrated ? <NavLinks /> : null}</div>

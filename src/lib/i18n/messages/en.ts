@@ -572,6 +572,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "partners.isv": "Forest Research and Management Institute (ISV)",
   "partners.apnc": "Călimani National Park Administration (APNC)",
   "partners.efi": "European Forest Institute (EFI)",
+  "partners.forwards": "FORWARDS / ForestWard Observatory",
 
   "footer.fundedBy": "Funded by the European Union",
   "footer.disclaimer": "Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Forest Institute. Neither the European Union nor the granting authority can be held responsible for them.",

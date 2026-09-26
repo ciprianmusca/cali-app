@@ -6,7 +6,7 @@ Proiect: CALI-LAB · Grant Agreement G-07-2025-2 · ISV & APNC.
 
 ## Rulează local
 
-**Asset-uri de înlocuit de voi:** `/public/hero-calimani.jpg`, `/public/logos/{isv,apnc,efi}.svg` (placeholdere acum), `/public/guide/*` (exemple ghid). Turnstile: setați `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` (implicit chei de test Cloudflare).
+**Asset-uri:** logo-uri oficiale în `/public/logos/` (ISV, APNC/Călimani, FORWARDS, UE Funded, CALI-LAB). Hero/ghid: `/public/hero-calimani.jpg`, `/public/guide/*` (placeholdere). Site parc: [calimani.ro](https://calimani.ro). Turnstile: `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` (implicit chei de test).
 
 **Cu D1/R2 (autentificare, sync, validare)** — Cloudflare preview:
 

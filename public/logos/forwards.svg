@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3190 480" width="3190" height="480">
+<rect width="3190" height="480" fill="#003D39"/>
+<g transform="scale(10)"><g>
+<path fill="#2088CA" d="M4,3 H50 V15 H7 a3,3 0 0 1 -3,-3 Z"/>
+<path fill="#12A19A" d="M4,17 H50 V29 H7 a3,3 0 0 1 -3,-3 Z"/>
+<path fill="#75C388" d="M4,31 H50 V44 H7 a3,3 0 0 1 -3,-3 Z"/>
+<path fill="#003D39" d="M33.5,2 L32,2 C31,9 27,13 22,15.2 L46,15.2 C40,13 36,9 33.5,2 Z
+M30,16.5 C28,23 24,27 18,29.5 L50,29.5 C44,27 38,23 36,16.5 Z
+M27,31 C24,37 19,41 11,44 L50,44 C42,41 37,37 34,31 Z"/>
+</g></g>
+<text x="520" y="392" font-family="Poppins" font-weight="700" font-size="430" fill="#FFFFFF" letter-spacing="-4">FORWARDS</text>
+</svg>

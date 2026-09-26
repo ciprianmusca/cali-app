@@ -43,12 +43,12 @@ export default function ContactPage() {
             {t("contact.apncBody")}
             <br />
             <a
-              href="https://calimani.info"
+              href="https://calimani.ro"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary underline-offset-2 hover:underline"
             >
-              calimani.info
+              calimani.ro
             </a>
           </dd>
         </div>

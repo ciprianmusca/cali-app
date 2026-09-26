@@ -3,9 +3,21 @@
 import { useI18n } from "@/lib/i18n/use-i18n";
 
 const PARTNERS = [
-  { src: "/logos/isv.svg", altKey: "partners.isv" as const, href: "https://www.ipsv.ro" },
-  { src: "/logos/apnc.svg", altKey: "partners.apnc" as const, href: "https://calimani.info" },
-  { src: "/logos/efi.svg", altKey: "partners.efi" as const, href: "https://efi.int" },
+  {
+    src: "/logos/isv.png",
+    altKey: "partners.isv" as const,
+    href: "https://www.ipsv.ro",
+  },
+  {
+    src: "/logos/apnc.png",
+    altKey: "partners.apnc" as const,
+    href: "https://calimani.ro",
+  },
+  {
+    src: "/logos/forwards.png",
+    altKey: "partners.forwards" as const,
+    href: "https://forwards-project.eu",
+  },
 ];
 
 export function PartnerLogos({ className }: { className?: string }) {
@@ -23,13 +35,13 @@ export function PartnerLogos({ className }: { className?: string }) {
           href={p.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="opacity-90 transition-opacity hover:opacity-100"
+          className="opacity-95 transition-opacity hover:opacity-100"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={p.src}
             alt={t(p.altKey)}
-            className="h-10 w-auto max-w-[140px] object-contain sm:h-12"
+            className="h-12 w-auto max-w-[160px] object-contain sm:h-14"
           />
         </a>
       ))}

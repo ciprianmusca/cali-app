@@ -597,6 +597,7 @@ export const ro = {
   "partners.isv": "Institutul de Cercetări și Amenajări Silvice (ISV)",
   "partners.apnc": "Administrația Parcului Național Călimani (APNC)",
   "partners.efi": "European Forest Institute (EFI)",
+  "partners.forwards": "FORWARDS / ForestWard Observatory",
 
   // Footer extras
   "footer.fundedBy": "Funded by the European Union",

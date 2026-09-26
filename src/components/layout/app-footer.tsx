@@ -13,13 +13,14 @@ export function AppFooter() {
         <div className="grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-start">
           <div className="space-y-3 text-sm leading-relaxed text-primary-foreground/90">
             <div className="flex flex-wrap items-center gap-4">
+              {/* Official EU funded emblem (flag + text) */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/logos/eu.svg"
+                src="/logos/eu-funded.svg"
                 alt={t("footer.euEmblem")}
-                className="h-12 w-auto rounded-sm shadow-sm"
-                width={72}
-                height={48}
+                className="h-16 w-auto rounded-sm bg-white px-2 py-1 shadow-sm sm:h-20"
+                width={120}
+                height={104}
               />
               <div>
                 <p className="font-medium">{t("footer.fundedBy")}</p>
@@ -79,7 +80,7 @@ export function AppFooter() {
               ipsv.ro
             </a>
             <a
-              href="https://calimani.info"
+              href="https://calimani.ro"
               target="_blank"
               rel="noopener noreferrer"
               className="underline-offset-2 hover:underline"
@@ -93,7 +94,9 @@ export function AppFooter() {
           <p className="mb-4 text-center text-xs text-primary-foreground/60">
             {t("partners.band")}
           </p>
-          <PartnerLogos />
+          <div className="rounded-lg bg-white/95 px-6 py-5">
+            <PartnerLogos />
+          </div>
         </div>
       </div>
     </footer>

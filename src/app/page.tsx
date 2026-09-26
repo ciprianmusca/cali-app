@@ -96,7 +96,9 @@ export default function HomePage() {
           <p className="mb-6 text-center text-sm text-muted-foreground">
             {t("partners.band")}
           </p>
-          <PartnerLogos />
+          <div className="rounded-lg border bg-white/90 px-6 py-6">
+            <PartnerLogos />
+          </div>
         </div>
       </section>
 
