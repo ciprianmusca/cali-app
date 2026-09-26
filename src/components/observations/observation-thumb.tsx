@@ -31,7 +31,15 @@ export function ObservationThumb({
         return;
       }
       void loadIdbPhoto(parsed.obsId, parsed.index).then((data) => {
-        if (!cancelled) setCurrent(data || fallback);
+        if (cancelled) return;
+        if (data) {
+          setCurrent(data);
+          return;
+        }
+        // IndexedDB miss (other account / cleared) → try API if we know the id.
+        setCurrent(
+          `/api/observations/${parsed.obsId}/photo/${parsed.index}`
+        );
       });
       return () => {
         cancelled = true;

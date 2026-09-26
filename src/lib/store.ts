@@ -358,13 +358,19 @@ export const useCaliStore = create<CaliState>()(
           );
           const activeQueueIds = new Set(activeQueue.map((o) => o.id));
 
+          const remoteCodes = new Set(remote.map((o) => o.code));
           const localOnly = get().observations.filter(
             (o) =>
               !remoteIds.has(o.id) &&
+              !remoteCodes.has(o.code) &&
               (!sessionUserId || o.authorId === sessionUserId) &&
               (activeQueueIds.has(o.id) ||
                 o.syncStatus === "pending" ||
                 o.syncStatus === "error")
+          );
+          // Drop queue rows that collide with a server code (failed re-create).
+          const cleanedQueue = nextQueue.filter(
+            (o) => remoteIds.has(o.id) || !remoteCodes.has(o.code)
           );
 
           const merged = [
@@ -395,7 +401,7 @@ export const useCaliStore = create<CaliState>()(
           set({
             users: nextUsers,
             observations: merged,
-            offlineQueue: nextQueue,
+            offlineQueue: cleanedQueue,
             currentUserId: nextUserId,
             lastSyncAt: new Date().toISOString(),
             lastSyncError: null,

@@ -38,7 +38,6 @@ function ObservationDetail({ id }: { id: string }) {
   const user = useCaliStore((s) => s.currentUser())!;
   const validateObservation = useCaliStore((s) => s.validateObservation);
   const deleteObservation = useCaliStore((s) => s.deleteObservation);
-  const updateObservation = useCaliStore((s) => s.updateObservation);
 
   const candidate = observations.find((o) => o.id === id);
   const obs =
@@ -52,24 +51,47 @@ function ObservationDetail({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement>(null);
 
-  // Bootstrap strips inline photos; load full record for the detail view.
+  // Prefer the server record (photos as /api/... URLs). Drop ghost local rows.
   useEffect(() => {
     if (!id || typeof navigator === "undefined" || !navigator.onLine) return;
     let cancelled = false;
     void fetch(`/api/observations/${id}`, { credentials: "include" })
       .then(async (res) => {
+        if (cancelled) return;
+        if (res.status === 404 || res.status === 403) {
+          // Ghost local row (never made it to D1) — drop without DELETE API.
+          useCaliStore.setState({
+            observations: useCaliStore
+              .getState()
+              .observations.filter((o) => o.id !== id),
+            offlineQueue: useCaliStore
+              .getState()
+              .offlineQueue.filter((o) => o.id !== id),
+          });
+          router.replace("/observatii");
+          return;
+        }
         if (!res.ok) return;
         const data = (await res.json()) as {
           observation?: Observation;
         };
-        if (cancelled || !data.observation) return;
-        updateObservation(id, data.observation);
+        if (!data.observation) return;
+        // Replace the whole row so stale local fields/photos cannot linger.
+        useCaliStore.setState({
+          observations: useCaliStore
+            .getState()
+            .observations.map((o) =>
+              o.id === id
+                ? { ...data.observation!, syncStatus: "synced" as const }
+                : o
+            ),
+        });
       })
       .catch(() => undefined);
     return () => {
       cancelled = true;
     };
-  }, [id, updateObservation]);
+  }, [id, router]);
 
   if (!obs) {
     return (
