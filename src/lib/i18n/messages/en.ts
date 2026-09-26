@@ -87,6 +87,11 @@ export const en: { [K in keyof RoMessages]: string } = {
   "error.areaRequired": "Affected area (m²) is required.",
   "error.coverUnset": "Set all four percentages (steps of 5%).",
   "error.coverSum": "Sum must be 100% (currently {sum}%).",
+  "error.speciesOther": "Please specify the species name.",
+  "error.gpsAfterCreated":
+    "GPS capture time cannot be after observation creation (10 min tolerance).",
+  "error.crownRequired": "Select crown condition.",
+  "error.forbidden": "Action not allowed.",
 
   "home.welcome": "Welcome",
   "home.sub":
@@ -167,6 +172,8 @@ export const en: { [K in keyof RoMessages]: string } = {
   "obs.selectSpecies": "Select species",
   "obs.photos": "Photos",
   "obs.addPhoto": "Add photo",
+  "obs.takeCamera": "Take a photo",
+  "obs.fromGallery": "From gallery",
   "obs.compressing": "Compressing…",
   "obs.photoHint":
     "Images are compressed on device (~1600 px, <500 KB) for weak-signal sync.",
@@ -175,6 +182,22 @@ export const en: { [K in keyof RoMessages]: string } = {
   "obs.save": "Save",
   "obs.saveAndNew": "Save and new form",
   "obs.formIncomplete": "Fill in the required fields marked above before saving.",
+  "obs.summaryTitle": "Review observation",
+  "obs.summaryConfirm": "Confirm",
+  "obs.summaryBack": "Back",
+  "obs.summaryPhotos": "Photos",
+  "obs.edit": "Edit",
+  "obs.editHistory": "Edit history",
+  "obs.locationAdjusted": "Position adjusted on map",
+  "obs.linkTree": "Link to sentinel tree",
+  "obs.noNearbyTrees": "No nearby sentinel trees",
+  "obs.createSentinel": "Create sentinel tree",
+  "tree.title": "Sentinel tree",
+  "tree.history": "Observation history",
+  "tree.empty": "No observations linked to this tree.",
+  "tree.distance": "{m} m",
+  "geo.miniMap": "Map position",
+  "geo.dragHint": "Drag the pin to adjust the position",
   "obs.error": "Error",
 
   "phen.title": "Phenology observation",
@@ -182,16 +205,30 @@ export const en: { [K in keyof RoMessages]: string } = {
     "Photograph a tree and assign the phenological stage. Code is generated automatically (PHEN-NNNN).",
   "phen.stageLabel": "Phenological stage",
   "phen.stage1": "Dormancy",
-  "phen.stage1desc": "Closed, dormant buds (winter – early spring)",
+  "phen.stage1desc.conifer":
+    "Closed, dormant buds (winter – early spring)",
+  "phen.stage1desc.deciduous":
+    "Closed, dormant buds (winter – early spring)",
   "phen.stage2": "Activation",
-  "phen.stage2desc": "Swollen buds beginning to open (spring)",
+  "phen.stage2desc.conifer": "Swollen buds beginning to open (spring)",
+  "phen.stage2desc.deciduous": "Swollen buds beginning to open (spring)",
   "phen.stage3": "Foliage",
-  "phen.stage3desc": "New needles visible, light green (late spring)",
+  "phen.stage3desc.conifer":
+    "New needles visible, light green (late spring)",
+  "phen.stage3desc.deciduous":
+    "Young leaves visible, light green (late spring)",
   "phen.stage4": "Maturity",
-  "phen.stage4desc": "Fully developed crown, dark green (summer)",
-  "phen.stage5": "Stress",
-  "phen.stage5desc":
-    "Visible discoloration/yellowing (autumn – early winter)",
+  "phen.stage4desc.conifer":
+    "Fully developed crown, dark green (summer)",
+  "phen.stage4desc.deciduous":
+    "Fully developed foliage, dark green (summer)",
+  "phen.crownLabel": "Crown condition",
+  "phen.crown.sanatoasa": "Healthy",
+  "phen.crown.decolorare_usoara": "Slight discoloration",
+  "phen.crown.decolorare_puternica": "Strong discoloration",
+  "phen.crown.uscare": "Dieback / drying",
+  "phen.stage5": "Stress (migrated)",
+  "phen.stage5desc": "Legacy value — migrated to crown condition",
 
   "dist.title": "Disturbance observation",
   "dist.sub":
@@ -218,6 +255,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "soil.title": "Soil observation",
   "soil.sub":
     "Estimate what you see from above — the top layer counts. Sum of 4 classes = 100%, steps of 5%. Code: SOIL-NNNN.",
+  "soil.plotHint": "Assess a 1 × 1 m square",
   "soil.cover": "Soil cover",
   "soil.sum": "Sum:",
   "soil.rule":
@@ -231,15 +269,24 @@ export const en: { [K in keyof RoMessages]: string } = {
   "soil.bare": "Bare soil / rock",
   "soil.bareHint": "Visible soil or rock without cover",
   "soil.seedlingsCheck": "Seedlings present (outside the 100% sum)",
+  "soil.sumShort": "Sum must be 100% — missing {n}%",
+  "soil.sumOver": "Sum must be 100% — exceeded by {n}%",
+  "soil.fillRest": "Fill the rest",
 
   "sp.picea_abies": "Norway spruce (Picea abies)",
   "sp.abies_alba": "Silver fir (Abies alba)",
   "sp.fagus_sylvatica": "Beech (Fagus sylvatica)",
   "sp.pinus_sylvestris": "Scots pine (Pinus sylvestris)",
+  "sp.pinus_cembra": "Swiss stone pine (Pinus cembra)",
+  "sp.pinus_mugo": "Mountain pine (Pinus mugo)",
   "sp.larix_decidua": "European larch (Larix decidua)",
   "sp.acer_pseudoplatanus": "Sycamore (Acer pseudoplatanus)",
   "sp.sorbus_aucuparia": "Rowan (Sorbus aucuparia)",
+  "sp.betula_pendula": "Silver birch (Betula pendula)",
+  "sp.alnus_viridis": "Green alder (Alnus viridis)",
   "sp.alta": "Other species",
+  "sp.otherRequired": "Specify the species",
+  "sp.otherPlaceholder": "Species name",
 
   "geo.title": "Geolocation",
   "geo.retry": "Retry",

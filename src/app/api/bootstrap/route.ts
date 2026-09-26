@@ -5,6 +5,7 @@ import {
   getDB,
   listObservations,
   listUsers,
+  migrateObservationRows,
   migratePasswords,
   migratePhotosToR2,
   seedIfEmpty,
@@ -23,6 +24,11 @@ export async function GET() {
     await ensureSchema(db);
     await seedIfEmpty(db);
     await migratePasswords(db);
+    try {
+      await migrateObservationRows(db);
+    } catch {
+      /* ignore migration hiccups */
+    }
     try {
       const bucket = await getPhotosBucket();
       await migratePhotosToR2(db, bucket);

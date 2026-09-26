@@ -4,14 +4,20 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Crosshair, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { LocationMiniMap } from "@/components/observations/location-mini-map";
 import type { GeoLocation } from "@/lib/types";
-import { captureGeolocation, formatCoord, formatDateTime, mockLocationNearPark } from "@/lib/format";
+import {
+  captureGeolocation,
+  formatCoord,
+  formatDateTime,
+  mockLocationNearPark,
+} from "@/lib/format";
 import { useCaliStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n/use-i18n";
 
 interface Props {
   value: GeoLocation | null;
-  onChange: (loc: GeoLocation | null) => void;
+  onChange: (loc: GeoLocation | null, adjusted?: boolean) => void;
   onError?: (msg: string | null) => void;
 }
 
@@ -27,15 +33,13 @@ export function GeoCapture({ value, onChange, onError }: Props) {
     onError?.(null);
     try {
       const loc = await captureGeolocation();
-      onChange(loc);
+      onChange(loc, false);
     } catch (e) {
       const msg =
-        e instanceof Error
-          ? e.message
-          : t("geo.locateFailed");
+        e instanceof Error ? e.message : t("geo.locateFailed");
       setError(msg);
       onError?.(msg);
-      onChange(null);
+      onChange(null, false);
     } finally {
       setLoading(false);
     }
@@ -47,8 +51,9 @@ export function GeoCapture({ value, onChange, onError }: Props) {
   }, []);
 
   const useDemo = () => {
+    // DATA-01: keep demonstrative Călimani position untouched in intent.
     const loc = mockLocationNearPark();
-    onChange(loc);
+    onChange(loc, false);
     setError(null);
     onError?.(null);
   };
@@ -94,32 +99,40 @@ export function GeoCapture({ value, onChange, onError }: Props) {
       ) : null}
 
       {value ? (
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
-          <div>
-            <dt className="text-muted-foreground">{t("geo.lat")}</dt>
-            <dd className="font-medium">{formatCoord(value.latitude)}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{t("geo.lng")}</dt>
-            <dd className="font-medium">{formatCoord(value.longitude)}</dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{t("geo.accuracy")}</dt>
-            <dd className="font-medium">
-              {value.accuracy != null ? `${value.accuracy} m` : "—"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">{t("geo.altitude")}</dt>
-            <dd className="font-medium">
-              {value.altitude != null ? `${value.altitude} m` : "—"}
-            </dd>
-          </div>
-          <div className="col-span-2">
-            <dt className="text-muted-foreground">{t("geo.capturedAt")}</dt>
-            <dd className="font-medium">{formatDateTime(value.capturedAt)}</dd>
-          </div>
-        </dl>
+        <>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-muted-foreground">{t("geo.lat")}</dt>
+              <dd className="font-medium">{formatCoord(value.latitude)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("geo.lng")}</dt>
+              <dd className="font-medium">{formatCoord(value.longitude)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("geo.accuracy")}</dt>
+              <dd className="font-medium">
+                {value.accuracy != null ? `${value.accuracy} m` : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("geo.altitude")}</dt>
+              <dd className="font-medium">
+                {value.altitude != null ? `${value.altitude} m` : "—"}
+              </dd>
+            </div>
+            <div className="col-span-2">
+              <dt className="text-muted-foreground">{t("geo.capturedAt")}</dt>
+              <dd className="font-medium">
+                {formatDateTime(value.capturedAt)}
+              </dd>
+            </div>
+          </dl>
+          <LocationMiniMap
+            value={value}
+            onChange={(loc, adjusted) => onChange(loc, adjusted)}
+          />
+        </>
       ) : null}
 
       {value?.accuracy != null && value.accuracy > warningMeters ? (

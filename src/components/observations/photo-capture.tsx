@@ -1,59 +1,92 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, X } from "lucide-react";
+import { Camera, ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { compressImage } from "@/lib/format";
+import { extractPhotoMeta } from "@/lib/exif";
+import type { PhotoMeta } from "@/lib/types";
 import { useI18n } from "@/lib/i18n/use-i18n";
 
 interface Props {
   photos: string[];
-  onChange: (photos: string[]) => void;
+  photoMeta?: PhotoMeta[];
+  onChange: (photos: string[], meta: PhotoMeta[]) => void;
   error?: string;
 }
 
-export function PhotoCapture({ photos, onChange, error }: Props) {
+/** DATA-12: separate camera vs gallery; DATA-08: EXIF before compress. */
+export function PhotoCapture({
+  photos,
+  photoMeta = [],
+  onChange,
+  error,
+}: Props) {
   const { t } = useI18n();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
 
   const handleFiles = async (files: FileList | null) => {
     if (!files?.length) return;
     setBusy(true);
     try {
-      const next: string[] = [];
+      const nextPhotos: string[] = [];
+      const nextMeta: PhotoMeta[] = [];
       for (const file of Array.from(files)) {
+        const meta = await extractPhotoMeta(file);
         const dataUrl = await compressImage(file);
-        next.push(dataUrl);
+        nextPhotos.push(dataUrl);
+        nextMeta.push(meta);
       }
-      onChange([...photos, ...next]);
+      onChange([...photos, ...nextPhotos], [...photoMeta, ...nextMeta]);
     } finally {
       setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
+      if (cameraRef.current) cameraRef.current.value = "";
+      if (galleryRef.current) galleryRef.current.value = "";
     }
   };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <label className="text-sm font-medium">
           {t("obs.photos")} <span className="text-destructive">*</span>
         </label>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={busy}
-          onClick={() => inputRef.current?.click()}
-        >
-          <Camera className="size-4" />
-          {busy ? t("obs.compressing") : t("obs.addPhoto")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => cameraRef.current?.click()}
+          >
+            <Camera className="size-4" />
+            {busy ? t("obs.compressing") : t("obs.takeCamera")}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={busy}
+            onClick={() => galleryRef.current?.click()}
+          >
+            <ImageIcon className="size-4" />
+            {t("obs.fromGallery")}
+          </Button>
+        </div>
         <input
-          ref={inputRef}
+          ref={cameraRef}
           type="file"
           accept="image/*"
           capture="environment"
+          className="hidden"
+          onChange={(e) => void handleFiles(e.target.files)}
+        />
+        <input
+          ref={galleryRef}
+          type="file"
+          accept="image/*"
           multiple
           className="hidden"
           onChange={(e) => void handleFiles(e.target.files)}
@@ -77,7 +110,12 @@ export function PhotoCapture({ photos, onChange, error }: Props) {
               <button
                 type="button"
                 className="absolute top-1 right-1 rounded-full bg-background/90 p-1"
-                onClick={() => onChange(photos.filter((_, j) => j !== i))}
+                onClick={() =>
+                  onChange(
+                    photos.filter((_, j) => j !== i),
+                    photoMeta.filter((_, j) => j !== i)
+                  )
+                }
                 aria-label={t("obs.deletePhoto")}
               >
                 <X className="size-3.5" />
@@ -86,14 +124,27 @@ export function PhotoCapture({ photos, onChange, error }: Props) {
           ))}
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/40 px-4 py-10 text-sm text-muted-foreground transition hover:bg-muted/70"
-        >
+        <div className="flex w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 px-4 py-10 text-sm text-muted-foreground">
           <Camera className="size-6" />
-          {t("obs.takePhoto")}
-        </button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => cameraRef.current?.click()}
+            >
+              {t("obs.takeCamera")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => galleryRef.current?.click()}
+            >
+              {t("obs.fromGallery")}
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

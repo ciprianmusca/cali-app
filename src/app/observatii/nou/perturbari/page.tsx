@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthGate } from "@/components/layout/auth-gate";
 import { Button } from "@/components/ui/button";
@@ -8,36 +8,25 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { GeoCapture } from "@/components/observations/geo-capture";
 import { PhotoCapture } from "@/components/observations/photo-capture";
+import { SpeciesSelect } from "@/components/observations/species-select";
+import { ObservationSummary } from "@/components/observations/observation-summary";
 import { useCaliStore } from "@/lib/store";
 import { enqueueObservationSave } from "@/lib/save-observation";
+import { haversineMeters } from "@/lib/format";
+import { validateGpsNotAfterCreated } from "@/lib/migrate-observation";
+import { speciesDisplayLabel } from "@/lib/species";
 import type {
   DisturbanceType,
   GeoLocation,
   PerturbariObservation,
+  PhotoMeta,
+  SentinelTree,
   Species,
 } from "@/lib/types";
 import { useI18n } from "@/lib/i18n/use-i18n";
-import { disturbanceKey, severityKey, speciesKey } from "@/lib/i18n/labels";
-
-const SPECIES: Species[] = [
-  "picea_abies",
-  "abies_alba",
-  "fagus_sylvatica",
-  "pinus_sylvestris",
-  "larix_decidua",
-  "acer_pseudoplatanus",
-  "sorbus_aucuparia",
-  "alta",
-];
+import { disturbanceKey, severityKey } from "@/lib/i18n/labels";
 
 const DISTURBANCE_TYPES: DisturbanceType[] = [
   "atac_insecte",
@@ -51,21 +40,53 @@ const DISTURBANCE_TYPES: DisturbanceType[] = [
 ];
 
 function PerturbariForm() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const loc = locale === "en" ? "en" : "ro";
   const router = useRouter();
   const user = useCaliStore((s) => s.currentUser());
   const nextCode = useCaliStore((s) => s.nextCode);
   const formRef = useRef<HTMLFormElement>(null);
 
   const [photos, setPhotos] = useState<string[]>([]);
+  const [photoMeta, setPhotoMeta] = useState<PhotoMeta[]>([]);
   const [types, setTypes] = useState<DisturbanceType[]>([]);
   const [insectType, setInsectType] = useState("");
   const [severity, setSeverity] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [area, setArea] = useState("");
   const [species, setSpecies] = useState<Species | "">("");
+  const [speciesOther, setSpeciesOther] = useState("");
   const [details, setDetails] = useState("");
   const [location, setLocation] = useState<GeoLocation | null>(null);
+  const [locationAdjusted, setLocationAdjusted] = useState(false);
+  const [trees, setTrees] = useState<SentinelTree[]>([]);
+  const [sentinelTreeId, setSentinelTreeId] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [review, setReview] = useState<PerturbariObservation | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/trees", { credentials: "include" })
+      .then((r) => r.json() as Promise<{ trees?: SentinelTree[] }>)
+      .then((d) => setTrees(d.trees ?? []))
+      .catch(() => undefined);
+  }, []);
+
+  const nearby = useMemo(() => {
+    if (!location) return [];
+    return [...trees]
+      .map((tr) => ({
+        tree: tr,
+        m: Math.round(
+          haversineMeters(
+            location.latitude,
+            location.longitude,
+            tr.latitude,
+            tr.longitude
+          )
+        ),
+      }))
+      .sort((a, b) => a.m - b.m)
+      .slice(0, 8);
+  }, [trees, location]);
 
   const toggleType = (d: DisturbanceType) => {
     setTypes((prev) =>
@@ -79,38 +100,35 @@ function PerturbariForm() {
     if (!photos.length) e.photos = t("error.photoRequired");
     if (!types.length) e.types = t("error.disturbanceType");
     if (!species) e.species = t("error.speciesRequired");
+    if (species === "alta" && !speciesOther.trim()) {
+      e.speciesOther = t("error.speciesOther");
+    }
     if (!severity) e.severity = t("error.severityRequired");
     if (!area.trim() || Number(area.replace(",", ".")) <= 0)
       e.area = t("error.areaRequired");
     if (!location) e.location = t("error.locationRequired");
+    const createdAt = new Date().toISOString();
+    if (
+      location &&
+      !validateGpsNotAfterCreated(location.capturedAt, createdAt)
+    ) {
+      e.location = t("error.gpsAfterCreated");
+    }
     setErrors(e);
     if (Object.keys(e).length) {
-      const el = formRef.current?.querySelector(
-        `[data-field="${Object.keys(e)[0]}"]`
-      );
-      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      formRef.current
+        ?.querySelector(`[data-field="${Object.keys(e)[0]}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return false;
     }
     return true;
   };
 
-  const resetForm = () => {
-    setPhotos([]);
-    setTypes([]);
-    setInsectType("");
-    setSeverity(null);
-    setArea("");
-    setSpecies("");
-    setDetails("");
-    setLocation(null);
-    setErrors({});
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const save = (andNew: boolean) => {
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
     if (!validate() || !user || !location || !severity || !species) return;
-
-    const obs: PerturbariObservation = {
+    const createdAt = new Date().toISOString();
+    setReview({
       id: `o-${crypto.randomUUID().slice(0, 8)}`,
       code: nextCode("perturbari"),
       module: "perturbari",
@@ -119,27 +137,35 @@ function PerturbariForm() {
       authorRole: user.role,
       authorName: user.name,
       disturbanceTypes: types,
-      insectType: types.includes("atac_insecte")
-        ? insectType.trim() || undefined
-        : undefined,
+      insectType: insectType.trim() || undefined,
       severity,
       affectedAreaSqm: Number(area.replace(",", ".")),
       species,
+      speciesOther:
+        species === "alta" ? speciesOther.trim() : undefined,
       details: details.trim() || undefined,
       photos,
+      photoMeta,
       location,
-      createdAt: new Date().toISOString(),
-    };
-
-    if (andNew) resetForm();
-    else router.replace("/observatii");
-    enqueueObservationSave(obs);
+      locationAdjusted: locationAdjusted || undefined,
+      sentinelTreeId: sentinelTreeId || undefined,
+      isSentinelTree: Boolean(sentinelTreeId) || undefined,
+      createdAt,
+    });
   };
 
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    save(false);
-  };
+  if (review) {
+    return (
+      <ObservationSummary
+        draft={review}
+        onBack={() => setReview(null)}
+        onConfirm={() => {
+          enqueueObservationSave(review);
+          router.replace("/observatii");
+        }}
+      />
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
@@ -150,36 +176,25 @@ function PerturbariForm() {
         <div data-field="photos">
           <PhotoCapture
             photos={photos}
-            onChange={setPhotos}
+            photoMeta={photoMeta}
+            onChange={(p, m) => {
+              setPhotos(p);
+              setPhotoMeta(m);
+            }}
             error={errors.photos}
           />
         </div>
 
-        <div data-field="species" className="space-y-2">
-          <Label>
-            {t("obs.species")} <span className="text-destructive">*</span>
-          </Label>
-          <Select
-            value={species || undefined}
-            onValueChange={(v) => setSpecies((v ?? "") as Species)}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={t("obs.selectSpecies")} />
-            </SelectTrigger>
-            <SelectContent>
-              {SPECIES.map((k) => (
-                <SelectItem key={k} value={k}>
-                  {t(speciesKey(k))}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors.species ? (
-            <p className="text-sm text-destructive">{errors.species}</p>
-          ) : null}
-        </div>
+        <SpeciesSelect
+          species={species}
+          speciesOther={speciesOther}
+          onSpeciesChange={setSpecies}
+          onOtherChange={setSpeciesOther}
+          error={errors.species}
+          otherError={errors.speciesOther}
+        />
 
-        <div data-field="types" className="space-y-3">
+        <div data-field="types" className="space-y-2">
           <Label>
             {t("dist.typeLabel")} <span className="text-destructive">*</span>
           </Label>
@@ -187,7 +202,7 @@ function PerturbariForm() {
             {DISTURBANCE_TYPES.map((d) => (
               <label
                 key={d}
-                className="flex items-center gap-2 rounded-md border bg-card/60 px-3 py-2 text-sm"
+                className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
               >
                 <Checkbox
                   checked={types.includes(d)}
@@ -207,31 +222,31 @@ function PerturbariForm() {
             <Label htmlFor="insect">{t("dist.insectOptional")}</Label>
             <Input
               id="insect"
-              placeholder={t("dist.insectPlaceholder")}
               value={insectType}
               onChange={(e) => setInsectType(e.target.value)}
+              placeholder={t("dist.insectPlaceholder")}
             />
           </div>
         ) : null}
 
-        <div data-field="severity" className="space-y-3">
+        <div data-field="severity" className="space-y-2">
           <Label>
             {t("dist.severityLabel")}{" "}
             <span className="text-destructive">*</span>
           </Label>
           <div className="grid gap-2">
-            {([1, 2, 3, 4, 5] as const).map((s) => (
+            {([1, 2, 3, 4, 5] as const).map((n) => (
               <button
-                key={s}
+                key={n}
                 type="button"
-                onClick={() => setSeverity(s)}
+                onClick={() => setSeverity(n)}
                 className={`rounded-lg border px-3 py-2 text-left text-sm ${
-                  severity === s
+                  severity === n
                     ? "border-primary bg-accent"
                     : "border-border bg-card/60"
                 }`}
               >
-                <strong>{s}</strong> — {t(severityKey(s))}
+                {n} — {t(severityKey(n))}
               </button>
             ))}
           </div>
@@ -249,7 +264,6 @@ function PerturbariForm() {
             inputMode="decimal"
             value={area}
             onChange={(e) => setArea(e.target.value)}
-            placeholder="ex. 40"
           />
           {errors.area ? (
             <p className="text-sm text-destructive">{errors.area}</p>
@@ -267,28 +281,56 @@ function PerturbariForm() {
         </div>
 
         <div data-field="location">
-          <GeoCapture value={location} onChange={setLocation} />
+          <GeoCapture
+            value={location}
+            onChange={(loc, adjusted) => {
+              setLocation(loc);
+              if (adjusted) setLocationAdjusted(true);
+              else if (loc) setLocationAdjusted(false);
+            }}
+          />
           {errors.location ? (
             <p className="mt-2 text-sm text-destructive">{errors.location}</p>
           ) : null}
         </div>
 
-        {Object.keys(errors).length > 0 ? (
-          <p className="text-sm text-destructive" data-field="auth">
-            {t("obs.formIncomplete")}
-          </p>
-        ) : null}
-
-        <div className="flex flex-wrap gap-3">
-          <Button type="submit">{t("obs.save")}</Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => save(true)}
-          >
-            {t("obs.saveAndNew")}
-          </Button>
+        <div className="space-y-2 rounded-lg border p-4">
+          <Label>{t("obs.linkTree")}</Label>
+          {nearby.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {t("obs.noNearbyTrees")}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="tree"
+                  checked={!sentinelTreeId}
+                  onChange={() => setSentinelTreeId("")}
+                />
+                —
+              </label>
+              {nearby.map(({ tree: tr, m }) => (
+                <label
+                  key={tr.id}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <input
+                    type="radio"
+                    name="tree"
+                    checked={sentinelTreeId === tr.id}
+                    onChange={() => setSentinelTreeId(tr.id)}
+                  />
+                  {tr.code} · {speciesDisplayLabel(tr.species, loc, tr.speciesOther)}{" "}
+                  · {t("tree.distance", { m })}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
+
+        <Button type="submit">{t("obs.save")}</Button>
       </form>
     </div>
   );

@@ -24,21 +24,24 @@ import {
 } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import {
+  crownKey,
   disturbanceKey,
   phenStageLabelKey,
   severityKey,
-  speciesKey,
 } from "@/lib/i18n/labels";
+import { speciesDisplayLabel } from "@/lib/species";
 import { canViewObservation } from "@/lib/visibility";
 
 function ObservationDetail({ id }: { id: string }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const loc = locale === "en" ? "en" : "ro";
   const router = useRouter();
   const observations = useCaliStore((s) => s.observations);
   const user = useCaliStore((s) => s.currentUser())!;
   const validateObservation = useCaliStore((s) => s.validateObservation);
   const deleteObservation = useCaliStore((s) => s.deleteObservation);
   const updateObservation = useCaliStore((s) => s.updateObservation);
+  const [creatingTree, setCreatingTree] = useState(false);
 
   const candidate = observations.find((o) => o.id === id);
   const obs =
@@ -110,7 +113,43 @@ function ObservationDetail({ id }: { id: string }) {
     obs.status === "in_asteptare";
   const canDelete =
     obs.status === "in_asteptare" && obs.authorId === user.id;
+  const canEdit =
+    obs.status === "in_asteptare" && obs.authorId === user.id;
+  const canCreateTree =
+    (user.role === "ranger" || user.role === "admin") &&
+    Boolean(obs.species);
   const isOwn = obs.authorId === user.id;
+
+  const createSentinel = async () => {
+    if (!obs.species) return;
+    setCreatingTree(true);
+    try {
+      const res = await fetch("/api/trees", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          species: obs.species,
+          speciesOther: obs.speciesOther,
+          latitude: obs.location.latitude,
+          longitude: obs.location.longitude,
+          observationId: obs.id,
+        }),
+      });
+      const data = (await res.json()) as {
+        tree?: { id: string; code: string };
+      };
+      if (res.ok && data.tree) {
+        updateObservation(obs.id, {
+          isSentinelTree: true,
+          sentinelTreeId: data.tree.id,
+        });
+        router.push(`/arbori/${data.tree.id}`);
+      }
+    } finally {
+      setCreatingTree(false);
+    }
+  };
 
   const onValidate = () => {
     setError(null);
@@ -153,6 +192,34 @@ function ObservationDetail({ id }: { id: string }) {
         {formatDateTime(obs.createdAt)} ·{" "}
         {displayAuthorName(obs.authorName, obs.authorRole, user.role, isOwn)}
       </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {canEdit ? (
+          <Link
+            href={`/observatii/${obs.id}/editare`}
+            className="text-sm text-primary underline"
+          >
+            {t("obs.edit")}
+          </Link>
+        ) : null}
+        {obs.sentinelTreeId ? (
+          <Link
+            href={`/arbori/${obs.sentinelTreeId}`}
+            className="text-sm text-primary underline"
+          >
+            {t("tree.title")}
+          </Link>
+        ) : null}
+        {canCreateTree && !obs.sentinelTreeId ? (
+          <button
+            type="button"
+            className="text-sm text-primary underline disabled:opacity-50"
+            disabled={creatingTree}
+            onClick={() => void createSentinel()}
+          >
+            {t("obs.createSentinel")}
+          </button>
+        ) : null}
+      </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {obs.photos.map((src, i) => (
@@ -170,16 +237,28 @@ function ObservationDetail({ id }: { id: string }) {
         {obs.species ? (
           <div>
             <dt className="text-sm text-muted-foreground">{t("obs.species")}</dt>
-            <dd className="font-medium">{t(speciesKey(obs.species))}</dd>
+            <dd className="font-medium">
+              {speciesDisplayLabel(obs.species, loc, obs.speciesOther)}
+            </dd>
           </div>
         ) : null}
         {obs.module === "fenologie" ? (
-          <div>
-            <dt className="text-sm text-muted-foreground">{t("obs.stage")}</dt>
-            <dd className="font-medium">
-              {obs.stage} — {t(phenStageLabelKey(obs.stage))}
-            </dd>
-          </div>
+          <>
+            <div>
+              <dt className="text-sm text-muted-foreground">{t("obs.stage")}</dt>
+              <dd className="font-medium">
+                {obs.stage} — {t(phenStageLabelKey(obs.stage))}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-muted-foreground">
+                {t("phen.crownLabel")}
+              </dt>
+              <dd className="font-medium">
+                {t(crownKey(obs.crownCondition ?? "sanatoasa"))}
+              </dd>
+            </div>
+          </>
         ) : null}
         {obs.module === "perturbari" ? (
           <>
@@ -213,6 +292,12 @@ function ObservationDetail({ id }: { id: string }) {
         ) : null}
         {obs.module === "sol" ? (
           <>
+            <div>
+              <dt className="text-sm text-muted-foreground">
+                {t("soil.plotHint")}
+              </dt>
+              <dd className="font-medium">{obs.plotSize ?? "1x1m"}</dd>
+            </div>
             <div>
               <dt className="text-sm text-muted-foreground">{t("obs.moss")}</dt>
               <dd className="font-medium">{obs.mossPct}%</dd>
@@ -262,6 +347,11 @@ function ObservationDetail({ id }: { id: string }) {
           <dt className="text-sm text-muted-foreground">{t("obs.gpsTime")}</dt>
           <dd className="font-medium">
             {formatDateTime(obs.location.capturedAt)}
+            {obs.locationAdjusted ? (
+              <span className="ml-2 text-xs text-muted-foreground">
+                ({t("obs.locationAdjusted")})
+              </span>
+            ) : null}
           </dd>
         </div>
       </dl>
@@ -270,6 +360,19 @@ function ObservationDetail({ id }: { id: string }) {
         <p className="mt-6 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
           {obs.details}
         </p>
+      ) : null}
+
+      {obs.editHistory?.length ? (
+        <div className="mt-6">
+          <h2 className="font-display text-lg">{t("obs.editHistory")}</h2>
+          <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+            {obs.editHistory.map((h, i) => (
+              <li key={i}>
+                {formatDateTime(h.at)} · {h.byName}: {h.summary}
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
 
       <div className="mt-6">

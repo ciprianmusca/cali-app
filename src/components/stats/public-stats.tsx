@@ -77,7 +77,7 @@ export function PublicStats() {
     count: visible.filter((o) => o.authorRole === role).length,
   }));
 
-  const byStage = ([1, 2, 3, 4, 5] as PhenologyStage[]).map((s) => ({
+  const byStage = ([1, 2, 3, 4] as PhenologyStage[]).map((s) => ({
     name: t(phenStageLabelKey(s)),
     count: visible.filter(
       (o) => o.module === "fenologie" && o.stage === s

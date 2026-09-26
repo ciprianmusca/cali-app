@@ -22,6 +22,7 @@ import {
   saveObservationPhotosToIdb,
 } from "./photo-idb";
 import { stripBase64Photos } from "./photos";
+import { migrateObservationList } from "./migrate-observation";
 
 interface CaliState {
   users: PublicUser[];
@@ -149,6 +150,7 @@ function seedObservations(): Observation[] {
       authorRole: "turist",
       authorName: "Andrei Popescu",
       stage: 4,
+      crownCondition: "sanatoasa",
       species: "picea_abies",
       details: "Coroană sănătoasă pe versant nordic.",
       photos: ["/placeholders/tree-1.svg"],
@@ -190,6 +192,7 @@ function seedObservations(): Observation[] {
       barePct: 10,
       plantsPct: 25,
       seedlingsPresent: true,
+      plotSize: "1x1m",
       details: "Ferigi și puieți de molid.",
       photos: ["/placeholders/soil-1.svg"],
       location: loc(),
@@ -206,7 +209,8 @@ function seedObservations(): Observation[] {
       authorId: "u-turist",
       authorRole: "turist",
       authorName: "Andrei Popescu",
-      stage: 5,
+      stage: 4,
+      crownCondition: "decolorare_puternica",
       species: "picea_abies",
       details: "Îngălbenire pe vârfuri.",
       photos: ["/placeholders/tree-2.svg"],
@@ -248,6 +252,7 @@ function seedObservations(): Observation[] {
       barePct: 15,
       plantsPct: 25,
       seedlingsPresent: false,
+      plotSize: "1x1m",
       details: "Litieră de ace dominantă.",
       photos: ["/placeholders/soil-2.svg"],
       location: loc(),
@@ -262,6 +267,7 @@ function seedObservations(): Observation[] {
       authorRole: "elev",
       authorName: "Maria Ionescu",
       stage: 3,
+      crownCondition: "sanatoasa",
       species: "abies_alba",
       details: "Ace noi pe brad.",
       photos: ["/placeholders/tree-1.svg"],
@@ -287,11 +293,21 @@ function seedObservations(): Observation[] {
     },
   ];
 
-  return rows.map((o) => ({
-    ...o,
-    syncStatus: "synced" as const,
-    syncedAt: o.validatedAt ?? o.createdAt,
-  }));
+  return rows.map((o) => {
+    // DATA-07: demo GPS capture is never after createdAt.
+    const created = o.createdAt;
+    const captured = o.location.capturedAt;
+    const loc =
+      new Date(captured).getTime() > new Date(created).getTime()
+        ? { ...o.location, capturedAt: created }
+        : o.location;
+    return {
+      ...o,
+      location: loc,
+      syncStatus: "synced" as const,
+      syncedAt: o.validatedAt ?? o.createdAt,
+    };
+  });
 }
 
 export const useCaliStore = create<CaliState>()(
@@ -337,7 +353,7 @@ export const useCaliStore = create<CaliState>()(
           // - Local-only (airplane mode): keep
           // - Same id + stale sync error: prefer remote (recover after R2/outage)
           // - Same id + pending mutation (e.g. ranger validation): keep local
-          const remote = data.observations ?? [];
+          const remote = migrateObservationList(data.observations ?? []);
           const remoteById = new Map(remote.map((o) => [o.id, o]));
           const remoteIds = new Set(remoteById.keys());
 

@@ -91,6 +91,11 @@ export const ro = {
   "error.areaRequired": "Suprafața afectată (m²) este obligatorie.",
   "error.coverUnset": "Setați toate cele 4 procente (pași de 5%).",
   "error.coverSum": "Suma trebuie să fie 100% (acum {sum}%).",
+  "error.speciesOther": "Precizați denumirea speciei.",
+  "error.gpsAfterCreated":
+    "Ora capturii GPS nu poate fi după crearea observației (toleranță 10 min).",
+  "error.crownRequired": "Selectați starea coroanei.",
+  "error.forbidden": "Acțiune nepermisă.",
 
   // Home
   "home.welcome": "Bine ați venit",
@@ -174,6 +179,8 @@ export const ro = {
   "obs.selectSpecies": "Selectați specia",
   "obs.photos": "Poze",
   "obs.addPhoto": "Adaugă poză",
+  "obs.takeCamera": "Fă o poză",
+  "obs.fromGallery": "Din galerie",
   "obs.compressing": "Comprimare…",
   "obs.photoHint":
     "Imaginile se comprimă pe dispozitiv (~1600 px, <500 KB) pentru sincronizare la semnal slab.",
@@ -182,6 +189,22 @@ export const ro = {
   "obs.save": "Salvare",
   "obs.saveAndNew": "Salvare și formular nou",
   "obs.formIncomplete": "Completează câmpurile obligatorii marcate înainte de salvare.",
+  "obs.summaryTitle": "Verificați observația",
+  "obs.summaryConfirm": "Confirmă",
+  "obs.summaryBack": "Înapoi",
+  "obs.summaryPhotos": "Fotografii",
+  "obs.edit": "Editează",
+  "obs.editHistory": "Istoric modificări",
+  "obs.locationAdjusted": "Poziție ajustată pe hartă",
+  "obs.linkTree": "Leagă de arbore santinelă",
+  "obs.noNearbyTrees": "Niciun arbore santinelă în apropiere",
+  "obs.createSentinel": "Creează arbore santinelă",
+  "tree.title": "Arbore santinelă",
+  "tree.history": "Istoric observații",
+  "tree.empty": "Nicio observație legată de acest arbore.",
+  "tree.distance": "{m} m",
+  "geo.miniMap": "Poziție pe hartă",
+  "geo.dragHint": "Trageți pinul pentru a ajusta poziția",
   "obs.error": "Eroare",
 
   // Phenology form
@@ -190,16 +213,32 @@ export const ro = {
     "Fotografiați un arbore și încadrați stadiul fenologic. Codul se generează automat (PHEN-NNNN).",
   "phen.stageLabel": "Stadiu fenologic",
   "phen.stage1": "Dormanță",
-  "phen.stage1desc": "Muguri închiși, dormanți (iarnă – primăvară timpurie)",
+  "phen.stage1desc.conifer":
+    "Muguri închiși, dormanți (iarnă – primăvară timpurie)",
+  "phen.stage1desc.deciduous":
+    "Muguri închiși, dormanți (iarnă – primăvară timpurie)",
   "phen.stage2": "Activare",
-  "phen.stage2desc": "Muguri umflați, încep să se deschidă (primăvară)",
+  "phen.stage2desc.conifer":
+    "Muguri umflați, încep să se deschidă (primăvară)",
+  "phen.stage2desc.deciduous":
+    "Muguri umflați, încep să se deschidă (primăvară)",
   "phen.stage3": "Foliație",
-  "phen.stage3desc": "Ace noi vizibile, verzi-deschis (primăvară târzie)",
+  "phen.stage3desc.conifer":
+    "Ace noi vizibile, verzi-deschis (primăvară târzie)",
+  "phen.stage3desc.deciduous":
+    "Frunze tinere vizibile, verde-deschis (primăvară târzie)",
   "phen.stage4": "Maturitate",
-  "phen.stage4desc": "Coroană complet dezvoltată, verde-închis (vară)",
-  "phen.stage5": "Stres",
-  "phen.stage5desc":
-    "Decolorare/îngălbenire vizibilă (toamnă – iarnă timpurie)",
+  "phen.stage4desc.conifer":
+    "Coroană complet dezvoltată, verde-închis (vară)",
+  "phen.stage4desc.deciduous":
+    "Frunziș complet dezvoltat, verde-închis (vară)",
+  "phen.crownLabel": "Starea coroanei",
+  "phen.crown.sanatoasa": "Sănătoasă",
+  "phen.crown.decolorare_usoara": "Decolorare ușoară",
+  "phen.crown.decolorare_puternica": "Decolorare puternică",
+  "phen.crown.uscare": "Uscare",
+  "phen.stage5": "Stres (migrat)",
+  "phen.stage5desc": "Valoare veche — migrată la starea coroanei",
 
   // Disturbance
   "dist.title": "Observație perturbări",
@@ -228,6 +267,7 @@ export const ro = {
   "soil.title": "Observație sol",
   "soil.sub":
     "Estimați ce se vede de sus — stratul de deasupra contează. Suma celor 4 clase = 100%, pași de 5%. Cod: SOIL-NNNN.",
+  "soil.plotHint": "Evaluați un pătrat de 1 × 1 m",
   "soil.cover": "Acoperire sol",
   "soil.sum": "Sumă:",
   "soil.rule":
@@ -241,16 +281,25 @@ export const ro = {
   "soil.bare": "Sol gol / rocă",
   "soil.bareHint": "Pământ sau stâncă vizibile fără acoperire",
   "soil.seedlingsCheck": "Puieți prezenți (în afara sumei de 100%)",
+  "soil.sumShort": "Suma trebuie să fie 100% — lipsesc {n}%",
+  "soil.sumOver": "Suma trebuie să fie 100% — ai depășit cu {n}%",
+  "soil.fillRest": "Completează restul",
 
   // Species
   "sp.picea_abies": "Molid (Picea abies)",
   "sp.abies_alba": "Brad (Abies alba)",
   "sp.fagus_sylvatica": "Fag (Fagus sylvatica)",
   "sp.pinus_sylvestris": "Pin silvestru (Pinus sylvestris)",
+  "sp.pinus_cembra": "Zâmbru (Pinus cembra)",
+  "sp.pinus_mugo": "Jneapăn (Pinus mugo)",
   "sp.larix_decidua": "Larice (Larix decidua)",
   "sp.acer_pseudoplatanus": "Paltin (Acer pseudoplatanus)",
   "sp.sorbus_aucuparia": "Scoruș (Sorbus aucuparia)",
+  "sp.betula_pendula": "Mesteacăn (Betula pendula)",
+  "sp.alnus_viridis": "Anin verde (Alnus viridis)",
   "sp.alta": "Altă specie",
+  "sp.otherRequired": "Precizați specia",
+  "sp.otherPlaceholder": "Denumirea speciei",
 
   // Geo
   "geo.title": "Geolocație",

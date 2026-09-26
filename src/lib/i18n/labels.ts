@@ -1,5 +1,6 @@
 import type { MsgKey } from "./store";
 import type {
+  CrownCondition,
   DisturbanceType,
   PhenologyStage,
   Species,
@@ -7,6 +8,7 @@ import type {
   ObservationModule,
   ObservationStatus,
 } from "@/lib/types";
+import { isConifer } from "@/lib/species";
 
 export function roleKey(role: UserRole): MsgKey {
   return `role.${role}` as MsgKey;
@@ -36,8 +38,17 @@ export function phenStageLabelKey(stage: PhenologyStage): MsgKey {
   return `phen.stage${stage}` as MsgKey;
 }
 
-export function phenStageDescKey(stage: PhenologyStage): MsgKey {
-  return `phen.stage${stage}desc` as MsgKey;
+/** DATA-03: different stage descriptions for conifers vs broadleaves. */
+export function phenStageDescKey(
+  stage: PhenologyStage,
+  species?: Species | string
+): MsgKey {
+  const kind = isConifer(species) ? "conifer" : "deciduous";
+  return `phen.stage${stage}desc.${kind}` as MsgKey;
+}
+
+export function crownKey(c: CrownCondition): MsgKey {
+  return `phen.crown.${c}` as MsgKey;
 }
 
 export const PHENOLOGY_COLORS: Record<PhenologyStage, string> = {
@@ -45,5 +56,4 @@ export const PHENOLOGY_COLORS: Record<PhenologyStage, string> = {
   2: "#84cc16",
   3: "#22c55e",
   4: "#166534",
-  5: "#ca8a04",
 };

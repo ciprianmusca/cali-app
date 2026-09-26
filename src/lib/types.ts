@@ -5,7 +5,15 @@ export type ObservationStatus = "in_asteptare" | "aprobat" | "respins";
 /** Local persistence vs server upload */
 export type SyncStatus = "pending" | "synced" | "error";
 
-export type PhenologyStage = 1 | 2 | 3 | 4 | 5;
+/** Phenological stage only (1–4). Legacy stage 5 migrated to crownCondition. */
+export type PhenologyStage = 1 | 2 | 3 | 4;
+
+/** Separate from phenological stage (DATA-03). */
+export type CrownCondition =
+  | "sanatoasa"
+  | "decolorare_usoara"
+  | "decolorare_puternica"
+  | "uscare";
 
 export type DisturbanceType =
   | "atac_insecte"
@@ -22,17 +30,36 @@ export type Species =
   | "abies_alba"
   | "fagus_sylvatica"
   | "pinus_sylvestris"
+  | "pinus_cembra"
+  | "pinus_mugo"
   | "larix_decidua"
   | "acer_pseudoplatanus"
   | "sorbus_aucuparia"
+  | "betula_pendula"
+  | "alnus_viridis"
   | "alta";
 
 export interface GeoLocation {
   latitude: number;
   longitude: number;
+  /** GPS accuracy in metres (kept separate from rounded coords — DATA-06). */
   accuracy: number | null;
   altitude: number | null;
   capturedAt: string;
+}
+
+/** EXIF / capture metadata for one photo (DATA-08). */
+export interface PhotoMeta {
+  capturedAt?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface ObservationEdit {
+  at: string;
+  byId: string;
+  byName: string;
+  summary: string;
 }
 
 export interface User {
@@ -64,14 +91,24 @@ export interface ObservationBase {
   authorName: string;
   details?: string;
   photos: string[];
+  /** Parallel to photos[] — EXIF date/coords when available. */
+  photoMeta?: PhotoMeta[];
   location: GeoLocation;
+  /** True when user moved the map pin (DATA-13). */
+  locationAdjusted?: boolean;
   createdAt: string;
   validatedAt?: string;
   validatorId?: string;
   validatorName?: string;
   validationComment?: string;
+  /** Legacy flag; prefer sentinelTreeId when set. */
   isSentinelTree?: boolean;
+  /** Link to permanent sentinel tree (DATA-02). */
+  sentinelTreeId?: string;
   species?: Species;
+  /** Free text when species === "alta". */
+  speciesOther?: string;
+  editHistory?: ObservationEdit[];
   /** pending until successfully uploaded when online */
   syncStatus?: SyncStatus;
   syncError?: string;
@@ -81,6 +118,7 @@ export interface ObservationBase {
 export interface FenologieObservation extends ObservationBase {
   module: "fenologie";
   stage: PhenologyStage;
+  crownCondition: CrownCondition;
   species: Species;
 }
 
@@ -100,12 +138,28 @@ export interface SolObservation extends ObservationBase {
   barePct: number;
   plantsPct: number;
   seedlingsPresent: boolean;
+  /** DATA-05 protocol plot size. */
+  plotSize: "1x1m";
 }
 
 export type Observation =
   | FenologieObservation
   | PerturbariObservation
   | SolObservation;
+
+/** Permanent sentinel tree (DATA-02 / ROL-04). */
+export interface SentinelTree {
+  id: string;
+  code: string;
+  species: Species;
+  speciesOther?: string;
+  latitude: number;
+  longitude: number;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  notes?: string;
+}
 
 export interface AppSettings {
   passwordResetMinutesUser: number;

@@ -38,36 +38,23 @@ export const STATUS_LABELS: Record<ObservationStatus, string> = {
   respins: "Respins",
 };
 
+/** Stages 1–4 only; crown health is separate (DATA-03). */
 export const PHENOLOGY_STAGES: Record<
   PhenologyStage,
-  { label: string; description: string; color: string }
+  { label: string; color: string }
 > = {
-  1: {
-    label: "Dormanță",
-    description: "Muguri închiși, dormanți (iarnă – primăvară timpurie)",
-    color: "#64748b",
-  },
-  2: {
-    label: "Activare",
-    description: "Muguri umflați, încep să se deschidă (primăvară)",
-    color: "#84cc16",
-  },
-  3: {
-    label: "Foliație",
-    description: "Ace noi vizibile, verzi-deschis (primăvară târzie)",
-    color: "#22c55e",
-  },
-  4: {
-    label: "Maturitate",
-    description: "Coroană complet dezvoltată, verde-închis (vară)",
-    color: "#166534",
-  },
-  5: {
-    label: "Stres",
-    description: "Decolorare/îngălbenire vizibilă (toamnă – iarnă timpurie)",
-    color: "#ca8a04",
-  },
+  1: { label: "Dormanță", color: "#64748b" },
+  2: { label: "Activare", color: "#84cc16" },
+  3: { label: "Foliație", color: "#22c55e" },
+  4: { label: "Maturitate", color: "#166534" },
 };
+
+export const CROWN_CONDITIONS = [
+  "sanatoasa",
+  "decolorare_usoara",
+  "decolorare_puternica",
+  "uscare",
+] as const;
 
 export const DISTURBANCE_LABELS: Record<DisturbanceType, string> = {
   atac_insecte: "Atac de insecte",
@@ -80,14 +67,19 @@ export const DISTURBANCE_LABELS: Record<DisturbanceType, string> = {
   alta: "Altele",
 };
 
+/** Fallback RO labels — prefer speciesDisplayLabel() / i18n. */
 export const SPECIES_LABELS: Record<Species, string> = {
   picea_abies: "Molid (Picea abies)",
   abies_alba: "Brad (Abies alba)",
   fagus_sylvatica: "Fag (Fagus sylvatica)",
   pinus_sylvestris: "Pin silvestru (Pinus sylvestris)",
+  pinus_cembra: "Zâmbru (Pinus cembra)",
+  pinus_mugo: "Jneapăn (Pinus mugo)",
   larix_decidua: "Larice (Larix decidua)",
   acer_pseudoplatanus: "Paltin (Acer pseudoplatanus)",
   sorbus_aucuparia: "Scoruș (Sorbus aucuparia)",
+  betula_pendula: "Mesteacăn (Betula pendula)",
+  alnus_viridis: "Anin verde (Alnus viridis)",
   alta: "Altă specie",
 };
 

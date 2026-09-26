@@ -1,16 +1,25 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type {
+  CrownCondition,
   FenologieObservation,
   Observation,
   ObservationModule,
   PerturbariObservation,
+  SentinelTree,
   SolObservation,
+  Species,
   User,
   UserRole,
   UserStatus,
 } from "@/lib/types";
 import { DEMO_ACCOUNTS, GDPR_VERSION } from "@/lib/constants";
-import { generateCode, maxCodeSequential, moduleCodePrefix } from "@/lib/format";
+import {
+  generateCode,
+  maxCodeSequential,
+  moduleCodePrefix,
+  roundCoord,
+} from "@/lib/format";
+import { migrateObservation } from "@/lib/migrate-observation";
 import { hashPassword, isPbkdf2, needsRehash } from "@/lib/password";
 
 export type CloudflareEnv = {
@@ -77,6 +86,23 @@ export async function ensureSchema(db: D1Database): Promise<void> {
     db.prepare(
       `CREATE INDEX IF NOT EXISTS idx_observations_author ON observations(author_id)`
     ),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS sentinel_trees (
+        id TEXT PRIMARY KEY,
+        code TEXT NOT NULL UNIQUE,
+        species TEXT NOT NULL,
+        species_other TEXT,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        created_by TEXT NOT NULL,
+        created_by_name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        notes TEXT
+      )
+    `),
+    db.prepare(
+      `CREATE INDEX IF NOT EXISTS idx_sentinel_created ON sentinel_trees(created_at)`
+    ),
   ]);
 }
 
@@ -136,6 +162,8 @@ export function userFromRow(row: UserRow): User {
 }
 
 export function observationFromRow(row: ObsRow): Observation {
+  const payload = JSON.parse(row.payload_json || "{}") as Record<string, unknown>;
+  const location = JSON.parse(row.location_json);
   const base = {
     id: row.id,
     code: row.code,
@@ -145,29 +173,44 @@ export function observationFromRow(row: ObsRow): Observation {
     authorName: row.author_name,
     details: row.details ?? undefined,
     photos: JSON.parse(row.photos_json || "[]") as string[],
-    location: JSON.parse(row.location_json),
+    photoMeta: Array.isArray(payload.photoMeta)
+      ? (payload.photoMeta as Observation["photoMeta"])
+      : undefined,
+    location,
+    locationAdjusted: Boolean(payload.locationAdjusted),
     createdAt: row.created_at,
     validatedAt: row.validated_at ?? undefined,
     validatorId: row.validator_id ?? undefined,
     validatorName: row.validator_name ?? undefined,
     validationComment: row.validation_comment ?? undefined,
     isSentinelTree: row.is_sentinel_tree === 1,
+    sentinelTreeId:
+      typeof payload.sentinelTreeId === "string"
+        ? payload.sentinelTreeId
+        : undefined,
     species: (row.species as Observation["species"]) ?? undefined,
+    speciesOther:
+      typeof payload.speciesOther === "string"
+        ? payload.speciesOther
+        : undefined,
+    editHistory: Array.isArray(payload.editHistory)
+      ? (payload.editHistory as Observation["editHistory"])
+      : undefined,
     syncStatus: "synced" as const,
     syncedAt: row.synced_at ?? row.created_at,
   };
-  const payload = JSON.parse(row.payload_json || "{}") as Record<string, unknown>;
 
+  let obs: Observation;
   if (row.module === "fenologie") {
-    return {
+    obs = {
       ...base,
       module: "fenologie",
       stage: payload.stage as FenologieObservation["stage"],
+      crownCondition: (payload.crownCondition as CrownCondition) ?? "sanatoasa",
       species: (payload.species ?? row.species) as FenologieObservation["species"],
     };
-  }
-  if (row.module === "perturbari") {
-    return {
+  } else if (row.module === "perturbari") {
+    obs = {
       ...base,
       module: "perturbari",
       disturbanceTypes:
@@ -177,24 +220,40 @@ export function observationFromRow(row: ObsRow): Observation {
       affectedAreaSqm: payload.affectedAreaSqm as number,
       species: (payload.species ?? row.species) as PerturbariObservation["species"],
     };
+  } else {
+    obs = {
+      ...base,
+      module: "sol",
+      mossPct: payload.mossPct as number,
+      litterPct: payload.litterPct as number,
+      barePct: payload.barePct as number,
+      plantsPct: payload.plantsPct as number,
+      seedlingsPresent: Boolean(payload.seedlingsPresent),
+      plotSize: "1x1m",
+    } as SolObservation;
   }
-  return {
-    ...base,
-    module: "sol",
-    mossPct: payload.mossPct as number,
-    litterPct: payload.litterPct as number,
-    barePct: payload.barePct as number,
-    plantsPct: payload.plantsPct as number,
-    seedlingsPresent: Boolean(payload.seedlingsPresent),
-  } as SolObservation;
+  return migrateObservation(obs);
 }
 
 function payloadFor(obs: Observation): Record<string, unknown> {
+  const common: Record<string, unknown> = {
+    photoMeta: obs.photoMeta,
+    locationAdjusted: obs.locationAdjusted,
+    sentinelTreeId: obs.sentinelTreeId,
+    speciesOther: obs.speciesOther,
+    editHistory: obs.editHistory,
+  };
   if (obs.module === "fenologie") {
-    return { stage: obs.stage, species: obs.species };
+    return {
+      ...common,
+      stage: obs.stage,
+      crownCondition: obs.crownCondition,
+      species: obs.species,
+    };
   }
   if (obs.module === "perturbari") {
     return {
+      ...common,
       disturbanceTypes: obs.disturbanceTypes,
       insectType: obs.insectType,
       severity: obs.severity,
@@ -203,11 +262,13 @@ function payloadFor(obs: Observation): Record<string, unknown> {
     };
   }
   return {
+    ...common,
     mossPct: obs.mossPct,
     litterPct: obs.litterPct,
     barePct: obs.barePct,
     plantsPct: obs.plantsPct,
     seedlingsPresent: obs.seedlingsPresent,
+    plotSize: obs.plotSize ?? "1x1m",
   };
 }
 
@@ -238,6 +299,123 @@ export async function listObservations(db: D1Database): Promise<Observation[]> {
     .prepare("SELECT * FROM observations ORDER BY created_at DESC")
     .all<ObsRow>();
   return (results ?? []).map(observationFromRow);
+}
+
+/** Re-write rows that still need DATA-03/05/06/07 normalization. */
+export async function migrateObservationRows(db: D1Database): Promise<number> {
+  const { results } = await db
+    .prepare("SELECT * FROM observations")
+    .all<ObsRow>();
+  let n = 0;
+  for (const row of results ?? []) {
+    const before = observationFromRow(row);
+    // observationFromRow already migrates — re-persist to normalize D1 payload.
+    const payload = JSON.parse(row.payload_json || "{}") as Record<
+      string,
+      unknown
+    >;
+    const needs =
+      (row.module === "fenologie" &&
+        (payload.crownCondition == null || Number(payload.stage) === 5)) ||
+      (row.module === "sol" && payload.plotSize == null) ||
+      (typeof before.location?.latitude === "number" &&
+        String(before.location.latitude).split(".")[1]?.length !== 5);
+    if (!needs) continue;
+    await upsertObservation(db, before);
+    n += 1;
+  }
+  return n;
+}
+
+type TreeRow = {
+  id: string;
+  code: string;
+  species: string;
+  species_other: string | null;
+  latitude: number;
+  longitude: number;
+  created_by: string;
+  created_by_name: string;
+  created_at: string;
+  notes: string | null;
+};
+
+export function treeFromRow(row: TreeRow): SentinelTree {
+  return {
+    id: row.id,
+    code: row.code,
+    species: row.species as Species,
+    speciesOther: row.species_other ?? undefined,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    createdBy: row.created_by,
+    createdByName: row.created_by_name,
+    createdAt: row.created_at,
+    notes: row.notes ?? undefined,
+  };
+}
+
+export async function listSentinelTrees(db: D1Database): Promise<SentinelTree[]> {
+  const { results } = await db
+    .prepare("SELECT * FROM sentinel_trees ORDER BY created_at DESC")
+    .all<TreeRow>();
+  return (results ?? []).map(treeFromRow);
+}
+
+export async function getSentinelTree(
+  db: D1Database,
+  id: string
+): Promise<SentinelTree | null> {
+  const row = await db
+    .prepare("SELECT * FROM sentinel_trees WHERE id = ?")
+    .bind(id)
+    .first<TreeRow>();
+  return row ? treeFromRow(row) : null;
+}
+
+export async function nextTreeCode(db: D1Database): Promise<string> {
+  const { results } = await db
+    .prepare(`SELECT code FROM sentinel_trees WHERE code LIKE 'ARB-%'`)
+    .all<{ code: string }>();
+  let max = 0;
+  for (const r of results ?? []) {
+    const n = Number.parseInt(r.code.slice(4), 10);
+    if (Number.isFinite(n) && n > max) max = n;
+  }
+  return `ARB-${String(max + 1).padStart(4, "0")}`;
+}
+
+export async function upsertSentinelTree(
+  db: D1Database,
+  tree: SentinelTree
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO sentinel_trees (
+        id, code, species, species_other, latitude, longitude,
+        created_by, created_by_name, created_at, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        code=excluded.code,
+        species=excluded.species,
+        species_other=excluded.species_other,
+        latitude=excluded.latitude,
+        longitude=excluded.longitude,
+        notes=excluded.notes`
+    )
+    .bind(
+      tree.id,
+      tree.code,
+      tree.species,
+      tree.speciesOther ?? null,
+      roundCoord(tree.latitude, 5),
+      roundCoord(tree.longitude, 5),
+      tree.createdBy,
+      tree.createdByName,
+      tree.createdAt,
+      tree.notes ?? null
+    )
+    .run();
 }
 
 export async function getObservationById(
@@ -364,7 +542,11 @@ export async function upsertObservation(
       obs.authorName,
       obs.details ?? null,
       JSON.stringify(obs.photos ?? []),
-      JSON.stringify(obs.location),
+      JSON.stringify({
+        ...obs.location,
+        latitude: roundCoord(obs.location.latitude, 5),
+        longitude: roundCoord(obs.location.longitude, 5),
+      }),
       JSON.stringify(payloadFor(obs)),
       obs.createdAt,
       obs.validatedAt ?? null,

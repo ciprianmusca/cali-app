@@ -13,13 +13,31 @@ export function formatDateTime(iso: string): string {
   return format(new Date(iso), "dd.MM.yyyy HH:mm", { locale: ro });
 }
 
-export function formatCoord(value: number, digits = 6): string {
+/** Display coords; default 5 decimals (DATA-06). */
+export function formatCoord(value: number, digits = 5): string {
   return value.toFixed(digits).replace(".", ",");
 }
 
-export function roundCoord(value: number, digits = 6): number {
+/** Round stored coords to 5 decimals by default (DATA-06). */
+export function roundCoord(value: number, digits = 5): number {
   const f = 10 ** digits;
   return Math.round(value * f) / f;
+}
+
+export function haversineMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
 }
 
 export function mapsDirectionsUrl(lat: number, lng: number): string {
@@ -132,8 +150,8 @@ export function captureGeolocation(
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         resolve({
-          latitude: roundCoord(pos.coords.latitude),
-          longitude: roundCoord(pos.coords.longitude),
+          latitude: roundCoord(pos.coords.latitude, 5),
+          longitude: roundCoord(pos.coords.longitude, 5),
           accuracy:
             pos.coords.accuracy != null
               ? Math.round(pos.coords.accuracy)

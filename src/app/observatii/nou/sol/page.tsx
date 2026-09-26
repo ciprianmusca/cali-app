@@ -10,16 +10,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { GeoCapture } from "@/components/observations/geo-capture";
 import { PhotoCapture } from "@/components/observations/photo-capture";
+import { ObservationSummary } from "@/components/observations/observation-summary";
 import { useCaliStore } from "@/lib/store";
 import { enqueueObservationSave } from "@/lib/save-observation";
-import type { GeoLocation, SolObservation } from "@/lib/types";
+import { validateGpsNotAfterCreated } from "@/lib/migrate-observation";
+import type { GeoLocation, PhotoMeta, SolObservation } from "@/lib/types";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { MsgKey } from "@/lib/i18n/store";
 
 type CoverKey = "moss" | "litter" | "plants" | "bare";
-
 const COVER_KEYS: CoverKey[] = ["moss", "litter", "plants", "bare"];
-
 const COVER_MSG: Record<CoverKey, { title: MsgKey; hint: MsgKey }> = {
   moss: { title: "soil.moss", hint: "soil.mossHint" },
   litter: { title: "soil.litter", hint: "soil.litterHint" },
@@ -35,6 +35,7 @@ function SolForm() {
   const formRef = useRef<HTMLFormElement>(null);
 
   const [photos, setPhotos] = useState<string[]>([]);
+  const [photoMeta, setPhotoMeta] = useState<PhotoMeta[]>([]);
   const [cover, setCover] = useState<Record<CoverKey, number>>({
     moss: 0,
     litter: 0,
@@ -44,7 +45,9 @@ function SolForm() {
   const [seedlings, setSeedlings] = useState(false);
   const [details, setDetails] = useState("");
   const [location, setLocation] = useState<GeoLocation | null>(null);
+  const [locationAdjusted, setLocationAdjusted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [review, setReview] = useState<SolObservation | null>(null);
 
   const sum = cover.moss + cover.litter + cover.plants + cover.bare;
 
@@ -52,39 +55,51 @@ function SolForm() {
     setCover((c) => ({ ...c, [key]: pct }));
   };
 
+  const fillRest = () => {
+    const diff = 100 - sum;
+    if (diff === 0) return;
+    // Put difference on last unset (0) class, else on bare.
+    const unset = [...COVER_KEYS].reverse().find((k) => cover[k] === 0);
+    const target = unset ?? "bare";
+    setCover((c) => ({
+      ...c,
+      [target]: Math.max(0, Math.min(100, c[target] + diff)),
+    }));
+  };
+
   const validate = () => {
     const e: Record<string, string> = {};
     if (!user) e.auth = t("error.invalidLogin");
     if (!photos.length) e.photos = t("error.photoRequired");
     if (sum !== 100) {
-      e.cover = t("error.coverSum", { sum });
+      e.cover =
+        sum < 100
+          ? t("soil.sumShort", { n: 100 - sum })
+          : t("soil.sumOver", { n: sum - 100 });
     }
     if (!location) e.location = t("error.locationRequired");
+    const createdAt = new Date().toISOString();
+    if (
+      location &&
+      !validateGpsNotAfterCreated(location.capturedAt, createdAt)
+    ) {
+      e.location = t("error.gpsAfterCreated");
+    }
     setErrors(e);
     if (Object.keys(e).length) {
-      const el = formRef.current?.querySelector(
-        `[data-field="${Object.keys(e)[0]}"]`
-      );
-      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      formRef.current
+        ?.querySelector(`[data-field="${Object.keys(e)[0]}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return false;
     }
     return true;
   };
 
-  const resetForm = () => {
-    setPhotos([]);
-    setCover({ moss: 0, litter: 0, plants: 0, bare: 0 });
-    setSeedlings(false);
-    setDetails("");
-    setLocation(null);
-    setErrors({});
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const save = (andNew: boolean) => {
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
     if (!validate() || !user || !location) return;
-
-    const obs: SolObservation = {
+    const createdAt = new Date().toISOString();
+    setReview({
       id: `o-${crypto.randomUUID().slice(0, 8)}`,
       code: nextCode("sol"),
       module: "sol",
@@ -97,38 +112,52 @@ function SolForm() {
       plantsPct: cover.plants,
       barePct: cover.bare,
       seedlingsPresent: seedlings,
+      plotSize: "1x1m",
       details: details.trim() || undefined,
       photos,
+      photoMeta,
       location,
-      createdAt: new Date().toISOString(),
-    };
-
-    if (andNew) resetForm();
-    else router.replace("/observatii");
-    enqueueObservationSave(obs);
+      locationAdjusted: locationAdjusted || undefined,
+      createdAt,
+    });
   };
 
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    save(false);
-  };
+  if (review) {
+    return (
+      <ObservationSummary
+        draft={review}
+        onBack={() => setReview(null)}
+        onConfirm={() => {
+          enqueueObservationSave(review);
+          router.replace("/observatii");
+        }}
+      />
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="font-display text-3xl text-forest">{t("soil.title")}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{t("soil.sub")}</p>
+      <p className="mt-3 rounded-md border border-primary/30 bg-accent/40 px-3 py-2 text-sm font-medium text-forest">
+        {t("soil.plotHint")}
+      </p>
 
       <form ref={formRef} onSubmit={onSubmit} className="mt-8 space-y-6">
         <div data-field="photos">
           <PhotoCapture
             photos={photos}
-            onChange={setPhotos}
+            photoMeta={photoMeta}
+            onChange={(p, m) => {
+              setPhotos(p);
+              setPhotoMeta(m);
+            }}
             error={errors.photos}
           />
         </div>
 
         <div data-field="cover" className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Label>{t("soil.cover")}</Label>
             <span
               className={`text-sm font-medium ${
@@ -145,9 +174,7 @@ function SolForm() {
             <div key={key} className="rounded-lg border bg-card/70 p-4">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <div className="font-medium">
-                    {t(COVER_MSG[key].title)}
-                  </div>
+                  <div className="font-medium">{t(COVER_MSG[key].title)}</div>
                   <div className="text-xs text-muted-foreground">
                     {t(COVER_MSG[key].hint)}
                   </div>
@@ -169,6 +196,20 @@ function SolForm() {
               />
             </div>
           ))}
+          {sum !== 100 ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-destructive">
+                {sum < 100
+                  ? t("soil.sumShort", { n: 100 - sum })
+                  : t("soil.sumOver", { n: sum - 100 })}
+              </p>
+              {sum < 100 ? (
+                <Button type="button" size="sm" variant="outline" onClick={fillRest}>
+                  {t("soil.fillRest")}
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
           {errors.cover ? (
             <p className="text-sm text-destructive">{errors.cover}</p>
           ) : null}
@@ -193,24 +234,20 @@ function SolForm() {
         </div>
 
         <div data-field="location">
-          <GeoCapture value={location} onChange={setLocation} />
+          <GeoCapture
+            value={location}
+            onChange={(loc, adjusted) => {
+              setLocation(loc);
+              if (adjusted) setLocationAdjusted(true);
+              else if (loc) setLocationAdjusted(false);
+            }}
+          />
           {errors.location ? (
             <p className="mt-2 text-sm text-destructive">{errors.location}</p>
           ) : null}
         </div>
 
-        {Object.keys(errors).length > 0 ? (
-          <p className="text-sm text-destructive" data-field="auth">
-            {t("obs.formIncomplete")}
-          </p>
-        ) : null}
-
-        <div className="flex flex-wrap gap-3">
-          <Button type="submit">{t("obs.save")}</Button>
-          <Button type="button" variant="secondary" onClick={() => save(true)}>
-            {t("obs.saveAndNew")}
-          </Button>
-        </div>
+        <Button type="submit">{t("obs.save")}</Button>
       </form>
     </div>
   );
