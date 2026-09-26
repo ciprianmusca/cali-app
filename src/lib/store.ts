@@ -24,6 +24,7 @@ interface CaliState {
   settings: AppSettings;
   hydrated: boolean;
   setHydrated: (v: boolean) => void;
+  pullFromServer: () => Promise<{ ok: boolean; error?: string }>;
   flushOfflineQueue: () => Promise<{ ok: boolean; uploaded: number; error?: string }>;
   login: (email: string, password: string) => { ok: boolean; error?: string };
   logout: () => void;
@@ -301,6 +302,53 @@ export const useCaliStore = create<CaliState>()(
       hydrated: false,
       setHydrated: (v) => set({ hydrated: v }),
 
+      pullFromServer: async () => {
+        try {
+          const res = await fetch("/api/bootstrap", { cache: "no-store" });
+          if (!res.ok) {
+            const body = (await res.json().catch(() => ({}))) as {
+              error?: string;
+            };
+            return {
+              ok: false,
+              error: body.error ?? `HTTP ${res.status}`,
+            };
+          }
+          const data = (await res.json()) as {
+            users: User[];
+            observations: Observation[];
+          };
+          const pendingIds = new Set(get().offlineQueue.map((o) => o.id));
+          const localPending = get().observations.filter(
+            (o) =>
+              pendingIds.has(o.id) ||
+              o.syncStatus === "pending" ||
+              o.syncStatus === "error"
+          );
+          const remote = data.observations ?? [];
+          const remoteIds = new Set(remote.map((o) => o.id));
+          const merged = [
+            ...localPending.filter((o) => !remoteIds.has(o.id)),
+            ...remote,
+          ].sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          set({
+            users: data.users ?? get().users,
+            observations: merged,
+            lastSyncAt: new Date().toISOString(),
+            lastSyncError: null,
+          });
+          return { ok: true };
+        } catch (e) {
+          return {
+            ok: false,
+            error: e instanceof Error ? e.message : "pull_failed",
+          };
+        }
+      },
+
       currentUser: () => {
         const { users, currentUserId } = get();
         return users.find((u) => u.id === currentUserId) ?? null;
@@ -321,14 +369,19 @@ export const useCaliStore = create<CaliState>()(
             ok: false,
             error: tKey("error.inactiveAccount"),
           };
+        const lastLoginAt = new Date().toISOString();
+        const updated = { ...user, lastLoginAt };
         set({
-          users: get().users.map((u) =>
-            u.id === user.id
-              ? { ...u, lastLoginAt: new Date().toISOString() }
-              : u
-          ),
+          users: get().users.map((u) => (u.id === user.id ? updated : u)),
           currentUserId: user.id,
         });
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          void fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updated),
+          }).catch(() => undefined);
+        }
         return { ok: true };
       },
 
@@ -353,23 +406,41 @@ export const useCaliStore = create<CaliState>()(
           registeredAt: new Date().toISOString(),
         };
         set({ users: [...get().users, user], currentUserId: user.id });
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          void fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(user),
+          }).catch(() => undefined);
+        }
         return { ok: true };
       },
 
       acceptGdpr: () => {
         const id = get().currentUserId;
         if (!id) return;
-        set({
-          users: get().users.map((u) =>
-            u.id === id
-              ? {
-                  ...u,
-                  gdprAcceptedAt: new Date().toISOString(),
-                  gdprVersion: GDPR_VERSION,
-                }
-              : u
-          ),
-        });
+        const next = get().users.map((u) =>
+          u.id === id
+            ? {
+                ...u,
+                gdprAcceptedAt: new Date().toISOString(),
+                gdprVersion: GDPR_VERSION,
+              }
+            : u
+        );
+        set({ users: next });
+        const updated = next.find((u) => u.id === id);
+        if (
+          updated &&
+          typeof navigator !== "undefined" &&
+          navigator.onLine
+        ) {
+          void fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updated),
+          }).catch(() => undefined);
+        }
       },
 
       nextCode: (module) => {
@@ -480,10 +551,17 @@ export const useCaliStore = create<CaliState>()(
           ),
         }),
 
-      deleteObservation: (id) =>
+      deleteObservation: (id) => {
         set({
           observations: get().observations.filter((o) => o.id !== id),
-        }),
+          offlineQueue: get().offlineQueue.filter((o) => o.id !== id),
+        });
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          void fetch(`/api/observations/${id}`, { method: "DELETE" }).catch(
+            () => undefined
+          );
+        }
+      },
 
       validateObservation: (id, decision, comment, markSentinel) => {
         const user = get().currentUser();
@@ -505,24 +583,34 @@ export const useCaliStore = create<CaliState>()(
           };
 
         const status: ObservationStatus = decision;
+        const patched = get().observations.map((o) =>
+          o.id === id
+            ? {
+                ...o,
+                status,
+                validatedAt: new Date().toISOString(),
+                validatorId: user.id,
+                validatorName: user.name,
+                validationComment: comment.trim() || undefined,
+                isSentinelTree:
+                  markSentinel && o.module === "perturbari"
+                    ? true
+                    : o.isSentinelTree,
+                syncStatus: "pending" as const,
+              }
+            : o
+        );
+        const updated = patched.find((o) => o.id === id)!;
         set({
-          observations: get().observations.map((o) =>
-            o.id === id
-              ? {
-                  ...o,
-                  status,
-                  validatedAt: new Date().toISOString(),
-                  validatorId: user.id,
-                  validatorName: user.name,
-                  validationComment: comment.trim() || undefined,
-                  isSentinelTree:
-                    markSentinel && o.module === "perturbari"
-                      ? true
-                      : o.isSentinelTree,
-                }
-              : o
-          ),
+          observations: patched,
+          offlineQueue: [
+            updated,
+            ...get().offlineQueue.filter((o) => o.id !== id),
+          ],
         });
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          void get().flushOfflineQueue();
+        }
         return { ok: true };
       },
 
@@ -546,6 +634,13 @@ export const useCaliStore = create<CaliState>()(
           registeredAt: new Date().toISOString(),
         };
         set({ users: [...get().users, user] });
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          void fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(user),
+          }).catch(() => undefined);
+        }
         return { ok: true };
       },
     }),

@@ -15,6 +15,15 @@
       "service": "cali-lab"
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cali-lab-db",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations",
+      "preview_database_id": "local-cali-lab-db"
+    }
+  ],
   "routes": [
     {
       "pattern": "cali.ipsv.ro",

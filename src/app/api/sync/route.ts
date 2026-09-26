@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
+import {
+  ensureSchema,
+  getDB,
+  seedIfEmpty,
+  upsertObservation,
+} from "@/lib/db";
+import type { Observation } from "@/lib/types";
 
 /**
- * Receives offline observation uploads.
- * Client remains the durable store (localStorage); this endpoint
- * acknowledges receipt so the app can mark items as synced.
- * Ready to forward to a future FAIR / ForestWard backend.
+ * Upload offline observations into D1 (source of truth).
  */
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
-      observations?: unknown[];
-      uploadedAt?: string;
+      observations?: Observation[];
     };
     const list = Array.isArray(body.observations) ? body.observations : [];
     if (!list.length) {
@@ -20,13 +23,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const ids = list
-      .map((o) =>
-        o && typeof o === "object" && "id" in o
-          ? String((o as { id: unknown }).id)
-          : null
-      )
-      .filter((id): id is string => Boolean(id));
+    const db = await getDB();
+    await ensureSchema(db);
+    await seedIfEmpty(db);
+
+    const ids: string[] = [];
+    for (const obs of list) {
+      if (!obs?.id || !obs.code || !obs.module || !obs.location) continue;
+      await upsertObservation(db, obs);
+      ids.push(obs.id);
+    }
 
     return NextResponse.json({
       ok: true,
@@ -34,10 +40,8 @@ export async function POST(request: Request) {
       ids,
       serverTime: new Date().toISOString(),
     });
-  } catch {
-    return NextResponse.json(
-      { ok: false, error: "invalid_json" },
-      { status: 400 }
-    );
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "sync_failed";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

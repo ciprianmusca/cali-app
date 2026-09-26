@@ -28,15 +28,40 @@ Datele sunt stocate local în browser (localStorage) — fără backend. Potrivi
 
 Interfața este disponibilă în **română** și **engleză**. Selectorul **RO | EN** este în header (și în meniul mobil). Preferința se salvează în `localStorage` (`cali-locale`).
 
+## Bază de date (Cloudflare D1)
+
+**Sursa de adevăr** este baza **D1** `cali-lab-db` (binding `DB`).
+
+| Unde | Rol |
+|------|-----|
+| Cloudflare D1 | Date persistente (utilizatori + observații), partajate între dispozitive |
+| Browser localStorage | Cache + coadă offline |
+| `POST /api/sync` | Upload observații offline → D1 |
+| `GET /api/bootstrap` | Descarcă starea din D1 la pornire |
+
+### Creare D1 (o singură dată)
+
+1. Cloudflare Dashboard → **Storage & Databases** → **D1** → **Create**
+2. Nume: `cali-lab-db`
+3. Copiază **Database ID**
+4. În `wrangler.jsonc`, înlocuiește `REPLACE_WITH_D1_DATABASE_ID` cu ID-ul
+5. (Opțional) aplică migrările:
+   ```bash
+   npx wrangler d1 migrations apply cali-lab-db --remote
+   ```
+   Schema se creează și automat la primul `GET /api/bootstrap`.
+6. Commit + push → Workers Builds redeploy
+
+La primul bootstrap, conturile demo se însămânțează în D1 dacă tabela e goală.
+
 ## Offline + sync
 
 CALI-LAB e PWA:
-- **Service Worker** (`/sw.js`) cache-uiește shell-ul aplicației pentru utilizare fără semnal
-- Observațiile noi se **salvează local** (localStorage) imediat
-- Când dispozitivul e din nou online, coada se **încarcă** automat prin `POST /api/sync`
-- Bara de sub header arată starea Offline / În așteptare / Se încarcă
+- **Service Worker** cache-uiește shell-ul pentru teren fără semnal
+- Observațiile se salvează **local imediat**, apoi se încarcă în **D1** când e online
+- Bara sub header: Offline / În așteptare / Se încarcă
 
-Pe telefon: deschide o dată aplicația online, apoi „Add to Home Screen” / Instalează — ulterior merge și offline în teren.
+Pe telefon: deschide o dată online → Adaugă pe ecranul principal.
 
 ## Deploy pe Cloudflare → https://cali.ipsv.ro
 

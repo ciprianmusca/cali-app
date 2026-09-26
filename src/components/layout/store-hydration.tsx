@@ -12,6 +12,15 @@ export function StoreHydration() {
     const locale = useLocaleStore.getState().locale;
     useLocaleStore.getState().setHydrated(true);
     document.documentElement.lang = locale;
+
+    // Pull canonical data from D1 when online; keep local cache if offline.
+    if (navigator.onLine) {
+      void useCaliStore.getState().pullFromServer().then((res) => {
+        if (res.ok) {
+          void useCaliStore.getState().flushOfflineQueue();
+        }
+      });
+    }
   }, []);
   return null;
 }
