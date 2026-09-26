@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Leaf,
   TreePine,
@@ -14,11 +14,14 @@ import {
 import { AuthGate } from "@/components/layout/auth-gate";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { StatusBadge, ModuleBadge } from "@/components/observations/badges";
 import { useCaliStore } from "@/lib/store";
 import { GDPR_VERSION } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { moduleKey } from "@/lib/i18n/labels";
 import { cn } from "@/lib/utils";
+import { formatDateTime } from "@/lib/format";
+import { sortByCreatedDesc } from "@/lib/validation";
 
 function GdprGate({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
@@ -78,12 +81,23 @@ function HomeContent() {
   const user = useCaliStore((s) => s.currentUser());
   const observations = useCaliStore((s) => s.observations);
   const users = useCaliStore((s) => s.users);
+  const notifications = useCaliStore((s) => s.notifications);
+  const pullNotifications = useCaliStore((s) => s.pullNotifications);
+  const markNotificationRead = useCaliStore((s) => s.markNotificationRead);
   const pending = observations.filter((o) => o.status === "in_asteptare").length;
-  const myObs = observations.filter((o) => o.authorId === user?.id);
+  const myObs = sortByCreatedDesc(
+    observations.filter((o) => o.authorId === user?.id)
+  );
+  const myNotifs = notifications.filter((n) => n.userId === user?.id);
+  const unread = myNotifs.filter((n) => !n.readAt);
   const newUsers = users.filter(
     (u) =>
       Date.now() - new Date(u.registeredAt).getTime() < 30 * 86400000
   ).length;
+
+  useEffect(() => {
+    void pullNotifications();
+  }, [pullNotifications]);
 
   const modules = [
     {
@@ -207,7 +221,77 @@ function HomeContent() {
           <Map className="size-4" />
           {t("home.map")}
         </Link>
+        <Link
+          href="/scoli"
+          className={cn(buttonVariants({ variant: "outline" }))}
+        >
+          {t("nav.schools")}
+        </Link>
+        <Link
+          href="/profil"
+          className={cn(buttonVariants({ variant: "outline" }))}
+        >
+          {t("nav.profile")}
+        </Link>
       </div>
+
+      {unread.length > 0 ? (
+        <section className="mt-10">
+          <h2 className="font-display text-xl">{t("home.notifications")}</h2>
+          <div className="mt-3 space-y-2">
+            {unread.map((n) => (
+              <div
+                key={n.id}
+                className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-amber-800/20 bg-amber-50/80 px-4 py-3 text-sm"
+              >
+                <div>
+                  <div className="font-medium">{n.title}</div>
+                  <div className="text-muted-foreground">{n.body}</div>
+                  {n.observationId ? (
+                    <Link
+                      href={`/observatii/${n.observationId}`}
+                      className="text-primary underline"
+                    >
+                      {t("val.open")}
+                    </Link>
+                  ) : null}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => markNotificationRead(n.id)}
+                >
+                  {t("home.markRead")}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="mt-10">
+        <h2 className="font-display text-xl">{t("home.myObsSection")}</h2>
+        <div className="mt-3 divide-y rounded-lg border bg-card/80">
+          {myObs.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">{t("obs.empty")}</p>
+          ) : (
+            myObs.slice(0, 8).map((o) => (
+              <Link
+                key={o.id}
+                href={`/observatii/${o.id}`}
+                className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40"
+              >
+                <span className="font-medium">{o.code}</span>
+                <StatusBadge status={o.status} />
+                <ModuleBadge module={o.module} />
+                <span className="text-muted-foreground">
+                  {formatDateTime(o.createdAt)}
+                </span>
+              </Link>
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
 }

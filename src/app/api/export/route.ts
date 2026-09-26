@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, requireAdmin } from "@/lib/auth";
+import { writeAudit } from "@/lib/audit";
 import {
   ensureSchema,
   getDB,
@@ -128,6 +129,15 @@ export async function GET(request: Request) {
     if (format === "csv") {
       const auth = await requireAdmin();
       if (auth.error) return auth.error;
+      await writeAudit(db, {
+        actorId: auth.user.id,
+        actorName: auth.user.name,
+        actorRole: auth.user.role,
+        action: "export",
+        objectType: "observations",
+        objectId: "fair-csv",
+        detail: `${all.length} rows`,
+      });
       const lines = [
         FAIR_HEADERS.join(";"),
         ...all.map((o) => fairRow(o).map(csvEscape).join(";")),

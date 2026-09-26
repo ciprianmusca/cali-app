@@ -13,6 +13,8 @@ import {
   Settings,
   Home,
   BarChart3,
+  UserRound,
+  GraduationCap,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +49,7 @@ export function AppHeader() {
         { href: "/acasa", label: t("nav.home"), icon: Home },
         { href: "/observatii", label: t("nav.observations"), icon: List },
         { href: "/harta", label: t("nav.map"), icon: Map },
+        { href: "/scoli", label: t("nav.schools"), icon: GraduationCap },
         ...(user.role === "ranger" || user.role === "admin"
           ? [
               {
@@ -60,6 +63,7 @@ export function AppHeader() {
         ...(user.role === "admin"
           ? [{ href: "/admin", label: t("nav.admin"), icon: Settings }]
           : []),
+        { href: "/profil", label: t("nav.profile"), icon: UserRound },
       ]
     : [
         { href: "/", label: t("nav.stats"), icon: BarChart3 },

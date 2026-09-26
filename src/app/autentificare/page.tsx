@@ -74,6 +74,14 @@ function LoginForm() {
           />
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        <div className="text-right text-sm">
+          <Link
+            href="/resetare-parola"
+            className="text-primary underline-offset-2 hover:underline"
+          >
+            {t("auth.forgotPassword")}
+          </Link>
+        </div>
         <Button type="submit" className="w-full" disabled={busy}>
           {busy ? t("auth.loading") : t("auth.submitLogin")}
         </Button>

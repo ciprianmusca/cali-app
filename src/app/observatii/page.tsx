@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Shield } from "lucide-react";
+import { Shield } from "lucide-react";
 import { AuthGate } from "@/components/layout/auth-gate";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +20,14 @@ import {
   SyncBadge,
 } from "@/components/observations/badges";
 import { ObservationThumb } from "@/components/observations/observation-thumb";
+import { DirectionsButton } from "@/components/observations/directions-button";
 import { useCaliStore } from "@/lib/store";
-import {
-  formatCoord,
-  formatDateTime,
-  mapsDirectionsUrl,
-} from "@/lib/format";
-import type { ObservationModule, ObservationStatus } from "@/lib/types";
+import { formatCoord, formatDateTime } from "@/lib/format";
+import type {
+  FieldActivity,
+  ObservationModule,
+  ObservationStatus,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { moduleKey, statusKey } from "@/lib/i18n/labels";
@@ -50,6 +51,18 @@ function ObservationsList() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
+  const [activities, setActivities] = useState<FieldActivity[]>([]);
+
+  useEffect(() => {
+    void fetch("/api/activities", { credentials: "include" })
+      .then((r) =>
+        r.ok
+          ? (r.json() as Promise<{ activities?: FieldActivity[] }>)
+          : null
+      )
+      .then((d) => setActivities(d?.activities ?? []))
+      .catch(() => undefined);
+  }, []);
 
   const filtered = useMemo(() => {
     const viewer = user ? { id: user.id, role: user.role } : null;
@@ -199,21 +212,13 @@ function ObservationsList() {
                     : ""}
                 </div>
               </div>
-              <a
-                href={mapsDirectionsUrl(
-                  o.location.latitude,
-                  o.location.longitude
-                )}
-                target="_blank"
-                rel="noreferrer"
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                  "shrink-0"
-                )}
-              >
-                <ExternalLink className="size-3.5" />
-                {t("obs.directions")}
-              </a>
+              <DirectionsButton
+                observation={o}
+                activity={
+                  activities.find((a) => a.id === o.activityId) ?? null
+                }
+                variant="link"
+              />
             </div>
           ))
         )}

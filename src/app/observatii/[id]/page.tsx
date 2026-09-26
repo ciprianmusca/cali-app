@@ -3,7 +3,7 @@
 import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, Shield, Trash2 } from "lucide-react";
+import { Shield, Trash2 } from "lucide-react";
 import { AuthGate } from "@/components/layout/auth-gate";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -20,10 +20,13 @@ import {
 import { ModuleBadge, StatusBadge } from "@/components/observations/badges";
 import { ObservationThumb } from "@/components/observations/observation-thumb";
 import { SpeciesSelect } from "@/components/observations/species-select";
+import { DirectionsButton } from "@/components/observations/directions-button";
+import { GlossaryTip } from "@/components/glossary/glossary-tip";
 import { ObservationsMap } from "@/components/map/observations-map";
 import { useCaliStore } from "@/lib/store";
 import type {
   DisturbanceType,
+  FieldActivity,
   Observation,
   ObservationFieldSnapshot,
   PhenologyStage,
@@ -35,7 +38,6 @@ import {
   displayValidatorName,
   formatCoord,
   formatDateTime,
-  mapsDirectionsUrl,
 } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import {
@@ -67,6 +69,7 @@ function ObservationDetail({ id }: { id: string }) {
   const deleteObservation = useCaliStore((s) => s.deleteObservation);
   const updateObservation = useCaliStore((s) => s.updateObservation);
   const [creatingTree, setCreatingTree] = useState(false);
+  const [activity, setActivity] = useState<FieldActivity | null>(null);
 
   const candidate = observations.find((o) => o.id === id);
   const obs =
@@ -97,6 +100,17 @@ function ObservationDetail({ id }: { id: string }) {
       setCorrSeverity(obs.severity);
     }
   }, [obs?.id, obs?.status]);
+
+  useEffect(() => {
+    if (!obs?.activityId) {
+      setActivity(null);
+      return;
+    }
+    void fetch(`/api/activities/${obs.activityId}`, { credentials: "include" })
+      .then((r) => r.json() as Promise<{ activity?: FieldActivity }>)
+      .then((d) => setActivity(d.activity ?? null))
+      .catch(() => setActivity(null));
+  }, [obs?.activityId]);
 
   // Prefer the server record (photos as /api/... URLs). Drop ghost local rows.
   useEffect(() => {
@@ -342,13 +356,65 @@ function ObservationDetail({ id }: { id: string }) {
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {obs.photos.map((src, i) => (
-          <ObservationThumb
-            key={`${obs.id}-${i}-${src}`}
-            module={obs.module}
-            src={src}
-            className="aspect-[4/3] w-full rounded-lg border"
-            imgClassName="object-cover"
-          />
+          <div key={`${obs.id}-${i}-${src}`} className="relative">
+            <ObservationThumb
+              module={obs.module}
+              src={src}
+              className="aspect-[4/3] w-full rounded-lg border"
+              imgClassName="object-cover"
+            />
+            {user.role === "admin" ? (
+              <Button
+                size="sm"
+                variant="destructive"
+                className="absolute right-2 top-2"
+                onClick={() => {
+                  if (!confirm(t("admin.deletePhotoConfirm"))) return;
+                  const photos = obs.photos.filter((_, idx) => idx !== i);
+                  updateObservation(obs.id, {
+                    photos,
+                    syncStatus: "pending",
+                  });
+                  const next = {
+                    ...obs,
+                    photos,
+                    syncStatus: "pending" as const,
+                  };
+                  useCaliStore.setState({
+                    offlineQueue: [
+                      next,
+                      ...useCaliStore
+                        .getState()
+                        .offlineQueue.filter((o) => o.id !== obs.id),
+                    ],
+                  });
+                  void fetch("/api/notifications", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      action: "create",
+                      notification: {
+                        userId: obs.authorId,
+                        type: "info",
+                        title: t("obs.deletePhoto"),
+                        body: obs.code,
+                        observationId: obs.id,
+                      },
+                      audit: {
+                        action: "delete_photo",
+                        objectId: obs.id,
+                        detail: `photo index ${i}`,
+                      },
+                    }),
+                  }).catch(() => undefined);
+                  void useCaliStore.getState().flushOfflineQueue();
+                }}
+              >
+                {t("obs.deletePhoto")}
+              </Button>
+            ) : null}
+          </div>
         ))}
       </div>
 
@@ -364,7 +430,10 @@ function ObservationDetail({ id }: { id: string }) {
         {obs.module === "fenologie" ? (
           <>
             <div>
-              <dt className="text-sm text-muted-foreground">{t("obs.stage")}</dt>
+              <dt className="text-sm text-muted-foreground">
+                {t("obs.stage")}
+                <GlossaryTip term="stadiu" />
+              </dt>
               <dd className="font-medium">
                 {obs.stage} — {t(phenStageLabelKey(obs.stage))}
               </dd>
@@ -392,6 +461,7 @@ function ObservationDetail({ id }: { id: string }) {
             <div>
               <dt className="text-sm text-muted-foreground">
                 {t("obs.severity")}
+                <GlossaryTip term="severitate" />
               </dt>
               <dd className="font-medium">
                 {obs.severity} — {t(severityKey(obs.severity))}
@@ -422,7 +492,10 @@ function ObservationDetail({ id }: { id: string }) {
               <dd className="font-medium">{obs.mossPct}%</dd>
             </div>
             <div>
-              <dt className="text-sm text-muted-foreground">{t("obs.litter")}</dt>
+              <dt className="text-sm text-muted-foreground">
+                {t("obs.litter")}
+                <GlossaryTip term="litiera" />
+              </dt>
               <dd className="font-medium">{obs.litterPct}%</dd>
             </div>
             <div>
@@ -576,19 +649,7 @@ function ObservationDetail({ id }: { id: string }) {
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <a
-          href={mapsDirectionsUrl(
-            obs.location.latitude,
-            obs.location.longitude
-          )}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <Button variant="outline">
-            <ExternalLink className="size-4" />
-            {t("obs.directions")}
-          </Button>
-        </a>
+        <DirectionsButton observation={obs} activity={activity} />
         {canDelete ? (
           <Button
             variant="destructive"

@@ -17,6 +17,8 @@ import { validateGpsNotAfterCreated } from "@/lib/migrate-observation";
 import type { GeoLocation, PhotoMeta, SolObservation } from "@/lib/types";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import type { MsgKey } from "@/lib/i18n/store";
+import { GlossaryTip } from "@/components/glossary/glossary-tip";
+import type { GlossaryTermId } from "@/lib/glossary";
 
 type CoverKey = "moss" | "litter" | "plants" | "bare";
 const COVER_KEYS: CoverKey[] = ["moss", "litter", "plants", "bare"];
@@ -174,7 +176,18 @@ function SolForm() {
             <div key={key} className="rounded-lg border bg-card/70 p-4">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <div className="font-medium">{t(COVER_MSG[key].title)}</div>
+                  <div className="font-medium">
+                    {t(COVER_MSG[key].title)}
+                    {key === "litter" ? (
+                      <GlossaryTip term={"litiera" as GlossaryTermId} />
+                    ) : null}
+                    {key === "moss" ? (
+                      <GlossaryTip term={"muschi" as GlossaryTermId} />
+                    ) : null}
+                    {key === "bare" ? (
+                      <GlossaryTip term={"sol_gol" as GlossaryTermId} />
+                    ) : null}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {t(COVER_MSG[key].hint)}
                   </div>

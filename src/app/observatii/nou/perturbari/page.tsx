@@ -27,6 +27,7 @@ import type {
 } from "@/lib/types";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { disturbanceKey, severityKey } from "@/lib/i18n/labels";
+import { GlossaryTip } from "@/components/glossary/glossary-tip";
 
 const DISTURBANCE_TYPES: DisturbanceType[] = [
   "atac_insecte",
@@ -196,7 +197,9 @@ function PerturbariForm() {
 
         <div data-field="types" className="space-y-2">
           <Label>
-            {t("dist.typeLabel")} <span className="text-destructive">*</span>
+            {t("dist.typeLabel")}
+            <GlossaryTip term="perturbare" />{" "}
+            <span className="text-destructive">*</span>
           </Label>
           <div className="grid gap-2 sm:grid-cols-2">
             {DISTURBANCE_TYPES.map((d) => (
@@ -231,7 +234,8 @@ function PerturbariForm() {
 
         <div data-field="severity" className="space-y-2">
           <Label>
-            {t("dist.severityLabel")}{" "}
+            {t("dist.severityLabel")}
+            <GlossaryTip term="severitate" />{" "}
             <span className="text-destructive">*</span>
           </Label>
           <div className="grid gap-2">

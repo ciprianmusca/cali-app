@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
+  AppNotification,
   AppSettings,
   Observation,
   ObservationFieldSnapshot,
@@ -56,8 +57,13 @@ interface CaliState {
     password: string;
     role: "rezident" | "turist";
     isAdult: boolean;
+    gdprAccepted: boolean;
+    gdprVersion: string;
   }) => Promise<{ ok: boolean; error?: string }>;
   acceptGdpr: () => void;
+  notifications: AppNotification[];
+  markNotificationRead: (id: string) => void;
+  pullNotifications: () => Promise<void>;
   addObservation: (obs: Observation) => void;
   updateObservation: (id: string, patch: Partial<Observation>) => void;
   deleteObservation: (id: string) => void;
@@ -152,6 +158,19 @@ const seedUsers: PublicUser[] = [
     gdprAcceptedAt: "2026-09-10T09:00:00.000Z",
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-09-01T08:00:00.000Z",
+    lastLoginAt: "2026-09-20T08:00:00.000Z",
+  },
+  {
+    id: "u-profesor",
+    email: "profesor@cali-lab.ro",
+    name: "Ana Popa",
+    role: "profesor",
+    status: "activ",
+    isAdult: true,
+    gdprAcceptedAt: "2026-09-01T10:00:00.000Z",
+    gdprVersion: GDPR_VERSION,
+    registeredAt: "2026-05-15T08:00:00.000Z",
+    lastLoginAt: "2026-09-22T08:00:00.000Z",
   },
 ];
 
@@ -337,6 +356,7 @@ export const useCaliStore = create<CaliState>()(
       observations: seedObservations(),
       currentUserId: null,
       offlineQueue: [],
+      notifications: [],
       syncing: false,
       lastSyncAt: null,
       lastSyncError: null,
@@ -348,6 +368,39 @@ export const useCaliStore = create<CaliState>()(
       },
       hydrated: false,
       setHydrated: (v) => set({ hydrated: v }),
+
+      pullNotifications: async () => {
+        try {
+          const res = await fetch("/api/notifications", {
+            credentials: "include",
+          });
+          if (!res.ok) return;
+          const data = (await res.json()) as {
+            notifications?: AppNotification[];
+          };
+          if (data.notifications) {
+            set({ notifications: data.notifications });
+          }
+        } catch {
+          /* offline */
+        }
+      },
+
+      markNotificationRead: (id) => {
+        set({
+          notifications: get().notifications.map((n) =>
+            n.id === id ? { ...n, readAt: new Date().toISOString() } : n
+          ),
+        });
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          void fetch("/api/notifications", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "read", id }),
+          }).catch(() => undefined);
+        }
+      },
 
       pullFromServer: async () => {
         try {
@@ -498,7 +551,10 @@ export const useCaliStore = create<CaliState>()(
             user?: PublicUser;
           };
           if (!res.ok || !data.ok || !data.user) {
-            if (data.error === "inactive") {
+            if (
+              data.error === "inactive" ||
+              data.error === "inactive_account"
+            ) {
               return { ok: false, error: tKey("error.inactiveAccount") };
             }
             return { ok: false, error: tKey("error.invalidLogin") };
@@ -536,18 +592,36 @@ export const useCaliStore = create<CaliState>()(
         set({ currentUserId: null, syncing: false, lastSyncError: null });
       },
 
-      register: async ({ name, email, password, role, isAdult }) => {
+      register: async ({
+        name,
+        email,
+        password,
+        role,
+        isAdult,
+        gdprAccepted,
+        gdprVersion,
+      }) => {
         if (!isAdult)
           return {
             ok: false,
             error: tKey("error.mustBeAdult"),
           };
+        if (!gdprAccepted)
+          return { ok: false, error: tKey("error.gdprRequired") };
         try {
           const res = await fetch("/api/auth/register", {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, email, password, role, isAdult }),
+            body: JSON.stringify({
+              name,
+              email,
+              password,
+              role,
+              isAdult,
+              gdprAccepted,
+              gdprVersion,
+            }),
           });
           const data = (await res.json().catch(() => ({}))) as {
             ok?: boolean;
@@ -560,6 +634,9 @@ export const useCaliStore = create<CaliState>()(
             }
             if (data.error === "password_rules") {
               return { ok: false, error: tKey("error.passwordRules") };
+            }
+            if (data.error === "gdpr_required") {
+              return { ok: false, error: tKey("error.gdprRequired") };
             }
             return { ok: false, error: tKey("obs.error") };
           }
@@ -588,6 +665,7 @@ export const useCaliStore = create<CaliState>()(
                 ...u,
                 gdprAcceptedAt: new Date().toISOString(),
                 gdprVersion: GDPR_VERSION,
+                status: "activ" as const,
               }
             : u
         );
@@ -919,6 +997,81 @@ export const useCaliStore = create<CaliState>()(
         const patched = get().observations.map((o) =>
           o.id === id ? next : o
         );
+        const notifType =
+          nextStatus === "aprobat"
+            ? ("validated" as const)
+            : nextStatus === "respins"
+              ? ("rejected" as const)
+              : nextStatus === "clarificare"
+                ? ("clarification" as const)
+                : null;
+
+        let notifications = get().notifications;
+        if (notifType && obs.authorId !== user.id) {
+          const localNotif: AppNotification = {
+            id: `n-${crypto.randomUUID().slice(0, 10)}`,
+            userId: obs.authorId,
+            type: notifType,
+            title:
+              notifType === "validated"
+                ? tKey("notif.validatedTitle")
+                : notifType === "rejected"
+                  ? tKey("notif.rejectedTitle")
+                  : tKey("notif.clarifyTitle"),
+            body: `${obs.code}: ${trimmed || nextStatus}`,
+            observationId: obs.id,
+            createdAt: at,
+          };
+          notifications = [localNotif, ...notifications];
+          if (typeof navigator !== "undefined" && navigator.onLine) {
+            void fetch("/api/notifications", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "create",
+                notification: {
+                  userId: localNotif.userId,
+                  type: localNotif.type,
+                  title: localNotif.title,
+                  body: localNotif.body,
+                  observationId: localNotif.observationId,
+                },
+                audit: {
+                  action: isReopen
+                    ? "reopen"
+                    : isCorrect
+                      ? "correct_observation"
+                      : "validate",
+                  objectId: obs.id,
+                  detail: `${decision}: ${obs.code}`,
+                },
+              }),
+            }).catch(() => undefined);
+          }
+        } else if (isReopen && typeof navigator !== "undefined" && navigator.onLine) {
+          void fetch("/api/notifications", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "create",
+              notification: {
+                userId: obs.authorId,
+                type: "info",
+                title: tKey("notif.reopenTitle"),
+                body: `${obs.code}: ${trimmed}`,
+                observationId: obs.id,
+              },
+              audit: {
+                action: "reopen",
+                objectId: obs.id,
+                detail: trimmed,
+              },
+            }),
+          }).catch(() => undefined);
+        }
+
         set({
           observations: patched,
           offlineQueue: [
@@ -929,6 +1082,7 @@ export const useCaliStore = create<CaliState>()(
             expiresAt: Date.now() + 10_000,
             previous: mergedPrevious,
           },
+          notifications,
         });
         if (typeof navigator !== "undefined" && navigator.onLine) {
           void get().flushOfflineQueue();
@@ -1068,6 +1222,7 @@ export const useCaliStore = create<CaliState>()(
         observations: s.observations.map(stripBase64Photos),
         // currentUserId is NOT persisted — auth comes from /api/bootstrap.
         offlineQueue: s.offlineQueue.map(stripBase64Photos),
+        notifications: s.notifications,
         lastSyncAt: s.lastSyncAt,
         settings: s.settings,
       }),

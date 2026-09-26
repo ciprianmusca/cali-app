@@ -15,10 +15,20 @@ export const PARK_CENTER = { lat: 47.125, lng: 25.175 };
 export const ROLE_LABELS: Record<UserRole, string> = {
   admin: "Administrator",
   ranger: "Ranger",
+  profesor: "Profesor",
   rezident: "Rezident",
   turist: "Turist",
   elev: "Elev",
 };
+
+export const ALL_USER_ROLES: UserRole[] = [
+  "admin",
+  "ranger",
+  "profesor",
+  "rezident",
+  "turist",
+  "elev",
+];
 
 export const MODULE_LABELS: Record<ObservationModule, string> = {
   fenologie: "Fenologie",
@@ -102,6 +112,11 @@ export const DEMO_ACCOUNTS = [
     email: "ranger@cali-lab.ro",
     password: "Ranger123!",
     role: "ranger" as const,
+  },
+  {
+    email: "profesor@cali-lab.ro",
+    password: "Profesor123!",
+    role: "profesor" as const,
   },
   {
     email: "turist@cali-lab.ro",

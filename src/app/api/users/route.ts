@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin, toPublicUser } from "@/lib/auth";
+import { writeAudit } from "@/lib/audit";
 import {
   ensureSchema,
   findUserByEmail,
@@ -83,6 +84,15 @@ export async function POST(request: Request) {
     };
 
     await upsertUser(db, user);
+    await writeAudit(db, {
+      actorId: auth.user.id,
+      actorName: auth.user.name,
+      actorRole: auth.user.role,
+      action: existing ? "update_user" : "create_user",
+      objectType: "user",
+      objectId: user.id,
+      detail: `${user.email} (${user.role})`,
+    });
     return NextResponse.json({ ok: true, user: toPublicUser(user) });
   } catch (e) {
     const message = e instanceof Error ? e.message : "create_failed";

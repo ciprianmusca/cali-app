@@ -1,5 +1,79 @@
-export type UserRole = "admin" | "ranger" | "rezident" | "turist" | "elev";
+export type UserRole =
+  | "admin"
+  | "ranger"
+  | "profesor"
+  | "rezident"
+  | "turist"
+  | "elev";
 export type UserStatus = "activ" | "inactiv";
+
+/** ADM-08 audit actions. */
+export type AuditAction =
+  | "login_admin"
+  | "validate"
+  | "reopen"
+  | "delete_observation"
+  | "delete_photo"
+  | "correct_observation"
+  | "export"
+  | "create_user"
+  | "update_user"
+  | "suspend_user"
+  | "reactivate_user"
+  | "reset_password"
+  | "delete_user"
+  | "password_change"
+  | "account_delete_request"
+  | "create_activity"
+  | "update_activity";
+
+export interface AuditEvent {
+  id: string;
+  at: string;
+  actorId: string;
+  actorName: string;
+  actorRole: UserRole;
+  action: AuditAction;
+  objectType: string;
+  objectId: string;
+  detail?: string;
+}
+
+/** ROL-06 field activity (Școli). */
+export interface FieldActivity {
+  id: string;
+  title: string;
+  date: string;
+  zoneName: string;
+  zoneLat: number;
+  zoneLng: number;
+  zoneRadiusM: number;
+  treeIds: string[];
+  schoolName?: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: "validated" | "rejected" | "clarification" | "info";
+  title: string;
+  body: string;
+  observationId?: string;
+  createdAt: string;
+  readAt?: string;
+}
+
+export interface PasswordResetToken {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: string;
+  createdAt: string;
+  usedAt?: string;
+}
 export type ObservationModule = "fenologie" | "perturbari" | "sol";
 export type ObservationStatus =
   | "in_asteptare"
@@ -153,6 +227,8 @@ export interface ObservationBase {
   isSentinelTree?: boolean;
   /** Link to permanent sentinel tree (DATA-02). */
   sentinelTreeId?: string;
+  /** ROL-06: linked school field activity. */
+  activityId?: string;
   species?: Species;
   /** Free text when species === "alta". */
   speciesOther?: string;

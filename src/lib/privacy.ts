@@ -4,10 +4,14 @@ import type { Observation, UserRole } from "@/lib/types";
 export const PUBLIC_ROLE_LABEL: Record<UserRole, string> = {
   admin: "Administrator",
   ranger: "Ranger PNC",
+  profesor: "Profesor",
   rezident: "Rezident",
   turist: "Turist",
   elev: "Elev",
 };
+
+/** Pseudonym for deleted accounts (ADM-06). */
+export const DELETED_USER_LABEL = "Utilizator șters";
 
 export function canSeeFullNames(role?: UserRole | null): boolean {
   return role === "admin" || role === "ranger";

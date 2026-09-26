@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCaliStore } from "@/lib/store";
 import { isValidPassword } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/use-i18n";
+import { GDPR_VERSION } from "@/lib/constants";
 
 export default function RegisterPage() {
   const { t } = useI18n();
@@ -22,6 +23,7 @@ export default function RegisterPage() {
   const [password2, setPassword2] = useState("");
   const [role, setRole] = useState<"turist" | "rezident">("turist");
   const [isAdult, setIsAdult] = useState(false);
+  const [gdprOk, setGdprOk] = useState(false);
   const [captcha, setCaptcha] = useState("");
   const [error, setError] = useState<string | null>(null);
   const captchaAnswer = "7";
@@ -45,7 +47,19 @@ export default function RegisterPage() {
       setError(t("error.confirmAdult"));
       return;
     }
-    const res = await register({ name, email, password, role, isAdult });
+    if (!gdprOk) {
+      setError(t("error.gdprRequired"));
+      return;
+    }
+    const res = await register({
+      name,
+      email,
+      password,
+      role,
+      isAdult,
+      gdprAccepted: gdprOk,
+      gdprVersion: GDPR_VERSION,
+    });
     if (!res.ok) {
       setError(res.error ?? t("obs.error"));
       return;
@@ -132,6 +146,19 @@ export default function RegisterPage() {
             onCheckedChange={(v) => setIsAdult(v === true)}
           />
           {t("auth.adult")}
+        </label>
+        <label className="flex items-start gap-2 text-sm">
+          <Checkbox
+            checked={gdprOk}
+            onCheckedChange={(v) => setGdprOk(v === true)}
+          />
+          <span>
+            {t("auth.gdprCheck")}{" "}
+            <Link href="/politica-date" className="text-primary underline">
+              {t("auth.gdprPolicy")}
+            </Link>{" "}
+            ({GDPR_VERSION})
+          </span>
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <Button

@@ -1,9 +1,13 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type {
+  AppNotification,
+  AuditEvent,
   CrownCondition,
   FenologieObservation,
+  FieldActivity,
   Observation,
   ObservationModule,
+  PasswordResetToken,
   PerturbariObservation,
   SentinelTree,
   SolObservation,
@@ -21,6 +25,7 @@ import {
 } from "@/lib/format";
 import { migrateObservation } from "@/lib/migrate-observation";
 import { hashPassword, isPbkdf2, needsRehash } from "@/lib/password";
+import { DELETED_USER_LABEL } from "@/lib/privacy";
 
 export type CloudflareEnv = {
   DB: D1Database;
@@ -102,6 +107,63 @@ export async function ensureSchema(db: D1Database): Promise<void> {
     `),
     db.prepare(
       `CREATE INDEX IF NOT EXISTS idx_sentinel_created ON sentinel_trees(created_at)`
+    ),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id TEXT PRIMARY KEY,
+        at TEXT NOT NULL,
+        actor_id TEXT NOT NULL,
+        actor_name TEXT NOT NULL,
+        actor_role TEXT NOT NULL,
+        action TEXT NOT NULL,
+        object_type TEXT NOT NULL,
+        object_id TEXT NOT NULL,
+        detail TEXT
+      )
+    `),
+    db.prepare(
+      `CREATE INDEX IF NOT EXISTS idx_audit_at ON audit_log(at DESC)`
+    ),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        token_hash TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        used_at TEXT
+      )
+    `),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS field_activities (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        date TEXT NOT NULL,
+        zone_name TEXT NOT NULL,
+        zone_lat REAL NOT NULL,
+        zone_lng REAL NOT NULL,
+        zone_radius_m REAL NOT NULL,
+        tree_ids_json TEXT NOT NULL DEFAULT '[]',
+        school_name TEXT,
+        created_by TEXT NOT NULL,
+        created_by_name TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    `),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        observation_id TEXT,
+        created_at TEXT NOT NULL,
+        read_at TEXT
+      )
+    `),
+    db.prepare(
+      `CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, created_at DESC)`
     ),
   ]);
 }
@@ -203,6 +265,8 @@ export function observationFromRow(row: ObsRow): Observation {
       typeof payload.sentinelTreeId === "string"
         ? payload.sentinelTreeId
         : undefined,
+    activityId:
+      typeof payload.activityId === "string" ? payload.activityId : undefined,
     species: (row.species as Observation["species"]) ?? undefined,
     speciesOther:
       typeof payload.speciesOther === "string"
@@ -255,6 +319,7 @@ function payloadFor(obs: Observation): Record<string, unknown> {
     photoMeta: obs.photoMeta,
     locationAdjusted: obs.locationAdjusted,
     sentinelTreeId: obs.sentinelTreeId,
+    activityId: obs.activityId,
     speciesOther: obs.speciesOther,
     editHistory: obs.editHistory,
     validationHistory: obs.validationHistory,
@@ -586,6 +651,295 @@ export async function deleteObservation(
   await db.prepare("DELETE FROM observations WHERE id = ?").bind(id).run();
 }
 
+export async function insertAuditEvent(
+  db: D1Database,
+  event: AuditEvent
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO audit_log (
+        id, at, actor_id, actor_name, actor_role, action,
+        object_type, object_id, detail
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      event.id,
+      event.at,
+      event.actorId,
+      event.actorName,
+      event.actorRole,
+      event.action,
+      event.objectType,
+      event.objectId,
+      event.detail ?? null
+    )
+    .run();
+}
+
+export async function listAuditEvents(
+  db: D1Database,
+  limit = 200
+): Promise<AuditEvent[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM audit_log ORDER BY at DESC LIMIT ?`
+    )
+    .bind(limit)
+    .all<{
+      id: string;
+      at: string;
+      actor_id: string;
+      actor_name: string;
+      actor_role: string;
+      action: string;
+      object_type: string;
+      object_id: string;
+      detail: string | null;
+    }>();
+  return (results ?? []).map((r) => ({
+    id: r.id,
+    at: r.at,
+    actorId: r.actor_id,
+    actorName: r.actor_name,
+    actorRole: r.actor_role as UserRole,
+    action: r.action as AuditEvent["action"],
+    objectType: r.object_type,
+    objectId: r.object_id,
+    detail: r.detail ?? undefined,
+  }));
+}
+
+export async function deleteUserKeepObservations(
+  db: D1Database,
+  userId: string
+): Promise<void> {
+  const obs = await listObservations(db);
+  for (const o of obs) {
+    if (o.authorId !== userId) continue;
+    await upsertObservation(db, {
+      ...o,
+      authorName: DELETED_USER_LABEL,
+      authorId: `deleted:${userId}`,
+    });
+  }
+  await db.prepare("DELETE FROM users WHERE id = ?").bind(userId).run();
+}
+
+export async function createPasswordReset(
+  db: D1Database,
+  token: PasswordResetToken
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO password_resets (
+        id, user_id, token_hash, expires_at, created_at, used_at
+      ) VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      token.id,
+      token.userId,
+      token.tokenHash,
+      token.expiresAt,
+      token.createdAt,
+      token.usedAt ?? null
+    )
+    .run();
+}
+
+export async function findPasswordResetByHash(
+  db: D1Database,
+  tokenHash: string
+): Promise<PasswordResetToken | null> {
+  const row = await db
+    .prepare("SELECT * FROM password_resets WHERE token_hash = ?")
+    .bind(tokenHash)
+    .first<{
+      id: string;
+      user_id: string;
+      token_hash: string;
+      expires_at: string;
+      created_at: string;
+      used_at: string | null;
+    }>();
+  if (!row) return null;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    tokenHash: row.token_hash,
+    expiresAt: row.expires_at,
+    createdAt: row.created_at,
+    usedAt: row.used_at ?? undefined,
+  };
+}
+
+export async function markPasswordResetUsed(
+  db: D1Database,
+  id: string
+): Promise<void> {
+  await db
+    .prepare("UPDATE password_resets SET used_at = ? WHERE id = ?")
+    .bind(new Date().toISOString(), id)
+    .run();
+}
+
+export async function listFieldActivities(
+  db: D1Database
+): Promise<FieldActivity[]> {
+  const { results } = await db
+    .prepare("SELECT * FROM field_activities ORDER BY date DESC, created_at DESC")
+    .all<{
+      id: string;
+      title: string;
+      date: string;
+      zone_name: string;
+      zone_lat: number;
+      zone_lng: number;
+      zone_radius_m: number;
+      tree_ids_json: string;
+      school_name: string | null;
+      created_by: string;
+      created_by_name: string;
+      created_at: string;
+    }>();
+  return (results ?? []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    date: r.date,
+    zoneName: r.zone_name,
+    zoneLat: r.zone_lat,
+    zoneLng: r.zone_lng,
+    zoneRadiusM: r.zone_radius_m,
+    treeIds: JSON.parse(r.tree_ids_json || "[]") as string[],
+    schoolName: r.school_name ?? undefined,
+    createdBy: r.created_by,
+    createdByName: r.created_by_name,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function getFieldActivity(
+  db: D1Database,
+  id: string
+): Promise<FieldActivity | null> {
+  const list = await listFieldActivities(db);
+  return list.find((a) => a.id === id) ?? null;
+}
+
+export async function upsertFieldActivity(
+  db: D1Database,
+  activity: FieldActivity
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO field_activities (
+        id, title, date, zone_name, zone_lat, zone_lng, zone_radius_m,
+        tree_ids_json, school_name, created_by, created_by_name, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        title=excluded.title,
+        date=excluded.date,
+        zone_name=excluded.zone_name,
+        zone_lat=excluded.zone_lat,
+        zone_lng=excluded.zone_lng,
+        zone_radius_m=excluded.zone_radius_m,
+        tree_ids_json=excluded.tree_ids_json,
+        school_name=excluded.school_name`
+    )
+    .bind(
+      activity.id,
+      activity.title,
+      activity.date,
+      activity.zoneName,
+      activity.zoneLat,
+      activity.zoneLng,
+      activity.zoneRadiusM,
+      JSON.stringify(activity.treeIds),
+      activity.schoolName ?? null,
+      activity.createdBy,
+      activity.createdByName,
+      activity.createdAt
+    )
+    .run();
+}
+
+export async function insertNotification(
+  db: D1Database,
+  n: AppNotification
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO notifications (
+        id, user_id, type, title, body, observation_id, created_at, read_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      n.id,
+      n.userId,
+      n.type,
+      n.title,
+      n.body,
+      n.observationId ?? null,
+      n.createdAt,
+      n.readAt ?? null
+    )
+    .run();
+}
+
+export async function listNotificationsForUser(
+  db: D1Database,
+  userId: string
+): Promise<AppNotification[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`
+    )
+    .bind(userId)
+    .all<{
+      id: string;
+      user_id: string;
+      type: string;
+      title: string;
+      body: string;
+      observation_id: string | null;
+      created_at: string;
+      read_at: string | null;
+    }>();
+  return (results ?? []).map((r) => ({
+    id: r.id,
+    userId: r.user_id,
+    type: r.type as AppNotification["type"],
+    title: r.title,
+    body: r.body,
+    observationId: r.observation_id ?? undefined,
+    createdAt: r.created_at,
+    readAt: r.read_at ?? undefined,
+  }));
+}
+
+export async function markNotificationRead(
+  db: D1Database,
+  id: string,
+  userId: string
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE notifications SET read_at = ? WHERE id = ? AND user_id = ?`
+    )
+    .bind(new Date().toISOString(), id, userId)
+    .run();
+}
+
+export async function findUserById(
+  db: D1Database,
+  id: string
+): Promise<User | null> {
+  const row = await db
+    .prepare("SELECT * FROM users WHERE id = ?")
+    .bind(id)
+    .first<UserRow>();
+  return row ? userFromRow(row) : null;
+}
+
 const SEED_USERS: User[] = [
   {
     id: "u-admin",
@@ -650,6 +1004,20 @@ const SEED_USERS: User[] = [
     gdprAcceptedAt: "2026-09-10T09:00:00.000Z",
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-09-01T08:00:00.000Z",
+    lastLoginAt: "2026-09-20T08:00:00.000Z",
+  },
+  {
+    id: "u-profesor",
+    email: "profesor@cali-lab.ro",
+    name: "Ana Popa",
+    role: "profesor",
+    status: "activ",
+    password: "Profesor123!",
+    isAdult: true,
+    gdprAcceptedAt: "2026-09-01T10:00:00.000Z",
+    gdprVersion: GDPR_VERSION,
+    registeredAt: "2026-05-15T08:00:00.000Z",
+    lastLoginAt: "2026-09-22T08:00:00.000Z",
   },
 ];
 
@@ -657,7 +1025,10 @@ export async function seedIfEmpty(db: D1Database): Promise<boolean> {
   const row = await db
     .prepare("SELECT COUNT(*) AS c FROM users")
     .first<{ c: number }>();
-  if ((row?.c ?? 0) > 0) return false;
+  if ((row?.c ?? 0) > 0) {
+    await ensureDemoUsers(db);
+    return false;
+  }
   for (const u of SEED_USERS) {
     await upsertUser(db, {
       ...u,
@@ -666,6 +1037,18 @@ export async function seedIfEmpty(db: D1Database): Promise<boolean> {
     });
   }
   return true;
+}
+
+/** Insert missing demo accounts (e.g. profesor) without overwriting existing ones. */
+export async function ensureDemoUsers(db: D1Database): Promise<void> {
+  for (const u of SEED_USERS) {
+    const existing = await findUserByEmail(db, u.email);
+    if (existing) continue;
+    await upsertUser(db, {
+      ...u,
+      password: await hashPassword(u.password),
+    });
+  }
 }
 
 /**

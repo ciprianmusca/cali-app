@@ -14,6 +14,8 @@ export async function POST() {
       ...auth.user,
       gdprAcceptedAt: new Date().toISOString(),
       gdprVersion: GDPR_VERSION,
+      // ADM-14: activation only after GDPR consent.
+      status: "activ" as const,
     };
     await upsertUser(db, updated);
     return NextResponse.json({ ok: true, user: toPublicUser(updated) });

@@ -15,11 +15,10 @@ import {
 } from "@/components/ui/select";
 import { useCaliStore } from "@/lib/store";
 import { formatDateTime } from "@/lib/format";
-import type { UserRole, UserStatus } from "@/lib/types";
+import type { PublicUser, UserRole, UserStatus } from "@/lib/types";
+import { ALL_USER_ROLES } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { roleKey } from "@/lib/i18n/labels";
-
-const ALL_ROLES: UserRole[] = ["admin", "ranger", "rezident", "turist", "elev"];
 
 function UsersAdmin() {
   const { t } = useI18n();
@@ -27,25 +26,69 @@ function UsersAdmin() {
   const createUser = useCaliStore((s) => s.createUser);
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [statusFilter, setStatusFilter] = useState<UserStatus | "all">("all");
+  const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<PublicUser | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("elev");
   const [parental, setParental] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const filtered = useMemo(
-    () =>
-      users.filter((u) => {
-        if (roleFilter !== "all" && u.role !== roleFilter) return false;
-        if (statusFilter !== "all" && u.status !== statusFilter) return false;
-        return true;
-      }),
-    [users, roleFilter, statusFilter]
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return users.filter((u) => {
+      if (roleFilter !== "all" && u.role !== roleFilter) return false;
+      if (statusFilter !== "all" && u.status !== statusFilter) return false;
+      if (
+        q &&
+        !u.name.toLowerCase().includes(q) &&
+        !u.email.toLowerCase().includes(q)
+      )
+        return false;
+      return true;
+    });
+  }, [users, roleFilter, statusFilter, search]);
+
+  const refreshUsers = async () => {
+    const res = await fetch("/api/users", { credentials: "include" });
+    if (!res.ok) return;
+    const data = (await res.json()) as { users?: PublicUser[] };
+    if (data.users) {
+      useCaliStore.setState({ users: data.users });
+    }
+  };
 
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
+    if (editing) {
+      setBusyId(editing.id);
+      try {
+        const res = await fetch(`/api/users/${editing.id}`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            email,
+            role,
+            parentalConsent: role === "elev" ? parental : undefined,
+          }),
+        });
+        if (!res.ok) {
+          setMsg(t("obs.error"));
+          return;
+        }
+        await refreshUsers();
+        setMsg(t("admin.save"));
+        setEditing(null);
+        setShowForm(false);
+      } finally {
+        setBusyId(null);
+      }
+      return;
+    }
     const res = await createUser({
       name,
       email,
@@ -61,7 +104,117 @@ function UsersAdmin() {
     setName("");
     setEmail("");
     setParental(false);
+    await refreshUsers();
   };
+
+  const startEdit = (u: PublicUser) => {
+    setEditing(u);
+    setName(u.name);
+    setEmail(u.email);
+    setRole(u.role);
+    setParental(Boolean(u.parentalConsent));
+    setShowForm(true);
+  };
+
+  const patchAction = async (
+    id: string,
+    action: "suspend" | "reactivate" | "reset_password"
+  ) => {
+    setBusyId(id);
+    setMsg(null);
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        demoResetUrl?: string;
+        error?: string;
+      };
+      if (!res.ok) {
+        setMsg(t("obs.error"));
+        return;
+      }
+      if (action === "reset_password" && data.demoResetUrl) {
+        setMsg(`${t("auth.resetDemoLink")} ${data.demoResetUrl}`);
+      } else {
+        setMsg(t("admin.save"));
+      }
+      await refreshUsers();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deleteUser = async (u: PublicUser) => {
+    if (!confirm(t("admin.deleteConfirm"))) return;
+    setBusyId(u.id);
+    try {
+      const res = await fetch(`/api/users/${u.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        setMsg(t("obs.error"));
+        return;
+      }
+      await refreshUsers();
+      setMsg(t("admin.deleteUser"));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const UserActions = ({ u }: { u: PublicUser }) => (
+    <div className="flex flex-wrap gap-1">
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={busyId === u.id}
+        onClick={() => startEdit(u)}
+      >
+        {t("admin.edit")}
+      </Button>
+      {u.status === "activ" ? (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busyId === u.id}
+          onClick={() => void patchAction(u.id, "suspend")}
+        >
+          {t("admin.suspend")}
+        </Button>
+      ) : (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={busyId === u.id}
+          onClick={() => void patchAction(u.id, "reactivate")}
+        >
+          {t("admin.reactivate")}
+        </Button>
+      )}
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={busyId === u.id}
+        onClick={() => void patchAction(u.id, "reset_password")}
+      >
+        {t("admin.resetPw")}
+      </Button>
+      <Button
+        size="sm"
+        variant="destructive"
+        disabled={busyId === u.id}
+        onClick={() => void deleteUser(u)}
+      >
+        {t("admin.deleteUser")}
+      </Button>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -69,7 +222,14 @@ function UsersAdmin() {
         <h1 className="font-display text-3xl text-forest">
           {t("admin.usersTitle")}
         </h1>
-        <Button onClick={() => setShowForm((v) => !v)}>
+        <Button
+          onClick={() => {
+            setEditing(null);
+            setName("");
+            setEmail("");
+            setShowForm((v) => !v);
+          }}
+        >
           {showForm ? t("admin.close") : t("admin.createUser")}
         </Button>
       </div>
@@ -82,7 +242,11 @@ function UsersAdmin() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <Label>{t("auth.name")}</Label>
-              <Input required value={name} onChange={(e) => setName(e.target.value)} />
+              <Input
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label>{t("auth.email")}</Label>
@@ -101,7 +265,7 @@ function UsersAdmin() {
               onValueChange={(v) => setRole(v as UserRole)}
               className="grid gap-2 sm:grid-cols-3"
             >
-              {ALL_ROLES.map((r) => (
+              {ALL_USER_ROLES.map((r) => (
                 <label key={r} className="flex items-center gap-2 text-sm">
                   <RadioGroupItem value={r} />
                   {t(roleKey(r))}
@@ -123,9 +287,19 @@ function UsersAdmin() {
         </form>
       ) : null}
 
-      {msg ? <p className="mt-4 text-sm text-emerald-800">{msg}</p> : null}
+      {msg ? (
+        <p className="mt-4 break-all text-sm text-emerald-800">{msg}</p>
+      ) : null}
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="space-y-1 sm:col-span-1">
+          <Label>{t("admin.search")}</Label>
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("admin.search")}
+          />
+        </div>
         <div className="space-y-1">
           <Label>{t("admin.role")}</Label>
           <Select
@@ -139,7 +313,7 @@ function UsersAdmin() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("obs.all")}</SelectItem>
-              {ALL_ROLES.map((r) => (
+              {ALL_USER_ROLES.map((r) => (
                 <SelectItem key={r} value={r}>
                   {t(roleKey(r))}
                 </SelectItem>
@@ -167,8 +341,9 @@ function UsersAdmin() {
         </div>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-lg border bg-card/80">
-        <table className="w-full min-w-[720px] text-left text-sm">
+      {/* Desktop table */}
+      <div className="mt-6 hidden overflow-x-auto rounded-lg border bg-card/80 md:block">
+        <table className="w-full min-w-[900px] text-left text-sm">
           <thead className="border-b bg-muted/40 text-muted-foreground">
             <tr>
               <th className="px-3 py-2">{t("admin.email")}</th>
@@ -178,6 +353,7 @@ function UsersAdmin() {
               <th className="px-3 py-2">{t("admin.lastLogin")}</th>
               <th className="px-3 py-2">{t("admin.gdpr")}</th>
               <th className="px-3 py-2">{t("admin.status")}</th>
+              <th className="px-3 py-2">{t("admin.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -196,10 +372,36 @@ function UsersAdmin() {
                 <td className="px-3 py-2">
                   {u.status === "activ" ? t("admin.active") : t("admin.inactive")}
                 </td>
+                <td className="px-3 py-2">
+                  <UserActions u={u} />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards (UI-10) */}
+      <div className="mt-6 space-y-3 md:hidden">
+        {filtered.map((u) => (
+          <div key={u.id} className="rounded-lg border bg-card/80 p-4 text-sm">
+            <div className="font-medium">{u.name}</div>
+            <div className="text-muted-foreground">{u.email}</div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              <span>{t(roleKey(u.role))}</span>
+              <span>·</span>
+              <span>
+                {u.status === "activ" ? t("admin.active") : t("admin.inactive")}
+              </span>
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {t("admin.registered")}: {formatDateTime(u.registeredAt)}
+            </div>
+            <div className="mt-3">
+              <UserActions u={u} />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

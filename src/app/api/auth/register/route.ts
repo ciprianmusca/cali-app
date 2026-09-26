@@ -23,6 +23,8 @@ export async function POST(request: Request) {
       password?: string;
       role?: "turist" | "rezident";
       isAdult?: boolean;
+      gdprAccepted?: boolean;
+      gdprVersion?: string;
     };
 
     const name = body.name?.trim() ?? "";
@@ -39,6 +41,12 @@ export async function POST(request: Request) {
     if (!body.isAdult) {
       return NextResponse.json(
         { ok: false, error: "must_be_adult" },
+        { status: 400 }
+      );
+    }
+    if (!body.gdprAccepted || !body.gdprVersion) {
+      return NextResponse.json(
+        { ok: false, error: "gdpr_required" },
         { status: 400 }
       );
     }
@@ -60,6 +68,8 @@ export async function POST(request: Request) {
       );
     }
 
+    const now = new Date().toISOString();
+    // ADM-14/15: account activates only with GDPR policy acceptance.
     const user: User = {
       id: `u-${crypto.randomUUID().slice(0, 8)}`,
       email,
@@ -68,7 +78,9 @@ export async function POST(request: Request) {
       status: "activ",
       password: await hashPassword(password),
       isAdult: true,
-      registeredAt: new Date().toISOString(),
+      gdprAcceptedAt: now,
+      gdprVersion: body.gdprVersion,
+      registeredAt: now,
     };
     await upsertUser(db, user);
 

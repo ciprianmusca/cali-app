@@ -23,6 +23,7 @@ import type {
   Species,
 } from "@/lib/types";
 import { useI18n } from "@/lib/i18n/use-i18n";
+import { GlossaryTip } from "@/components/glossary/glossary-tip";
 import {
   crownKey,
   phenStageDescKey,
@@ -151,7 +152,9 @@ function FenologieForm() {
 
         <div data-field="stage" className="space-y-3">
           <Label>
-            {t("phen.stageLabel")} <span className="text-destructive">*</span>
+            {t("phen.stageLabel")}
+            <GlossaryTip term="stadiu" />{" "}
+            <span className="text-destructive">*</span>
           </Label>
           <div className="grid gap-2">
             {([1, 2, 3, 4] as PhenologyStage[]).map((s) => {
@@ -192,7 +195,9 @@ function FenologieForm() {
 
         <div data-field="crown" className="space-y-3">
           <Label>
-            {t("phen.crownLabel")} <span className="text-destructive">*</span>
+            {t("phen.crownLabel")}
+            <GlossaryTip term="coroana" />{" "}
+            <span className="text-destructive">*</span>
           </Label>
           <div className="grid gap-2 sm:grid-cols-2">
             {CROWN_CONDITIONS.map((c) => (
