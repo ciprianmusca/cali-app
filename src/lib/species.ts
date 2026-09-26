@@ -8,13 +8,14 @@ export interface SpeciesDef {
   labelRo: string;
   labelEn: string;
   group: SpeciesGroup;
-  /** GBIF taxonKey — fill when verified. */
-  gbifTaxonKey: number | null; // TODO(DATA-04): set verified GBIF taxonKeys
+  /** GBIF Backbone taxonKey (usageKey from species match). */
+  gbifTaxonKey: number | null;
 }
 
 /**
- * CALI species nomenclature (DATA-04).
+ * CALI species nomenclature (DATA-04 / ADM-03).
  * Display: "Label (Scientific)" via speciesDisplayLabel().
+ * Export: scientific name + gbifTaxonKey (not translated labels).
  */
 export const SPECIES_CATALOG: SpeciesDef[] = [
   {
@@ -23,7 +24,7 @@ export const SPECIES_CATALOG: SpeciesDef[] = [
     labelRo: "Molid",
     labelEn: "Norway spruce",
     group: "rasinoase",
-    gbifTaxonKey: null, // TODO GBIF
+    gbifTaxonKey: 5284884,
   },
   {
     id: "abies_alba",
@@ -31,7 +32,7 @@ export const SPECIES_CATALOG: SpeciesDef[] = [
     labelRo: "Brad",
     labelEn: "Silver fir",
     group: "rasinoase",
-    gbifTaxonKey: null, // TODO GBIF
+    gbifTaxonKey: 2685484,
   },
   {
     id: "pinus_sylvestris",
@@ -39,7 +40,7 @@ export const SPECIES_CATALOG: SpeciesDef[] = [
     labelRo: "Pin silvestru",
     labelEn: "Scots pine",
     group: "rasinoase",
-    gbifTaxonKey: null, // TODO GBIF
+    gbifTaxonKey: 5285637,
   },
   {
     id: "pinus_cembra",
@@ -47,7 +48,7 @@ export const SPECIES_CATALOG: SpeciesDef[] = [
     labelRo: "Zâmbru",
     labelEn: "Swiss stone pine",
     group: "rasinoase",
-    gbifTaxonKey: null, // TODO GBIF
+    gbifTaxonKey: 5285134,
   },
   {
     id: "pinus_mugo",
@@ -55,7 +56,7 @@ export const SPECIES_CATALOG: SpeciesDef[] = [
     labelRo: "Jneapăn",
     labelEn: "Mountain pine",
     group: "rasinoase",
-    gbifTaxonKey: null, // TODO GBIF
+    gbifTaxonKey: 5285385,
   },
   {
     id: "larix_decidua",
@@ -63,7 +64,7 @@ export const SPECIES_CATALOG: SpeciesDef[] = [
     labelRo: "Larice",
     labelEn: "European larch",
     group: "rasinoase",
-    gbifTaxonKey: null, // TODO GBIF
+    gbifTaxonKey: 2686212,
   },
   {
     id: "fagus_sylvatica",
@@ -71,7 +72,7 @@ export const SPECIES_CATALOG: SpeciesDef[] = [
     labelRo: "Fag",
     labelEn: "European beech",
     group: "foioase",
-    gbifTaxonKey: null, // TODO GBIF
+    gbifTaxonKey: 2882316,
   },
   {
     id: "acer_pseudoplatanus",
@@ -79,7 +80,7 @@ export const SPECIES_CATALOG: SpeciesDef[] = [
     labelRo: "Paltin",
     labelEn: "Sycamore maple",
     group: "foioase",
-    gbifTaxonKey: null, // TODO GBIF
+    gbifTaxonKey: 3189870,
   },
   {
     id: "sorbus_aucuparia",
@@ -87,7 +88,7 @@ export const SPECIES_CATALOG: SpeciesDef[] = [
     labelRo: "Scoruș",
     labelEn: "Rowan",
     group: "foioase",
-    gbifTaxonKey: null, // TODO GBIF
+    gbifTaxonKey: 3012167,
   },
   {
     id: "betula_pendula",
@@ -95,7 +96,7 @@ export const SPECIES_CATALOG: SpeciesDef[] = [
     labelRo: "Mesteacăn",
     labelEn: "Silver birch",
     group: "foioase",
-    gbifTaxonKey: null, // TODO GBIF
+    gbifTaxonKey: 5331916,
   },
   {
     id: "alnus_viridis",
@@ -103,7 +104,8 @@ export const SPECIES_CATALOG: SpeciesDef[] = [
     labelRo: "Anin verde",
     labelEn: "Green alder",
     group: "foioase",
-    gbifTaxonKey: null, // TODO GBIF
+    /** Accepted backbone key (Alnus alnobetula complex). */
+    gbifTaxonKey: 8175012,
   },
   {
     id: "alta",

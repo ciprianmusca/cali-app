@@ -7,180 +7,116 @@ import {
   listObservations,
   seedIfEmpty,
 } from "@/lib/db";
-import { csvEscape } from "@/lib/format";
-import type { Observation } from "@/lib/types";
+import {
+  buildFairCsv,
+  buildFairZip,
+  fairRecord,
+  filterForFairExport,
+  getExportPseudoSalt,
+  type FairExportOptions,
+} from "@/lib/fair-export";
 import { filterObservationsForViewer } from "@/lib/visibility";
 
-function fairRow(o: Observation): (string | number)[] {
-  const orig = o.originalFields;
-  const base: (string | number)[] = [
-    o.code,
-    o.module,
-    o.status,
-    o.createdAt,
-    o.location.capturedAt,
-    o.location.latitude,
-    o.location.longitude,
-    o.location.accuracy ?? "",
-    o.location.altitude ?? "",
-    o.authorRole,
-    o.species ?? "",
-    orig?.species ?? "",
-    o.validatedAt ?? "",
-    o.photos?.length ?? 0,
-    o.details ?? "",
-  ];
-  if (o.module === "fenologie") {
-    return [
-      ...base,
-      o.stage,
-      orig?.stage ?? "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-    ];
-  }
-  if (o.module === "perturbari") {
-    return [
-      ...base,
-      "",
-      "",
-      o.disturbanceTypes.join("|"),
-      (orig?.disturbanceTypes ?? []).join("|"),
-      o.severity,
-      orig?.severity ?? "",
-      o.affectedAreaSqm,
-      "",
-      "",
-      "",
-      "",
-      "",
-    ];
-  }
-  return [
-    ...base,
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    o.mossPct,
-    o.litterPct,
-    o.plantsPct,
-    o.barePct,
-    o.seedlingsPresent ? "1" : "0",
-  ];
+function parseFairOpts(url: URL): FairExportOptions {
+  return {
+    full:
+      url.searchParams.get("full") === "1" ||
+      url.searchParams.get("full") === "true",
+    includeDetails:
+      url.searchParams.get("includeDetails") === "1" ||
+      url.searchParams.get("includeDetails") === "true",
+  };
 }
 
-const FAIR_HEADERS = [
-  "code",
-  "module",
-  "status",
-  "created_at",
-  "capture_at",
-  "latitude",
-  "longitude",
-  "accuracy_m",
-  "altitude_m",
-  "author_role",
-  "species",
-  "species_original",
-  "validated_at",
-  "photo_count",
-  "details",
-  "phenology_stage",
-  "phenology_stage_original",
-  "disturbance_types",
-  "disturbance_types_original",
-  "severity",
-  "severity_original",
-  "affected_area_sqm",
-  "soil_moss_percentage",
-  "soil_litter_percentage",
-  "soil_plants_percentage",
-  "soil_bare_percentage",
-  "soil_seedlings_present",
-];
-
 /**
- * Server-side exports (SEC-04):
- * - format=csv (admin only): anonymised FAIR CSV of all observations
- * - format=geojson: GeoJSON of observations visible to the current session
+ * Server-side exports (SEC-04, ADM-01–05):
+ * - format=zip|csv (admin): anonymised FAIR package (ZIP with CSV+GeoJSON+metadata)
+ * - format=geojson: GeoJSON with the same scientific fields (no person names)
  */
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const format = url.searchParams.get("format") ?? "geojson";
+    const opts = parseFairOpts(url);
+    const salt = await getExportPseudoSalt();
 
     const db = await getDB();
     await ensureSchema(db);
     await seedIfEmpty(db);
     const all = await listObservations(db);
 
-    if (format === "csv") {
+    if (format === "csv" || format === "zip") {
       const auth = await requireAdmin();
       if (auth.error) return auth.error;
+
+      const filtered = filterForFairExport(all, opts);
+      const stamp = new Date().toISOString().slice(0, 10);
+
       await writeAudit(db, {
         actorId: auth.user.id,
         actorName: auth.user.name,
         actorRole: auth.user.role,
         action: "export",
         objectType: "observations",
-        objectId: "fair-csv",
-        detail: `${all.length} rows`,
+        objectId: format === "zip" ? "fair-zip" : "fair-csv",
+        detail: `${filtered.length} rows; full=${opts.full}; details=${opts.includeDetails}`,
       });
-      const lines = [
-        FAIR_HEADERS.join(";"),
-        ...all.map((o) => fairRow(o).map(csvEscape).join(";")),
-      ];
-      const body = "\uFEFF" + lines.join("\n");
-      return new NextResponse(body, {
+
+      if (format === "zip") {
+        const zip = await buildFairZip(all, opts, salt);
+        const body = new Blob([Uint8Array.from(zip)], {
+          type: "application/zip",
+        });
+        return new NextResponse(body, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/zip",
+            "Content-Disposition": `attachment; filename="cali-lab-fair-${stamp}.zip"`,
+          },
+        });
+      }
+
+      const csv = await buildFairCsv(all, opts, salt);
+      return new NextResponse(csv, {
         status: 200,
         headers: {
           "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition":
-            'attachment; filename="cali-fair-export.csv"',
+          "Content-Disposition": `attachment; filename="cali-lab-fair-${stamp}.csv"`,
         },
       });
     }
 
+    // ADM-04: map GeoJSON — same scientific fields as CSV, no person names.
+    // Visibility filter applies; status included; free-text details excluded.
     const session = await getSessionUser();
     const viewer = session
       ? { id: session.id, role: session.role }
       : null;
     const visible = filterObservationsForViewer(all, viewer);
-    const features = visible.map((o) => ({
-      type: "Feature" as const,
-      geometry: {
-        type: "Point" as const,
-        coordinates: [o.location.longitude, o.location.latitude],
-      },
-      properties: {
-        code: o.code,
-        module: o.module,
-        status: o.status,
-        createdAt: o.createdAt,
-        accuracy: o.location.accuracy,
-        altitude: o.location.altitude,
-        authorRole: o.authorRole,
-      },
-    }));
+    const geoOpts: FairExportOptions = { full: true, includeDetails: false };
+    const features = await Promise.all(
+      visible.map(async (o) => {
+        const properties = await fairRecord(o, geoOpts, salt);
+        return {
+          type: "Feature" as const,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [o.location.longitude, o.location.latitude] as [
+              number,
+              number,
+            ],
+          },
+          properties,
+        };
+      })
+    );
 
     return NextResponse.json(
       { type: "FeatureCollection", features },
       {
         headers: {
           "Content-Disposition":
-            'attachment; filename="cali-observatii.geojson"',
+            'attachment; filename="cali-lab-observatii.geojson"',
         },
       }
     );

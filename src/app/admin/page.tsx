@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { AuthGate } from "@/components/layout/auth-gate";
 import { buttonVariants } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useCaliStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/format";
@@ -23,9 +25,14 @@ function AdminHome() {
   const recent = [...observations]
     .sort((a, b) => lastActionAt(b) - lastActionAt(a))
     .slice(0, 8);
+  const [exportFull, setExportFull] = useState(false);
+  const [includeDetails, setIncludeDetails] = useState(false);
 
-  const exportFairCsv = () => {
-    window.location.href = "/api/export?format=csv";
+  const exportFairZip = () => {
+    const q = new URLSearchParams({ format: "zip" });
+    if (exportFull) q.set("full", "1");
+    if (includeDetails) q.set("includeDetails", "1");
+    window.location.href = `/api/export?${q.toString()}`;
   };
 
   return (
@@ -60,14 +67,43 @@ function AdminHome() {
             {t("admin.openAudit")}
           </Link>
         </div>
-        <div className="rounded-lg border bg-card/80 px-4 py-5">
+        <div className="rounded-lg border bg-card/80 px-4 py-5 sm:col-span-2 lg:col-span-1">
           <div className="text-sm text-muted-foreground">{t("admin.fairExport")}</div>
+          <p className="mt-1 text-xs text-muted-foreground">{t("admin.fairExportHint")}</p>
+          <div className="mt-3 space-y-2">
+            <label className="flex items-start gap-2 text-xs">
+              <Checkbox
+                checked={exportFull}
+                onCheckedChange={(v) => setExportFull(v === true)}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="font-medium">{t("admin.exportFull")}</span>
+                <span className="mt-0.5 block text-muted-foreground">
+                  {t("admin.exportFullHint")}
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-xs">
+              <Checkbox
+                checked={includeDetails}
+                onCheckedChange={(v) => setIncludeDetails(v === true)}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="font-medium">{t("admin.exportIncludeDetails")}</span>
+                <span className="mt-0.5 block text-muted-foreground">
+                  {t("admin.exportIncludeDetailsHint")}
+                </span>
+              </span>
+            </label>
+          </div>
           <button
             type="button"
-            onClick={exportFairCsv}
+            onClick={exportFairZip}
             className={cn(buttonVariants({ size: "sm" }), "mt-3")}
           >
-            {t("admin.downloadCsv")}
+            {t("admin.downloadFairZip")}
           </button>
         </div>
       </div>

@@ -387,7 +387,15 @@ export const ro = {
   "admin.users": "Utilizatori",
   "admin.manageUsers": "Gestiune utilizatori",
   "admin.fairExport": "Export FAIR",
+  "admin.fairExportHint":
+    "Implicit: doar observații aprobate, fără nume și fără text liber. ZIP cu CSV, GeoJSON și metadate (CC BY 4.0).",
   "admin.downloadCsv": "Descarcă CSV anonimizat",
+  "admin.downloadFairZip": "Descarcă arhiva FAIR (ZIP)",
+  "admin.exportFull": "Export complet",
+  "admin.exportFullHint": "Toate statusurile, cu coloana status.",
+  "admin.exportIncludeDetails": "Include text liber",
+  "admin.exportIncludeDetailsHint":
+    "Câmpul details (note libere). Implicit exclus.",
   "admin.recent": "Activitate recentă",
   "admin.usersTitle": "Gestiune utilizatori",
   "admin.createUser": "Creează utilizator",

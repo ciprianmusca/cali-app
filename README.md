@@ -55,7 +55,7 @@ Interfața este disponibilă în **română** și **engleză**. Selectorul **RO 
 | `POST /api/sync` | Upload observații + foto → D1 + R2 (necesită sesiune; „synced” doar la 200) |
 | `GET /api/bootstrap` | Stare din D1 filtrată pe rol; migrare foto base64→R2 |
 | `GET /api/observations/:id/photo/:i` | Servește foto din R2 cu aceeași regulă de vizibilitate |
-| `GET /api/export` | GeoJSON (vizibilitate pe sesiune) / CSV FAIR (doar admin) |
+| `GET /api/export` | GeoJSON FAIR (vizibilitate pe sesiune) / ZIP+CSV FAIR (doar admin). Query: `full=1`, `includeDetails=1` |
 | `GET /api/users` | Director utilizatori — **doar admin** |
 
 ### Vizibilitate observații (ROL-05 / SEC-04)
@@ -167,7 +167,7 @@ npm run deploy
 
 - Statistici publice, hartă Leaflet/OpenTopoMap, autentificare / înregistrare, GDPR
 - Formulare Fenologie, Perturbări, Sol (GPS accuracy/altitudine/oră, specie, 4 clase sol + puieți, tipuri perturbare extinse, comprimare poze)
-- Listă observații, detalii, validare ranger, admin + export CSV FAIR
+- Listă observații, detalii, validare ranger, admin + export FAIR (ZIP: CSV + GeoJSON + datapackage/README, CC BY 4.0; pseudonime stabile; specii științifice + GBIF)
 - Footer vizibilitate UE / EFI / FORWARDS / ISV / APNC
 
 ## Stack

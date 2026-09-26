@@ -368,7 +368,15 @@ export const en: { [K in keyof RoMessages]: string } = {
   "admin.users": "Users",
   "admin.manageUsers": "Manage users",
   "admin.fairExport": "FAIR export",
+  "admin.fairExportHint":
+    "Default: approved observations only, no names and no free text. ZIP with CSV, GeoJSON and metadata (CC BY 4.0).",
   "admin.downloadCsv": "Download anonymised CSV",
+  "admin.downloadFairZip": "Download FAIR archive (ZIP)",
+  "admin.exportFull": "Full export",
+  "admin.exportFullHint": "All statuses, with a status column.",
+  "admin.exportIncludeDetails": "Include free text",
+  "admin.exportIncludeDetailsHint":
+    "The details field (free notes). Excluded by default.",
   "admin.recent": "Recent activity",
   "admin.usersTitle": "User management",
   "admin.createUser": "Create user",
