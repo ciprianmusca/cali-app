@@ -15,32 +15,32 @@ export default function HomePage() {
 
   return (
     <div>
-      <section className="relative min-h-[88dvh] overflow-hidden">
+      <section className="relative min-h-[100dvh] overflow-hidden sm:min-h-[88dvh]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/hero-padure.svg"
-          alt={t("landing.heroAlt")}
+          alt=""
           className="absolute inset-0 size-full object-cover object-right-bottom"
         />
         {/* Soft left shade for copy readability — no floating mist ellipse */}
         <div
-          className="absolute inset-0 bg-gradient-to-r from-[#0a1610]/75 via-[#0a1610]/35 to-transparent"
+          className="absolute inset-0 bg-gradient-to-r from-[#0a1610]/80 via-[#0a1610]/40 to-transparent"
           aria-hidden
         />
         <div
-          className="absolute inset-0 bg-gradient-to-t from-[#0a1610]/55 via-transparent to-[#0a1610]/25"
+          className="absolute inset-0 bg-gradient-to-t from-[#0a1610]/50 via-transparent to-[#0a1610]/20"
           aria-hidden
         />
 
-        <div className="relative mx-auto flex min-h-[88dvh] max-w-6xl flex-col justify-center px-4 py-24 text-white">
+        <div className="relative mx-auto flex min-h-[100dvh] max-w-6xl flex-col justify-center px-4 pb-10 pt-20 text-white sm:min-h-[88dvh] sm:py-24">
           <div className="max-w-xl">
-            <h1 className="animate-rise font-display text-3xl font-medium leading-snug tracking-tight text-white sm:text-4xl md:text-5xl">
+            <h1 className="animate-rise font-display text-[1.65rem] font-medium leading-snug tracking-tight text-white sm:text-4xl md:text-5xl">
               {t("landing.headline")}
             </h1>
-            <p className="animate-rise-delay-1 mt-4 text-base text-white/90 sm:text-lg">
+            <p className="animate-rise-delay-1 mt-3 text-sm text-white/90 sm:mt-4 sm:text-lg">
               {t("landing.sub")}
             </p>
-            <div className="animate-rise-delay-2 mt-8 flex flex-wrap gap-3">
+            <div className="animate-rise-delay-2 mt-6 flex flex-wrap gap-3 sm:mt-8">
               <Link
                 href={startHref}
                 className={cn(
