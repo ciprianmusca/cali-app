@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { CloudOff, CloudUpload, Loader2, RefreshCw, Wifi } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useCaliStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ export function OfflineSyncBar() {
   const lastSyncError = useCaliStore((s) => s.lastSyncError);
   const flushOfflineQueue = useCaliStore((s) => s.flushOfflineQueue);
   const hydrated = useCaliStore((s) => s.hydrated);
+  const currentUserId = useCaliStore((s) => s.currentUserId);
 
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
@@ -42,12 +44,22 @@ export function OfflineSyncBar() {
   useEffect(() => {
     if (!hydrated || !online) return;
     if (offlineQueue.length === 0) return;
+    if (!currentUserId) return;
+    if (lastSyncError === "unauthorized") return;
     void flushOfflineQueue();
-  }, [hydrated, online, offlineQueue.length, flushOfflineQueue]);
+  }, [
+    hydrated,
+    online,
+    offlineQueue.length,
+    flushOfflineQueue,
+    currentUserId,
+    lastSyncError,
+  ]);
 
   if (!hydrated) return null;
 
   const pending = offlineQueue.length;
+  const authError = lastSyncError === "unauthorized";
   const show =
     !online || pending > 0 || syncing || Boolean(lastSyncError);
 
@@ -75,6 +87,17 @@ export function OfflineSyncBar() {
           <>
             <Loader2 className="size-4 shrink-0 animate-spin" />
             <span className="flex-1">{t("offline.syncing")}</span>
+          </>
+        ) : authError ? (
+          <>
+            <CloudUpload className="size-4 shrink-0" />
+            <span className="flex-1">{t("offline.syncAuth")}</span>
+            <Link
+              href="/autentificare"
+              className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+            >
+              {t("nav.login")}
+            </Link>
           </>
         ) : lastSyncError ? (
           <>

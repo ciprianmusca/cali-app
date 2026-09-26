@@ -343,15 +343,26 @@ export const useCaliStore = create<CaliState>()(
             users = [data.user, ...users];
           }
 
+          // Trust the server session. A stale local currentUserId without a
+          // cookie leaves the UI "logged in" while /api/sync returns 401.
+          const nextUserId = data.user?.id ?? null;
+          const nextUsers = data.user
+            ? users.length
+              ? users
+              : [data.user, ...get().users.filter((u) => u.id !== data.user!.id)]
+            : get().users;
+
           set({
-            users: users.length ? users : get().users,
+            users: nextUsers,
             observations: merged,
-            currentUserId: data.user?.id ?? get().currentUserId,
+            currentUserId: nextUserId,
             lastSyncAt: new Date().toISOString(),
             lastSyncError: null,
+            syncing: false,
           });
           return { ok: true };
         } catch (e) {
+          set({ syncing: false });
           return {
             ok: false,
             error: e instanceof Error ? e.message : "pull_failed",
@@ -394,6 +405,7 @@ export const useCaliStore = create<CaliState>()(
             ],
           });
           await get().pullFromServer();
+          void get().flushOfflineQueue();
           return { ok: true };
         } catch {
           return { ok: false, error: tKey("error.invalidLogin") };
@@ -409,7 +421,7 @@ export const useCaliStore = create<CaliState>()(
         } catch {
           /* ignore */
         }
-        set({ currentUserId: null });
+        set({ currentUserId: null, syncing: false, lastSyncError: null });
       },
 
       register: async ({ name, email, password, role, isAdult }) => {
@@ -444,6 +456,7 @@ export const useCaliStore = create<CaliState>()(
             users: [data.user, ...get().users.filter((u) => u.id !== data.user!.id)],
           });
           await get().pullFromServer();
+          void get().flushOfflineQueue();
           return { ok: true };
         } catch {
           return { ok: false, error: tKey("obs.error") };
@@ -499,31 +512,48 @@ export const useCaliStore = create<CaliState>()(
       flushOfflineQueue: async () => {
         const queue = get().offlineQueue;
         if (!queue.length) {
+          set({ syncing: false });
           return { ok: true, uploaded: 0 };
         }
         if (typeof navigator !== "undefined" && !navigator.onLine) {
           return { ok: false, uploaded: 0, error: "offline" };
+        }
+        if (!get().currentUserId) {
+          set({
+            syncing: false,
+            lastSyncError: "unauthorized",
+          });
+          return { ok: false, uploaded: 0, error: "unauthorized" };
         }
         if (get().syncing) {
           return { ok: false, uploaded: 0, error: "busy" };
         }
 
         set({ syncing: true, lastSyncError: null });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
         try {
           const res = await fetch("/api/sync", {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
+            signal: controller.signal,
             body: JSON.stringify({
               observations: queue,
               uploadedAt: new Date().toISOString(),
             }),
           });
           if (!res.ok) {
-            const msg = `HTTP ${res.status}`;
+            const body = (await res.json().catch(() => ({}))) as {
+              error?: string;
+            };
+            const unauthorized =
+              res.status === 401 || body.error === "unauthorized";
+            const msg = unauthorized ? "unauthorized" : `HTTP ${res.status}`;
             set({
               syncing: false,
               lastSyncError: msg,
+              currentUserId: unauthorized ? null : get().currentUserId,
               observations: get().observations.map((o) =>
                 queue.some((q) => q.id === o.id)
                   ? { ...o, syncStatus: "error", syncError: msg }
@@ -559,7 +589,11 @@ export const useCaliStore = create<CaliState>()(
           return { ok: true, uploaded: queue.length };
         } catch (e) {
           const msg =
-            e instanceof Error ? e.message : "network";
+            e instanceof Error && e.name === "AbortError"
+              ? "timeout"
+              : e instanceof Error
+                ? e.message
+                : "network";
           set({
             syncing: false,
             lastSyncError: msg,
@@ -570,6 +604,8 @@ export const useCaliStore = create<CaliState>()(
             ),
           });
           return { ok: false, uploaded: 0, error: msg };
+        } finally {
+          clearTimeout(timeout);
         }
       },
 
@@ -715,7 +751,22 @@ export const useCaliStore = create<CaliState>()(
           }
           return u;
         });
-        return { ...current, ...p, users };
+        // Never restore ephemeral flags — a persisted syncing:true freezes the UI.
+        return {
+          ...current,
+          users,
+          observations: p.observations ?? current.observations,
+          currentUserId:
+            p.currentUserId !== undefined
+              ? p.currentUserId
+              : current.currentUserId,
+          offlineQueue: p.offlineQueue ?? current.offlineQueue,
+          lastSyncAt: p.lastSyncAt ?? current.lastSyncAt,
+          settings: p.settings ?? current.settings,
+          syncing: false,
+          lastSyncError: null,
+          hydrated: false,
+        };
       },
     }
   )
