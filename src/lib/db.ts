@@ -13,6 +13,7 @@ import { hashPassword, isPbkdf2, needsRehash } from "@/lib/password";
 
 export type CloudflareEnv = {
   DB: D1Database;
+  PHOTOS: R2Bucket;
 };
 
 export async function getDB(): Promise<D1Database> {
@@ -464,3 +465,29 @@ export async function migratePasswords(db: D1Database): Promise<number> {
 
 /** @deprecated use migratePasswords */
 export const migratePlaintextPasswords = migratePasswords;
+
+/**
+ * Move any base64 photos still stored in D1 into R2; D1 keeps only r2: keys.
+ */
+export async function migratePhotosToR2(
+  db: D1Database,
+  bucket: R2Bucket
+): Promise<number> {
+  const { persistObservationPhotos } = await import("@/lib/r2");
+  const list = await listObservations(db);
+  let n = 0;
+  for (const obs of list) {
+    const hasBase64 = (obs.photos ?? []).some(
+      (p) => typeof p === "string" && p.startsWith("data:")
+    );
+    if (!hasBase64) continue;
+    const photos = await persistObservationPhotos(
+      bucket,
+      obs.id,
+      obs.photos ?? []
+    );
+    await upsertObservation(db, { ...obs, photos });
+    n += 1;
+  }
+  return n;
+}

@@ -28,6 +28,7 @@ import {
   severityKey,
   speciesKey,
 } from "@/lib/i18n/labels";
+import { canViewObservation } from "@/lib/visibility";
 
 function ObservationDetail({ id }: { id: string }) {
   const { t } = useI18n();
@@ -38,7 +39,12 @@ function ObservationDetail({ id }: { id: string }) {
   const deleteObservation = useCaliStore((s) => s.deleteObservation);
   const updateObservation = useCaliStore((s) => s.updateObservation);
 
-  const obs = observations.find((o) => o.id === id);
+  const candidate = observations.find((o) => o.id === id);
+  const obs =
+    candidate &&
+    canViewObservation(candidate, { id: user.id, role: user.role })
+      ? candidate
+      : undefined;
   const [decision, setDecision] = useState<"aprobat" | "respins" | "">("");
   const [comment, setComment] = useState("");
   const [sentinel, setSentinel] = useState(false);

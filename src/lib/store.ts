@@ -12,6 +12,12 @@ import type {
 import { GDPR_VERSION } from "./constants";
 import { generateCode, mockLocationNearPark } from "./format";
 import { tKey } from "./i18n/store";
+import {
+  deleteObservationPhotosFromIdb,
+  hydratePhotosForSync,
+  saveObservationPhotosToIdb,
+} from "./photo-idb";
+import { stripBase64Photos } from "./photos";
 
 interface CaliState {
   users: PublicUser[];
@@ -323,6 +329,7 @@ export const useCaliStore = create<CaliState>()(
             users: PublicUser[];
             observations: Observation[];
           };
+          // SEC-06: merge server data with local unsynced — never wipe the queue.
           const pendingIds = new Set(get().offlineQueue.map((o) => o.id));
           const localPending = get().observations.filter(
             (o) =>
@@ -330,11 +337,12 @@ export const useCaliStore = create<CaliState>()(
               o.syncStatus === "pending" ||
               o.syncStatus === "error"
           );
+          const localPendingById = new Map(localPending.map((o) => [o.id, o]));
           const remote = data.observations ?? [];
           const remoteIds = new Set(remote.map((o) => o.id));
           const merged = [
+            ...remote.map((r) => localPendingById.get(r.id) ?? r),
             ...localPending.filter((o) => !remoteIds.has(o.id)),
-            ...remote,
           ].sort(
             (a, b) =>
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -513,14 +521,14 @@ export const useCaliStore = create<CaliState>()(
 
       addObservation: (obs) => {
         const pending: Observation = {
-          ...obs,
+          ...stripBase64Photos(obs),
           syncStatus: "pending",
           syncError: undefined,
         };
         // Clear a stuck spinner from a previous session before queuing.
         set({
           syncing: false,
-          observations: [pending, ...get().observations],
+          observations: [pending, ...get().observations.filter((o) => o.id !== pending.id)],
           offlineQueue: [
             pending,
             ...get().offlineQueue.filter((o) => o.id !== pending.id),
@@ -556,15 +564,23 @@ export const useCaliStore = create<CaliState>()(
 
         set({ syncing: true, lastSyncError: null });
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000);
+        const timeout = setTimeout(() => controller.abort(), 60000);
         try {
+          // Hydrate idb: / leftover data: photos before upload to R2 via /api/sync.
+          const hydrated = await Promise.all(
+            queue.map(async (o) => ({
+              ...o,
+              photos: await hydratePhotosForSync(o.id, o.photos ?? []),
+            }))
+          );
+
           const res = await fetch("/api/sync", {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
             signal: controller.signal,
             body: JSON.stringify({
-              observations: queue,
+              observations: hydrated,
               uploadedAt: new Date().toISOString(),
             }),
           });
@@ -606,25 +622,52 @@ export const useCaliStore = create<CaliState>()(
             return { ok: false, uploaded: 0, error: msg };
           }
 
+          const body = (await res.json().catch(() => ({}))) as {
+            ok?: boolean;
+            ids?: string[];
+            observations?: Observation[];
+          };
+          // SEC-06: mark synced only for ids confirmed in the 200 body.
+          const syncedIds = new Set(body.ids ?? []);
+          if (!syncedIds.size) {
+            set({
+              syncing: false,
+              lastSyncError: "empty_sync",
+              observations: get().observations.map((o) =>
+                queue.some((q) => q.id === o.id)
+                  ? { ...o, syncStatus: "error", syncError: "empty_sync" }
+                  : o
+              ),
+            });
+            return { ok: false, uploaded: 0, error: "empty_sync" };
+          }
+
           const syncedAt = new Date().toISOString();
-          const ids = new Set(queue.map((o) => o.id));
+          const serverById = new Map(
+            (body.observations ?? []).map((o) => [o.id, o])
+          );
+
+          for (const id of syncedIds) {
+            void deleteObservationPhotosFromIdb(id).catch(() => undefined);
+          }
+
           set({
             syncing: false,
             lastSyncAt: syncedAt,
             lastSyncError: null,
-            offlineQueue: get().offlineQueue.filter((o) => !ids.has(o.id)),
-            observations: get().observations.map((o) =>
-              ids.has(o.id)
-                ? {
-                    ...o,
-                    syncStatus: "synced",
-                    syncedAt,
-                    syncError: undefined,
-                  }
-                : o
-            ),
+            offlineQueue: get().offlineQueue.filter((o) => !syncedIds.has(o.id)),
+            observations: get().observations.map((o) => {
+              if (!syncedIds.has(o.id)) return o;
+              const fromServer = serverById.get(o.id);
+              return {
+                ...(fromServer ?? o),
+                syncStatus: "synced" as const,
+                syncedAt,
+                syncError: undefined,
+              };
+            }),
           });
-          return { ok: true, uploaded: queue.length };
+          return { ok: true, uploaded: syncedIds.size };
         } catch (e) {
           const msg =
             e instanceof Error && e.name === "AbortError"
@@ -772,9 +815,10 @@ export const useCaliStore = create<CaliState>()(
       skipHydration: true,
       partialize: (s) => ({
         users: s.users,
-        observations: s.observations,
+        // Never persist base64 photos in localStorage (SEC-05 → IndexedDB).
+        observations: s.observations.map(stripBase64Photos),
         // currentUserId is NOT persisted — auth comes from /api/bootstrap.
-        offlineQueue: s.offlineQueue,
+        offlineQueue: s.offlineQueue.map(stripBase64Photos),
         lastSyncAt: s.lastSyncAt,
         settings: s.settings,
       }),
@@ -789,13 +833,28 @@ export const useCaliStore = create<CaliState>()(
           }
           return u;
         });
+        const rawObs = p.observations ?? current.observations;
+        const rawQueue = p.offlineQueue ?? current.offlineQueue;
+        // Migrate any leftover data: URIs from older caches into IndexedDB.
+        if (typeof indexedDB !== "undefined") {
+          for (const o of [...rawObs, ...rawQueue]) {
+            const hasData = (o.photos ?? []).some(
+              (ph) => typeof ph === "string" && ph.startsWith("data:")
+            );
+            if (hasData) {
+              void saveObservationPhotosToIdb(o.id, o.photos ?? []).catch(
+                () => undefined
+              );
+            }
+          }
+        }
         // Never restore ephemeral flags or a stale local session.
         return {
           ...current,
           users,
-          observations: p.observations ?? current.observations,
+          observations: rawObs.map(stripBase64Photos),
           currentUserId: null,
-          offlineQueue: p.offlineQueue ?? current.offlineQueue,
+          offlineQueue: rawQueue.map(stripBase64Photos),
           lastSyncAt: p.lastSyncAt ?? current.lastSyncAt,
           settings: p.settings ?? current.settings,
           syncing: false,

@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { ensureSchema, getDB, listObservations } from "@/lib/db";
 import { parseDataUri } from "@/lib/photos";
+import { getPhotosBucket, isR2PhotoRef, r2KeyFromRef } from "@/lib/r2";
+import { canViewObservation } from "@/lib/visibility";
 
 /**
- * Serve a single observation photo (decoded from D1 data-URI storage).
- * Keeps /api/bootstrap small while list/map thumbnails still work.
+ * Serve a single observation photo from R2 (or legacy data-URI during migration).
+ * Enforces the same visibility rule as list/bootstrap.
  */
 export async function GET(
   _request: Request,
@@ -30,10 +32,13 @@ export async function GET(
     }
 
     const session = await getSessionUser();
-    if (!session && existing.status !== "aprobat") {
+    const viewer = session
+      ? { id: session.id, role: session.role }
+      : null;
+    if (!canViewObservation(existing, viewer)) {
       return NextResponse.json(
-        { ok: false, error: "unauthorized" },
-        { status: 401 }
+        { ok: false, error: "forbidden" },
+        { status: 403 }
       );
     }
 
@@ -45,8 +50,35 @@ export async function GET(
       );
     }
 
-    if (src.startsWith("/")) {
+    if (src.startsWith("/placeholders/")) {
       return NextResponse.redirect(new URL(src, _request.url), 302);
+    }
+
+    if (isR2PhotoRef(src)) {
+      const key = r2KeyFromRef(src);
+      if (!key) {
+        return NextResponse.json(
+          { ok: false, error: "invalid_photo" },
+          { status: 500 }
+        );
+      }
+      const bucket = await getPhotosBucket();
+      const obj = await bucket.get(key);
+      if (!obj) {
+        return NextResponse.json(
+          { ok: false, error: "not_found" },
+          { status: 404 }
+        );
+      }
+      const bytes = new Uint8Array(await obj.arrayBuffer());
+      return new NextResponse(bytes, {
+        status: 200,
+        headers: {
+          "Content-Type":
+            obj.httpMetadata?.contentType || "application/octet-stream",
+          "Cache-Control": "private, max-age=3600",
+        },
+      });
     }
 
     if (src.startsWith("data:")) {

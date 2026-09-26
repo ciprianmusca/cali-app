@@ -39,6 +39,7 @@ export function PublicStats() {
   const { t } = useI18n();
   const observations = useCaliStore((s) => s.observations);
   const users = useCaliStore((s) => s.users);
+  const user = useCaliStore((s) => s.currentUser());
   const hydrated = useCaliStore((s) => s.hydrated);
 
   if (!hydrated) {
@@ -49,15 +50,20 @@ export function PublicStats() {
     );
   }
 
+  // Public stats: approved only (visitors); authenticated bootstrap already filtered.
+  const visible = user
+    ? observations
+    : observations.filter((o) => o.status === "aprobat");
+
   const monthAgo = Date.now() - 30 * 86400000;
-  const recent = observations.filter(
+  const recent = visible.filter(
     (o) => new Date(o.createdAt).getTime() >= monthAgo
   );
   const activeUsers = users.filter(
     (u) =>
       u.lastLoginAt && new Date(u.lastLoginAt).getTime() >= monthAgo
   ).length;
-  const validated = observations
+  const validated = visible
     .filter((o) => o.status === "aprobat")
     .sort(
       (a, b) =>
@@ -68,12 +74,12 @@ export function PublicStats() {
 
   const byRole = (["rezident", "turist", "elev"] as UserRole[]).map((role) => ({
     name: t(roleKey(role)),
-    count: observations.filter((o) => o.authorRole === role).length,
+    count: visible.filter((o) => o.authorRole === role).length,
   }));
 
   const byStage = ([1, 2, 3, 4, 5] as PhenologyStage[]).map((s) => ({
     name: t(phenStageLabelKey(s)),
-    count: observations.filter(
+    count: visible.filter(
       (o) => o.module === "fenologie" && o.stage === s
     ).length,
     fill: PHENOLOGY_STAGES[s].color,
@@ -81,13 +87,13 @@ export function PublicStats() {
 
   const disturbances = DISTURBANCE_TYPES.map((key) => ({
     name: t(disturbanceKey(key)),
-    count: observations.filter(
+    count: visible.filter(
       (o) =>
         o.module === "perturbari" && o.disturbanceTypes.includes(key)
     ).length,
   })).filter((d) => d.count > 0);
 
-  const approvedCount = observations.filter((o) => o.status === "aprobat").length;
+  const approvedCount = visible.filter((o) => o.status === "aprobat").length;
 
   return (
     <div className="space-y-10">

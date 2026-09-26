@@ -7,9 +7,9 @@ import {
   seedIfEmpty,
   upsertObservation,
 } from "@/lib/db";
+import { getPhotosBucket, persistObservationPhotos } from "@/lib/r2";
+import { prepareObservationsForApi } from "@/lib/visibility";
 import type { Observation } from "@/lib/types";
-import { slimObservationPhotos } from "@/lib/photos";
-import { maskObservations } from "@/lib/privacy";
 
 export async function GET() {
   try {
@@ -17,19 +17,13 @@ export async function GET() {
     await ensureSchema(db);
     await seedIfEmpty(db);
     const session = await getSessionUser();
-    const all = (await listObservations(db)).map(slimObservationPhotos);
-    if (!session) {
-      return NextResponse.json({
-        ok: true,
-        observations: maskObservations(
-          all.filter((o) => o.status === "aprobat"),
-          null
-        ),
-      });
-    }
+    const all = await listObservations(db);
+    const viewer = session
+      ? { id: session.id, role: session.role }
+      : null;
     return NextResponse.json({
       ok: true,
-      observations: maskObservations(all, session.role),
+      observations: prepareObservationsForApi(all, viewer),
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "list_failed";
@@ -49,8 +43,15 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    const bucket = await getPhotosBucket();
+    const photos = await persistObservationPhotos(
+      bucket,
+      obs.id,
+      obs.photos ?? []
+    );
     const safe: Observation = {
       ...obs,
+      photos,
       authorId: auth.user.id,
       authorRole: auth.user.role,
       authorName: auth.user.name,

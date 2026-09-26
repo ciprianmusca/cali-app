@@ -6,13 +6,22 @@ export function modulePlaceholder(module: ObservationModule): string {
   return "/placeholders/disturbance-1.svg";
 }
 
+function isStoredPhotoRef(src: string): boolean {
+  return (
+    src.startsWith("data:") ||
+    src.startsWith("r2:") ||
+    src.startsWith("idb:")
+  );
+}
+
 /**
- * Replace inline data-URI photos with API URLs so list/bootstrap stay small
- * while thumbnails still load the real image.
+ * Replace inline / R2-stored photos with API URLs for list/bootstrap.
+ * D1 must never expose base64 in API responses.
  */
 export function slimObservationPhotos(obs: Observation): Observation {
   const photos = (obs.photos ?? []).map((src, i) => {
-    if (typeof src === "string" && src.startsWith("data:")) {
+    if (typeof src !== "string") return src;
+    if (isStoredPhotoRef(src)) {
       return `/api/observations/${obs.id}/photo/${i}`;
     }
     return src;
@@ -37,4 +46,19 @@ export function parseDataUri(
   } catch {
     return null;
   }
+}
+
+export function photoIsBase64InDb(src: string): boolean {
+  return typeof src === "string" && src.startsWith("data:");
+}
+
+/** Strip data-URIs from observations before writing localStorage. */
+export function stripBase64Photos(obs: Observation): Observation {
+  const photos = (obs.photos ?? []).map((src, i) => {
+    if (typeof src === "string" && src.startsWith("data:")) {
+      return `idb:${obs.id}:${i}`;
+    }
+    return src;
+  });
+  return { ...obs, photos };
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ObservationModule } from "@/lib/types";
 import { modulePlaceholder } from "@/lib/photos";
+import { loadIdbPhoto, parseIdbPhotoRef } from "@/lib/photo-idb";
 import { cn } from "@/lib/utils";
 
 export function ObservationThumb({
@@ -20,7 +21,27 @@ export function ObservationThumb({
   const [current, setCurrent] = useState(src || fallback);
 
   useEffect(() => {
-    setCurrent(src || fallback);
+    let cancelled = false;
+    const resolved = src || fallback;
+
+    if (resolved.startsWith("idb:")) {
+      const parsed = parseIdbPhotoRef(resolved);
+      if (!parsed) {
+        setCurrent(fallback);
+        return;
+      }
+      void loadIdbPhoto(parsed.obsId, parsed.index).then((data) => {
+        if (!cancelled) setCurrent(data || fallback);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setCurrent(resolved);
+    return () => {
+      cancelled = true;
+    };
   }, [src, fallback]);
 
   return (

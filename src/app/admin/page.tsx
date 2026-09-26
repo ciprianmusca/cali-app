@@ -5,15 +5,9 @@ import { AuthGate } from "@/components/layout/auth-gate";
 import { buttonVariants } from "@/components/ui/button";
 import { useCaliStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { csvEscape, formatDateTime } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/use-i18n";
-import {
-  disturbanceKey,
-  moduleKey,
-  roleKey,
-  speciesKey,
-  statusKey,
-} from "@/lib/i18n/labels";
+import { moduleKey, roleKey, statusKey } from "@/lib/i18n/labels";
 
 function AdminHome() {
   const { t } = useI18n();
@@ -28,104 +22,8 @@ function AdminHome() {
     .slice(0, 5);
 
   const exportFairCsv = () => {
-    const headers = [
-      "code",
-      "module",
-      "status",
-      "created_at",
-      "capture_at",
-      "latitude",
-      "longitude",
-      "accuracy_m",
-      "altitude_m",
-      "author_role",
-      "species",
-      "validator",
-      "validated_at",
-      "photo_count",
-      "details",
-      "phenology_stage",
-      "disturbance_types",
-      "severity",
-      "affected_area_sqm",
-      "soil_moss_percentage",
-      "soil_litter_percentage",
-      "soil_plants_percentage",
-      "soil_bare_percentage",
-      "soil_seedlings_present",
-    ];
-    const rows = observations.map((o) => {
-      const base = [
-        o.code,
-        o.module,
-        o.status,
-        o.createdAt,
-        o.location.capturedAt,
-        o.location.latitude,
-        o.location.longitude,
-        o.location.accuracy ?? "",
-        o.location.altitude ?? "",
-        o.authorRole,
-        o.species ? t(speciesKey(o.species)) : "",
-        o.validatorName ?? "",
-        o.validatedAt ?? "",
-        o.photos.length,
-        o.details ?? "",
-      ];
-      if (o.module === "fenologie") {
-        return [
-          ...base,
-          o.stage,
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-          "",
-        ];
-      }
-      if (o.module === "perturbari") {
-        return [
-          ...base,
-          "",
-          o.disturbanceTypes.map((d) => t(disturbanceKey(d))).join("|"),
-          o.severity,
-          o.affectedAreaSqm,
-          "",
-          "",
-          "",
-          "",
-          "",
-        ];
-      }
-      return [
-        ...base,
-        "",
-        "",
-        "",
-        "",
-        o.mossPct,
-        o.litterPct,
-        o.plantsPct,
-        o.barePct,
-        o.seedlingsPresent ? "1" : "0",
-      ];
-    });
-    const csv = [
-      headers.join(";"),
-      ...rows.map((r) => r.map(csvEscape).join(";")),
-    ].join("\n");
-    const blob = new Blob(["\uFEFF" + csv], {
-      type: "text/csv;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "cali-fair-export.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    // Server checks admin session (SEC-04).
+    window.location.href = "/api/export?format=csv";
   };
 
   return (

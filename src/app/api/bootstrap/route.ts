@@ -6,17 +6,16 @@ import {
   listObservations,
   listUsers,
   migratePasswords,
+  migratePhotosToR2,
   seedIfEmpty,
 } from "@/lib/db";
-import { slimObservationPhotos } from "@/lib/photos";
-import { maskObservations } from "@/lib/privacy";
+import { getPhotosBucket } from "@/lib/r2";
+import { prepareObservationsForApi } from "@/lib/visibility";
 
 /**
  * Canonical data from D1.
- * - Never returns passwords.
- * - Unauthenticated: only approved observations, no user directory, masked names.
- * - Authenticated: session user; full names only for admin/ranger.
- * - Inline photo payloads → /api/observations/:id/photo/:i URLs.
+ * Visibility (ROL-05): visitor=approved; field=approved+own; staff=all.
+ * Never returns passwords or base64 photos.
  */
 export async function GET() {
   try {
@@ -24,21 +23,25 @@ export async function GET() {
     await ensureSchema(db);
     await seedIfEmpty(db);
     await migratePasswords(db);
+    try {
+      const bucket = await getPhotosBucket();
+      await migratePhotosToR2(db, bucket);
+    } catch {
+      /* R2 may be unavailable in local next dev — skip photo migration */
+    }
 
     const session = await getSessionUser();
-    const allObservations = (await listObservations(db)).map(
-      slimObservationPhotos
-    );
+    const allObservations = await listObservations(db);
+    const viewer = session
+      ? { id: session.id, role: session.role }
+      : null;
 
     if (!session) {
       return NextResponse.json({
         ok: true,
         user: null,
         users: [],
-        observations: maskObservations(
-          allObservations.filter((o) => o.status === "aprobat"),
-          null
-        ),
+        observations: prepareObservationsForApi(allObservations, null),
         serverTime: new Date().toISOString(),
       });
     }
@@ -52,7 +55,7 @@ export async function GET() {
       ok: true,
       user: toPublicUser(session),
       users,
-      observations: maskObservations(allObservations, session.role),
+      observations: prepareObservationsForApi(allObservations, viewer),
       serverTime: new Date().toISOString(),
     });
   } catch (e) {

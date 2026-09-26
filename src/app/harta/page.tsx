@@ -15,6 +15,7 @@ import type { ObservationModule, ObservationStatus } from "@/lib/types";
 import { MODULE_COLORS } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { moduleKey, statusKey } from "@/lib/i18n/labels";
+import { filterObservationsForViewer } from "@/lib/visibility";
 
 const MODULES: ObservationModule[] = ["fenologie", "perturbari", "sol"];
 
@@ -29,43 +30,16 @@ export default function HartaPage() {
   );
 
   const filtered = useMemo(() => {
-    let list = observations;
-    // Public: only approved, rounded already in store coords
-    if (!user) {
-      list = list.filter((o) => o.status === "aprobat");
-    }
+    const viewer = user ? { id: user.id, role: user.role } : null;
+    let list = filterObservationsForViewer(observations, viewer);
     if (module !== "all") list = list.filter((o) => o.module === module);
     if (status !== "all") list = list.filter((o) => o.status === status);
     return list;
   }, [observations, module, status, user]);
 
   const exportGeoJSON = () => {
-    const features = filtered.map((o) => ({
-      type: "Feature",
-      geometry: {
-        type: "Point",
-        coordinates: [o.location.longitude, o.location.latitude],
-      },
-      properties: {
-        code: o.code,
-        module: o.module,
-        status: o.status,
-        createdAt: o.createdAt,
-        accuracy: o.location.accuracy,
-        altitude: o.location.altitude,
-        ...(user ? {} : { author: undefined }),
-      },
-    }));
-    const blob = new Blob(
-      [JSON.stringify({ type: "FeatureCollection", features }, null, 2)],
-      { type: "application/geo+json" }
-    );
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "cali-observatii.geojson";
-    a.click();
-    URL.revokeObjectURL(url);
+    // Server applies the same visibility rule as list/map (SEC-04).
+    window.location.href = "/api/export?format=geojson";
   };
 
   return (

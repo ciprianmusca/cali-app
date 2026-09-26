@@ -6,10 +6,13 @@ import {
   seedIfEmpty,
   upsertObservation,
 } from "@/lib/db";
+import { getPhotosBucket, persistObservationPhotos } from "@/lib/r2";
+import { slimObservationPhotos } from "@/lib/photos";
 import type { Observation } from "@/lib/types";
 
 /**
- * Upload offline observations into D1. Requires authenticated session.
+ * Upload offline observations into D1 + R2. Requires authenticated session.
+ * Photos (data-URI) are written to R2; D1 stores only r2: keys.
  * Users may only upsert their own observations unless ranger/admin.
  */
 export async function POST(request: Request) {
@@ -32,8 +35,11 @@ export async function POST(request: Request) {
     const db = await getDB();
     await ensureSchema(db);
     await seedIfEmpty(db);
+    const bucket = await getPhotosBucket();
 
     const ids: string[] = [];
+    const saved: Observation[] = [];
+
     for (const obs of list) {
       if (!obs?.id || !obs.code || !obs.module || !obs.location) continue;
 
@@ -41,19 +47,31 @@ export async function POST(request: Request) {
       const isStaff = canValidate(session.role);
       if (!isOwner && !isStaff) continue;
 
-      // Non-staff cannot forge another author's id
-      const safe: Observation = isStaff
+      const base: Observation = isStaff
         ? obs
-        : { ...obs, authorId: session.id, authorRole: session.role, authorName: session.name };
+        : {
+            ...obs,
+            authorId: session.id,
+            authorRole: session.role,
+            authorName: session.name,
+          };
 
+      const photos = await persistObservationPhotos(
+        bucket,
+        base.id,
+        base.photos ?? []
+      );
+      const safe: Observation = { ...base, photos };
       await upsertObservation(db, safe);
       ids.push(safe.id);
+      saved.push(slimObservationPhotos(safe));
     }
 
     return NextResponse.json({
       ok: true,
       received: ids.length,
       ids,
+      observations: saved,
       serverTime: new Date().toISOString(),
     });
   } catch (e) {

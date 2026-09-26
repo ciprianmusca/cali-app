@@ -30,6 +30,7 @@ import type { ObservationModule, ObservationStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { moduleKey, statusKey } from "@/lib/i18n/labels";
+import { filterObservationsForViewer } from "@/lib/visibility";
 
 const MODULES: ObservationModule[] = ["fenologie", "perturbari", "sol"];
 const STATUSES: ObservationStatus[] = ["in_asteptare", "aprobat", "respins"];
@@ -45,7 +46,8 @@ function ObservationsList() {
   const [mineOnly, setMineOnly] = useState(false);
 
   const filtered = useMemo(() => {
-    return observations.filter((o) => {
+    const viewer = user ? { id: user.id, role: user.role } : null;
+    return filterObservationsForViewer(observations, viewer).filter((o) => {
       if (module !== "all" && o.module !== module) return false;
       if (status !== "all" && o.status !== status) return false;
       if (mineOnly && o.authorId !== user?.id) return false;
@@ -53,7 +55,7 @@ function ObservationsList() {
       if (to && new Date(o.createdAt) > new Date(to + "T23:59:59")) return false;
       return true;
     });
-  }, [observations, module, status, from, to, mineOnly, user?.id]);
+  }, [observations, module, status, from, to, mineOnly, user]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">

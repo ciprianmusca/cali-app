@@ -34,12 +34,23 @@ Interfața este disponibilă în **română** și **engleză**. Selectorul **RO 
 
 | Unde | Rol |
 |------|-----|
-| Cloudflare D1 | Date persistente (utilizatori + observații), partajate între dispozitive |
-| Browser localStorage | Cache + coadă offline (fără parole) |
+| Cloudflare D1 | Date persistente (utilizatori + observații); `photos_json` = chei `r2:…`, fără base64 |
+| Cloudflare R2 (`PHOTOS` / `cali-lab-photos`) | Fișiere foto ale observațiilor |
+| Browser IndexedDB | Fotografii în coada offline (nu în localStorage) |
+| Browser localStorage | Cache + coadă metadata (fără parole, fără base64) |
 | `POST /api/auth/login` | Autentificare; setează cookie de sesiune |
-| `POST /api/sync` | Upload observații offline → D1 (necesită sesiune) |
-| `GET /api/bootstrap` | Stare din D1; fără parole; lista useri doar pentru admin |
+| `POST /api/sync` | Upload observații + foto → D1 + R2 (necesită sesiune; „synced” doar la 200) |
+| `GET /api/bootstrap` | Stare din D1 filtrată pe rol; migrare foto base64→R2 |
+| `GET /api/observations/:id/photo/:i` | Servește foto din R2 cu aceeași regulă de vizibilitate |
+| `GET /api/export` | GeoJSON (vizibilitate pe sesiune) / CSV FAIR (doar admin) |
 | `GET /api/users` | Director utilizatori — **doar admin** |
+
+### Vizibilitate observații (ROL-05 / SEC-04)
+
+O singură regulă pe server (`src/lib/visibility.ts`), folosită de bootstrap, listă, hartă, foto și export:
+- **vizitator**: doar aprobate
+- **turist / rezident / elev**: aprobate + propriile (orice status)
+- **ranger / admin**: toate
 
 ### Creare D1 (o singură dată)
 
@@ -56,11 +67,22 @@ Interfața este disponibilă în **română** și **engleză**. Selectorul **RO 
 
 La primul bootstrap, conturile demo se însămânțează în D1 dacă tabela e goală.
 
+### Creare R2 (o singură dată)
+
+1. Cloudflare Dashboard → **R2 Object Storage** → **Create bucket**
+2. Nume: `cali-lab-photos`
+3. Binding-ul `PHOTOS` este deja în `wrangler.jsonc`
+4. Commit + push → Workers Builds redeploy
+
+La `GET /api/bootstrap`, orice `data:` rămas în D1 este mutat automat în R2.
+
 ## Offline + sync
 
 CALI-LAB e PWA:
 - **Service Worker** cache-uiește shell-ul pentru teren fără semnal
-- Observațiile se salvează **local imediat**, apoi se încarcă în **D1** când e online
+- Observațiile se salvează **local imediat** (foto în IndexedDB), apoi se încarcă în **D1 + R2** când e online
+- Bootstrap **îmbină** datele serverului cu observațiile locale nesincronizate (nu suprascrie coada)
+- O observație e marcată „synced” doar după răspunsul **200** cu `ids` confirmate
 - Bara sub header: Offline / În așteptare / Se încarcă
 
 Pe telefon: deschide o dată online → Adaugă pe ecranul principal.

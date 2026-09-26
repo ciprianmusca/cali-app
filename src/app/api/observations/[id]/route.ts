@@ -9,8 +9,18 @@ import {
 } from "@/lib/db";
 import type { Observation } from "@/lib/types";
 import { maskObservationNames } from "@/lib/privacy";
+import { slimObservationPhotos } from "@/lib/photos";
+import { getPhotosBucket, persistObservationPhotos } from "@/lib/r2";
+import { canViewObservation } from "@/lib/visibility";
 
-/** Full observation including inline photos (bootstrap strips data-URIs). */
+function presentObservation(
+  obs: Observation,
+  role: Parameters<typeof maskObservationNames>[1]
+): Observation {
+  return slimObservationPhotos(maskObservationNames(obs, role));
+}
+
+/** Full observation metadata; photos as visibility-gated API URLs. */
 export async function GET(
   _request: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -29,22 +39,19 @@ export async function GET(
     }
 
     const session = await getSessionUser();
-    if (!session) {
-      if (existing.status !== "aprobat") {
-        return NextResponse.json(
-          { ok: false, error: "unauthorized" },
-          { status: 401 }
-        );
-      }
-      return NextResponse.json({
-        ok: true,
-        observation: maskObservationNames(existing, null),
-      });
+    const viewer = session
+      ? { id: session.id, role: session.role }
+      : null;
+    if (!canViewObservation(existing, viewer)) {
+      return NextResponse.json(
+        { ok: false, error: "forbidden" },
+        { status: 403 }
+      );
     }
 
     return NextResponse.json({
       ok: true,
-      observation: maskObservationNames(existing, session.role),
+      observation: presentObservation(existing, session?.role ?? null),
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "get_failed";
@@ -82,7 +89,6 @@ export async function PATCH(
       );
     }
 
-    // Field users cannot change validation fields
     const safePatch = isStaff
       ? patch
       : {
@@ -92,11 +98,21 @@ export async function PATCH(
           species: patch.species,
         };
 
-    const merged = { ...existing, ...safePatch, id } as Observation;
+    let merged = { ...existing, ...safePatch, id } as Observation;
+    if (safePatch.photos) {
+      const bucket = await getPhotosBucket();
+      const photos = await persistObservationPhotos(
+        bucket,
+        id,
+        safePatch.photos
+      );
+      merged = { ...merged, photos };
+    }
+
     await upsertObservation(db, merged);
     return NextResponse.json({
       ok: true,
-      observation: maskObservationNames(merged, auth.user.role),
+      observation: presentObservation(merged, auth.user.role),
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "update_failed";
