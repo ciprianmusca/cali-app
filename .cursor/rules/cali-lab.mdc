@@ -1,0 +1,16 @@
+---
+description: Context și reguli generale CALI-LAB
+alwaysApply: true
+---
+
+Lucrăm la CALI-LAB (cali.ipsv.ro): o aplicație PWA pentru observații științifice în păduri (fenologie, perturbări, sol). Pilotul se desfășoară în Parcul Național Călimani, dar aplicația va fi folosită și în alte zone: textele generale din interfață nu menționează Călimaniul; acesta apare doar acolo unde e vorba explicit despre pilot. Stack: Next.js, Cloudflare (Workers/Pages) + D1, stare locală persistată în localStorage (cheia `cali-app-v1`) folosită ca cache și coadă offline, Leaflet + OpenTopoMap, interfață în română și engleză.
+
+Roluri: admin, ranger, turist, rezident, elev (elevii sunt minori).
+
+Reguli pentru toate modificările:
+- NU modifica butonul „Folosiți poziție demonstrativă (Călimani)” și nici logica lui. Rămâne exact cum este până decide coordonatorul altfel.
+- Conturile demo (admin, ranger, turist, elev) trebuie să funcționeze în continuare cu aceleași e-mailuri și parole, iar lista lor rămâne pe pagina de autentificare cât timp DEMO_MODE=true.
+- Nu strica coada offline: o observație creată fără semnal trebuie să ajungă în D1 după revenirea conexiunii.
+- Orice regulă de acces se verifică pe server, nu doar în interfață.
+- Toate textele noi din interfață au traducere RO și EN.
+- După fiecare modificare, descrie pe scurt ce ai schimbat și cum se testează.
