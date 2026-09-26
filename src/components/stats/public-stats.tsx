@@ -11,18 +11,32 @@ import {
   Cell,
 } from "recharts";
 import { useCaliStore } from "@/lib/store";
-import {
-  MODULE_LABELS,
-  PHENOLOGY_STAGES,
-  ROLE_LABELS,
-  DISTURBANCE_LABELS,
-} from "@/lib/constants";
+import { PHENOLOGY_STAGES } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
 import { ModuleBadge, StatusBadge } from "@/components/observations/badges";
-import type { PhenologyStage, UserRole } from "@/lib/types";
+import type { DisturbanceType, PhenologyStage, UserRole } from "@/lib/types";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import {
+  disturbanceKey,
+  moduleKey,
+  phenStageLabelKey,
+  roleKey,
+} from "@/lib/i18n/labels";
+
+const DISTURBANCE_TYPES: DisturbanceType[] = [
+  "atac_insecte",
+  "doboratura_vant",
+  "uscare",
+  "rupturi_zapada",
+  "ciuperci",
+  "vatamari_vanat",
+  "incendiu",
+  "alta",
+];
 
 export function PublicStats() {
+  const { t } = useI18n();
   const observations = useCaliStore((s) => s.observations);
   const users = useCaliStore((s) => s.users);
   const hydrated = useCaliStore((s) => s.hydrated);
@@ -30,7 +44,7 @@ export function PublicStats() {
   if (!hydrated) {
     return (
       <div className="py-12 text-center text-muted-foreground">
-        Se încarcă statisticile…
+        {t("stats.loading")}
       </div>
     );
   }
@@ -53,28 +67,25 @@ export function PublicStats() {
     .slice(0, 5);
 
   const byRole = (["rezident", "turist", "elev"] as UserRole[]).map((role) => ({
-    name: ROLE_LABELS[role],
+    name: t(roleKey(role)),
     count: observations.filter((o) => o.authorRole === role).length,
   }));
 
   const byStage = ([1, 2, 3, 4, 5] as PhenologyStage[]).map((s) => ({
-    name: PHENOLOGY_STAGES[s].label,
+    name: t(phenStageLabelKey(s)),
     count: observations.filter(
       (o) => o.module === "fenologie" && o.stage === s
     ).length,
     fill: PHENOLOGY_STAGES[s].color,
   }));
 
-  const disturbances = Object.entries(DISTURBANCE_LABELS).map(
-    ([key, label]) => ({
-      name: label,
-      count: observations.filter(
-        (o) =>
-          o.module === "perturbari" &&
-          o.disturbanceTypes.includes(key as never)
-      ).length,
-    })
-  ).filter((d) => d.count > 0);
+  const disturbances = DISTURBANCE_TYPES.map((key) => ({
+    name: t(disturbanceKey(key)),
+    count: observations.filter(
+      (o) =>
+        o.module === "perturbari" && o.disturbanceTypes.includes(key)
+    ).length,
+  })).filter((d) => d.count > 0);
 
   const approvedCount = observations.filter((o) => o.status === "aprobat").length;
 
@@ -82,11 +93,11 @@ export function PublicStats() {
     <div className="space-y-10">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Utilizatori activi (30 zile)", value: activeUsers },
-          { label: "Observații (30 zile)", value: recent.length },
-          { label: "Observații validate", value: approvedCount },
+          { label: t("stats.activeUsers"), value: activeUsers },
+          { label: t("stats.obsMonth"), value: recent.length },
+          { label: t("stats.validated"), value: approvedCount },
           {
-            label: "Perturbări (30 zile)",
+            label: t("stats.distMonth"),
             value: recent.filter((o) => o.module === "perturbari").length,
           },
         ].map((stat) => (
@@ -104,7 +115,7 @@ export function PublicStats() {
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section className="space-y-3">
-          <h2 className="font-display text-xl">Observații pe rol</h2>
+          <h2 className="font-display text-xl">{t("stats.byRole")}</h2>
           <div className="h-64 rounded-lg border bg-card/60 p-3">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={byRole}>
@@ -117,11 +128,11 @@ export function PublicStats() {
             </ResponsiveContainer>
           </div>
           <table className="w-full text-sm">
-            <caption className="sr-only">Tabel observații pe rol</caption>
+            <caption className="sr-only">{t("stats.byRole")}</caption>
             <thead>
               <tr className="text-left text-muted-foreground">
-                <th className="py-1">Rol</th>
-                <th>Număr</th>
+                <th className="py-1">{t("stats.role")}</th>
+                <th>{t("stats.count")}</th>
               </tr>
             </thead>
             <tbody>
@@ -136,7 +147,7 @@ export function PublicStats() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-display text-xl">Stadii fenologice</h2>
+          <h2 className="font-display text-xl">{t("stats.phenStages")}</h2>
           <div className="h-64 rounded-lg border bg-card/60 p-3">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={byStage}>
@@ -153,11 +164,11 @@ export function PublicStats() {
             </ResponsiveContainer>
           </div>
           <table className="w-full text-sm">
-            <caption className="sr-only">Tabel stadii fenologice</caption>
+            <caption className="sr-only">{t("stats.phenStages")}</caption>
             <thead>
               <tr className="text-left text-muted-foreground">
-                <th className="py-1">Stadiu</th>
-                <th>Număr</th>
+                <th className="py-1">{t("stats.stage")}</th>
+                <th>{t("stats.count")}</th>
               </tr>
             </thead>
             <tbody>
@@ -174,7 +185,7 @@ export function PublicStats() {
 
       {disturbances.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="font-display text-xl">Tipuri de perturbări</h2>
+          <h2 className="font-display text-xl">{t("stats.distTypes")}</h2>
           <ul className="flex flex-wrap gap-2">
             {disturbances.map((d) => (
               <li
@@ -189,11 +200,11 @@ export function PublicStats() {
       ) : null}
 
       <section className="space-y-3">
-        <h2 className="font-display text-xl">Ultimele 5 observații validate</h2>
+        <h2 className="font-display text-xl">{t("stats.last5")}</h2>
         <div className="divide-y rounded-lg border bg-card/70">
           {validated.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">
-              Nicio observație validată încă.
+              {t("stats.noneValidated")}
             </p>
           ) : (
             validated.map((o) => (
@@ -205,13 +216,13 @@ export function PublicStats() {
                 <StatusBadge status={o.status} />
                 <span className="font-medium">{o.code}</span>
                 <span className="text-sm text-muted-foreground">
-                  {MODULE_LABELS[o.module]} · {formatDate(o.createdAt)}
+                  {t(moduleKey(o.module))} · {formatDate(o.createdAt)}
                 </span>
                 <Link
                   href={`/observatii/${o.id}`}
                   className="ml-auto text-sm text-primary underline-offset-2 hover:underline"
                 >
-                  Detalii
+                  {t("obs.details")}
                 </Link>
               </div>
             ))

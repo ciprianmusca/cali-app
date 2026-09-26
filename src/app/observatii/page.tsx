@@ -23,8 +23,14 @@ import {
 } from "@/lib/format";
 import type { ObservationModule, ObservationStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { moduleKey, statusKey } from "@/lib/i18n/labels";
+
+const MODULES: ObservationModule[] = ["fenologie", "perturbari", "sol"];
+const STATUSES: ObservationStatus[] = ["in_asteptare", "aprobat", "respins"];
 
 function ObservationsList() {
+  const { t } = useI18n();
   const observations = useCaliStore((s) => s.observations);
   const user = useCaliStore((s) => s.currentUser());
   const [module, setModule] = useState<ObservationModule | "all">("all");
@@ -48,37 +54,34 @@ function ObservationsList() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl text-forest">Observații</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Toate observațiile din sistem. Numele autorilor altor utilizatori
-            nu sunt afișate pentru rolurile de teren.
-          </p>
+          <h1 className="font-display text-3xl text-forest">{t("obs.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("obs.listSub")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
             href="/observatii/nou/fenologie"
             className={cn(buttonVariants({ size: "sm" }))}
           >
-            + Fenologie
+            {t("obs.addPhen")}
           </Link>
           <Link
             href="/observatii/nou/perturbari"
             className={cn(buttonVariants({ size: "sm", variant: "secondary" }))}
           >
-            + Perturbări
+            {t("obs.addDist")}
           </Link>
           <Link
             href="/observatii/nou/sol"
             className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
           >
-            + Sol
+            {t("obs.addSoil")}
           </Link>
         </div>
       </div>
 
       <div className="mt-6 grid gap-3 rounded-lg border bg-card/70 p-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1">
-          <Label>Modul</Label>
+          <Label>{t("obs.filterModule")}</Label>
           <Select
             value={module}
             onValueChange={(v) => setModule((v ?? "all") as typeof module)}
@@ -87,15 +90,17 @@ function ObservationsList() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toate</SelectItem>
-              <SelectItem value="fenologie">Fenologie</SelectItem>
-              <SelectItem value="perturbari">Perturbări</SelectItem>
-              <SelectItem value="sol">Sol</SelectItem>
+              <SelectItem value="all">{t("obs.all")}</SelectItem>
+              {MODULES.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {t(moduleKey(m))}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>Stare</Label>
+          <Label>{t("obs.filterStatus")}</Label>
           <Select
             value={status}
             onValueChange={(v) => setStatus((v ?? "all") as typeof status)}
@@ -104,19 +109,21 @@ function ObservationsList() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toate</SelectItem>
-              <SelectItem value="in_asteptare">În așteptare</SelectItem>
-              <SelectItem value="aprobat">Aprobat</SelectItem>
-              <SelectItem value="respins">Respins</SelectItem>
+              <SelectItem value="all">{t("obs.all")}</SelectItem>
+              {STATUSES.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {t(statusKey(s))}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>De la</Label>
+          <Label>{t("obs.filterFrom")}</Label>
           <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label>Până la</Label>
+          <Label>{t("obs.filterTo")}</Label>
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
         <div className="flex items-end">
@@ -126,16 +133,14 @@ function ObservationsList() {
             className="w-full"
             onClick={() => setMineOnly((v) => !v)}
           >
-            Doar ale mele
+            {t("obs.mineOnly")}
           </Button>
         </div>
       </div>
 
       <div className="mt-6 divide-y rounded-lg border bg-card/80">
         {filtered.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground">
-            Nicio observație pentru filtrele selectate.
-          </p>
+          <p className="p-6 text-sm text-muted-foreground">{t("obs.empty")}</p>
         ) : (
           filtered.map((o) => (
             <div
@@ -162,7 +167,7 @@ function ObservationsList() {
                   <ModuleBadge module={o.module} />
                   {o.isSentinelTree ? (
                     <span className="inline-flex items-center gap-1 text-xs text-amber-800">
-                      <Shield className="size-3" /> Arbore santinelă
+                      <Shield className="size-3" /> {t("obs.sentinel")}
                     </span>
                   ) : null}
                 </div>
@@ -193,7 +198,7 @@ function ObservationsList() {
                 )}
               >
                 <ExternalLink className="size-3.5" />
-                Direcționează-mă
+                {t("obs.directions")}
               </a>
             </div>
           ))

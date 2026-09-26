@@ -24,6 +24,10 @@ Deschide [http://127.0.0.1:43123](http://127.0.0.1:43123).
 
 Datele sunt stocate local în browser (localStorage) — fără backend. Potrivit pentru demonstrație și testare UI.
 
+## Limbă / Language
+
+Interfața este disponibilă în **română** și **engleză**. Selectorul **RO | EN** este în header (și în meniul mobil). Preferința se salvează în `localStorage` (`cali-locale`).
+
 ## Deploy pe Cloudflare → https://cali.ipsv.ro
 
 Proiectul e pregătit cu `@opennextjs/cloudflare`. Subdomeniul **cali.ipsv.ro** este în `wrangler.jsonc`.

@@ -1,0 +1,369 @@
+export const ro = {
+  // Nav
+  "nav.home": "Acasă",
+  "nav.observations": "Observații",
+  "nav.map": "Hartă",
+  "nav.validation": "Validare",
+  "nav.admin": "Admin",
+  "nav.stats": "Statistici",
+  "nav.login": "Autentificare",
+  "nav.register": "Creare cont",
+  "nav.logout": "Deconectare",
+  "nav.menu": "Navigare",
+  "nav.language": "Limbă",
+
+  // Roles
+  "role.admin": "Administrator",
+  "role.ranger": "Ranger",
+  "role.rezident": "Rezident",
+  "role.turist": "Turist",
+  "role.elev": "Elev",
+  "role.elevAnon": "Elev (anonimizat)",
+
+  // Modules
+  "module.fenologie": "Fenologie",
+  "module.perturbari": "Perturbări",
+  "module.sol": "Sol",
+
+  // Status
+  "status.in_asteptare": "În așteptare",
+  "status.aprobat": "Aprobat",
+  "status.respins": "Respins",
+
+  // Landing
+  "landing.heroAlt": "Pădure vulcanică în ceață, Parcul Național Călimani",
+  "landing.headline": "Observații din pădurile vulcanice ale Călimanilor",
+  "landing.sub":
+    "Colectați fenologie, perturbări și acoperire de sol pentru Climate-Smart Forestry — date validate de rangerii PNC.",
+  "landing.ctaStart": "Începeți o observație",
+  "landing.ctaMap": "Explorați harta",
+  "landing.statsTitle": "Statistici publice",
+  "landing.statsSub":
+    "Indicatori disponibili fără autentificare. Observațiile aprobate alimentează ForestWard Observatory (EFI/FORWARDS).",
+
+  // Auth
+  "auth.loginTitle": "Autentificare",
+  "auth.loginSub": "Accesați modulele de observații după email și parolă.",
+  "auth.email": "Email",
+  "auth.password": "Parolă",
+  "auth.submitLogin": "Intră în cont",
+  "auth.demoAccounts": "Conturi demo",
+  "auth.noAccount": "Nu aveți cont?",
+  "auth.hasAccount": "Aveți deja cont?",
+  "auth.registerTitle": "Creare cont",
+  "auth.registerSub":
+    "Conturile de Elev și Ranger sunt create de administrator. Aici vă puteți înregistra ca Turist sau Rezident.",
+  "auth.name": "Nume și prenume",
+  "auth.requestedRole": "Rol solicitat",
+  "auth.roleTourist": "Turist",
+  "auth.roleResident": "Rezident (deținător de pădure)",
+  "auth.passwordConfirm": "Verificare parolă",
+  "auth.captcha": "Cât face 3 + 4?",
+  "auth.adult": "Confirm că sunt adult (18+)",
+  "auth.submitRegister": "Creează cont",
+  "auth.loading": "Se încarcă…",
+
+  // Errors
+  "error.invalidLogin": "Email sau parolă incorectă.",
+  "error.inactiveAccount":
+    "Contul nu este activ. Verificați emailul de activare.",
+  "error.mustBeAdult": "Trebuie să confirmați că sunteți adult.",
+  "error.emailExists": "Există deja un cont cu acest email.",
+  "error.passwordMismatch": "Parolele nu coincid.",
+  "error.passwordRules":
+    "Parola trebuie să aibă minim 8 caractere, litere, o cifră și un caracter special.",
+  "error.captcha": "Codul captcha este incorect.",
+  "error.confirmAdult": "Confirmați că sunteți adult.",
+  "error.onlyRangers": "Doar rangerii pot valida.",
+  "error.obsMissing": "Observație inexistentă.",
+  "error.notPending": "Observația nu este în așteptare.",
+  "error.selfValidate": "Nu vă puteți valida propriile observații.",
+  "error.rejectComment": "Comentariul este obligatoriu la respingere.",
+  "error.emailUsed": "Email deja folosit.",
+  "error.parental": "Pentru elevi este necesar acordul parental.",
+  "error.selectDecision": "Selectați o decizie.",
+  "error.photoRequired": "Adăugați cel puțin o poză.",
+  "error.stageRequired": "Selectați stadiul fenologic.",
+  "error.speciesRequired": "Selectați specia.",
+  "error.locationRequired": "Geolocația este obligatorie.",
+  "error.disturbanceType": "Selectați cel puțin un tip de perturbare.",
+  "error.severityRequired": "Severitatea este obligatorie.",
+  "error.areaRequired": "Suprafața afectată (m²) este obligatorie.",
+  "error.coverUnset": "Setați toate cele 4 procente (pași de 5%).",
+  "error.coverSum": "Suma trebuie să fie 100% (acum {sum}%).",
+
+  // Home
+  "home.welcome": "Bine ați venit",
+  "home.sub":
+    "Alegeți un modul pentru o observație nouă din teren sau consultați lista și harta.",
+  "home.toValidate": "De validat",
+  "home.newUsers": "Utilizatori noi (30 zile)",
+  "home.myObs": "Observațiile mele",
+  "home.modPhenDesc": "Stadiu fenologic al arborilor (muguri → stres)",
+  "home.modDistDesc": "Insecte, doborâtură, uscare și alte perturbări",
+  "home.modSoilDesc": "Mușchi, litieră, plante și sol gol — suma 100%",
+  "home.newObs": "Observație nouă →",
+  "home.listObs": "Listare observații",
+  "home.map": "Hartă",
+
+  // GDPR
+  "gdpr.title": "Confirmare prelucrare date (GDPR)",
+  "gdpr.p1":
+    "CALI-LAB (operator: ISV, partener APNC) colectează observații științifice care pot include fotografii, coordonate GPS (latitudine, longitudine, precizie, altitudine, oră captură) și date de cont (nume, email, rol).",
+  "gdpr.p2":
+    "Datele sunt validate de rangerii PNC și pot fi exportate anonimizat către ForestWard Observatory (EFI/FORWARDS). Durata de păstrare: pe perioada proiectului și ulterior cât este necesar pentru cercetare științifică, conform politicii de date.",
+  "gdpr.version": "Versiune text:",
+  "gdpr.readPolicy": "Citește politica de date completă",
+  "gdpr.accept": "Accept condițiile de prelucrare a datelor",
+  "gdpr.continue": "Continuă",
+  "gdpr.decline": "Nu accept — ieșire",
+
+  // Observations list
+  "obs.title": "Observații",
+  "obs.listSub":
+    "Toate observațiile din sistem. Numele autorilor altor utilizatori nu sunt afișate pentru rolurile de teren.",
+  "obs.addPhen": "+ Fenologie",
+  "obs.addDist": "+ Perturbări",
+  "obs.addSoil": "+ Sol",
+  "obs.filterModule": "Modul",
+  "obs.filterStatus": "Stare",
+  "obs.filterFrom": "De la",
+  "obs.filterTo": "Până la",
+  "obs.mineOnly": "Doar ale mele",
+  "obs.all": "Toate",
+  "obs.empty": "Nicio observație pentru filtrele selectate.",
+  "obs.directions": "Direcționează-mă",
+  "obs.sentinel": "Arbore santinelă",
+  "obs.loadingMap": "Se încarcă harta…",
+  "obs.details": "Detalii",
+  "obs.notFound": "Observația nu a fost găsită.",
+  "obs.backList": "Înapoi la listă",
+  "obs.deleteConfirm": "Ștergeți această observație?",
+  "obs.delete": "Ștergere",
+  "obs.miniMap": "Mini-hartă",
+  "obs.validatedBy": "Validat de",
+  "obs.at": "la",
+  "obs.unmarkSentinel": "Demarcare arbore santinelă",
+  "obs.unmarkPrompt": "Motiv demarcare (obligatoriu):",
+  "obs.validation": "Validare",
+  "obs.selfValidateBlocked": "Auto-validare blocată",
+  "obs.selfValidateMsg": "Nu vă puteți valida propriile observații.",
+  "obs.approve": "Aprobă",
+  "obs.reject": "Respinge",
+  "obs.markSentinel": "Marchează Arbore santinelă",
+  "obs.comment": "Comentariu",
+  "obs.commentOptional": " (opțional)",
+  "obs.saveDecision": "Salvează decizia",
+  "obs.species": "Specie",
+  "obs.stage": "Stadiu",
+  "obs.types": "Tipuri",
+  "obs.severity": "Severitate",
+  "obs.area": "Suprafață",
+  "obs.insect": "Insectă",
+  "obs.moss": "Mușchi și licheni",
+  "obs.litter": "Litieră",
+  "obs.plants": "Plante",
+  "obs.bare": "Sol gol / rocă",
+  "obs.seedlings": "Puieți",
+  "obs.seedlingsYes": "Prezenți",
+  "obs.seedlingsNo": "Absenți",
+  "obs.coords": "Coordonate",
+  "obs.accuracy": "Precizie GPS",
+  "obs.altitude": "Altitudine",
+  "obs.gpsTime": "Oră captură GPS",
+  "obs.selectSpecies": "Selectați specia",
+  "obs.photos": "Poze",
+  "obs.addPhoto": "Adaugă poză",
+  "obs.compressing": "Comprimare…",
+  "obs.photoHint":
+    "Imaginile se comprimă pe dispozitiv (~1600 px, <500 KB) pentru sincronizare la semnal slab.",
+  "obs.takePhoto": "Faceți o poză sau încărcați din galerie",
+  "obs.detailsOptional": "Detalii (opțional)",
+  "obs.save": "Salvare",
+  "obs.saveAndNew": "Salvare și formular nou",
+  "obs.error": "Eroare",
+
+  // Phenology form
+  "phen.title": "Observație fenologie",
+  "phen.sub":
+    "Fotografiați un arbore și încadrați stadiul fenologic. Codul se generează automat (PHEN-NNNN).",
+  "phen.stageLabel": "Stadiu fenologic",
+  "phen.stage1": "Dormanță",
+  "phen.stage1desc": "Muguri închiși, dormanți (iarnă – primăvară timpurie)",
+  "phen.stage2": "Activare",
+  "phen.stage2desc": "Muguri umflați, încep să se deschidă (primăvară)",
+  "phen.stage3": "Foliație",
+  "phen.stage3desc": "Ace noi vizibile, verzi-deschis (primăvară târzie)",
+  "phen.stage4": "Maturitate",
+  "phen.stage4desc": "Coroană complet dezvoltată, verde-închis (vară)",
+  "phen.stage5": "Stres",
+  "phen.stage5desc":
+    "Decolorare/îngălbenire vizibilă (toamnă – iarnă timpurie)",
+
+  // Disturbance
+  "dist.title": "Observație perturbări",
+  "dist.sub":
+    "Documentați tipul, severitatea și suprafața afectată. Cod: DIST-NNNN.",
+  "dist.typeLabel": "Tipul perturbării",
+  "dist.insectOptional": "Tip insectă (opțional)",
+  "dist.insectPlaceholder": "ex. Ips typographus, Lymantria monacha",
+  "dist.severityLabel": "Scor severitate",
+  "dist.areaLabel": "Suprafață afectată (m²)",
+  "dist.atac_insecte": "Atac de insecte",
+  "dist.doboratura_vant": "Doborâtură de vânt",
+  "dist.uscare": "Uscare",
+  "dist.rupturi_zapada": "Rupturi de zăpadă",
+  "dist.ciuperci": "Ciuperci",
+  "dist.vatamari_vanat": "Vătămări de vânat",
+  "dist.incendiu": "Incendiu",
+  "dist.alta": "Altele",
+  "dist.sev1": "Foarte ușoară — semne minime",
+  "dist.sev2": "Ușoară — afectare localizată",
+  "dist.sev3": "Moderată — impact vizibil",
+  "dist.sev4": "Severă — afectare extinsă",
+  "dist.sev5": "Critică — arbore compromis",
+
+  // Soil
+  "soil.title": "Observație sol",
+  "soil.sub":
+    "Estimați ce se vede de sus — stratul de deasupra contează. Suma celor 4 clase = 100%, pași de 5%. Cod: SOIL-NNNN.",
+  "soil.cover": "Acoperire sol",
+  "soil.sum": "Sumă:",
+  "soil.rule":
+    "Regula: estimați ce se vede de sus; stratul de deasupra contează. Valorile pornesc nesetate.",
+  "soil.moss": "Mușchi și licheni",
+  "soil.mossHint": "Verde, textură moale",
+  "soil.litter": "Litieră",
+  "soil.litterHint": "Ace, frunze uscate, ramuri, lemn căzut",
+  "soil.plants": "Plante",
+  "soil.plantsHint": "Ierburi, ferigi, subarbuști, puieți (ce se vede de sus)",
+  "soil.bare": "Sol gol / rocă",
+  "soil.bareHint": "Pământ sau stâncă vizibile fără acoperire",
+  "soil.seedlingsCheck": "Puieți prezenți (în afara sumei de 100%)",
+
+  // Species
+  "sp.picea_abies": "Molid (Picea abies)",
+  "sp.abies_alba": "Brad (Abies alba)",
+  "sp.fagus_sylvatica": "Fag (Fagus sylvatica)",
+  "sp.pinus_sylvestris": "Pin silvestru (Pinus sylvestris)",
+  "sp.larix_decidua": "Larice (Larix decidua)",
+  "sp.acer_pseudoplatanus": "Paltin (Acer pseudoplatanus)",
+  "sp.sorbus_aucuparia": "Scoruș (Sorbus aucuparia)",
+  "sp.alta": "Altă specie",
+
+  // Geo
+  "geo.title": "Geolocație",
+  "geo.retry": "Reîncercați",
+  "geo.locating": "Se determină geolocația…",
+  "geo.unavailable": "Locație indisponibilă",
+  "geo.demo": "Folosiți poziție demonstrativă (Călimani)",
+  "geo.lat": "Latitudine",
+  "geo.lng": "Longitudine",
+  "geo.accuracy": "Precizie",
+  "geo.altitude": "Altitudine",
+  "geo.capturedAt": "Ora capturii",
+  "geo.lowAccuracy": "Precizie scăzută",
+  "geo.lowAccuracyMsg":
+    "Precizia GPS ({accuracy} m) depășește pragul de {threshold} m. Preferabil semnal GPS, nu doar rețea.",
+  "geo.unavailableDevice":
+    "Geolocația nu este disponibilă pe acest dispozitiv.",
+  "geo.permissionDenied":
+    "Permisiunea de locație a fost refuzată. Activați locația și reîncercați.",
+  "geo.positionUnavailable":
+    "Poziția nu a putut fi determinată. Verificați semnalul GPS.",
+  "geo.timeout": "Expirare la determinarea locației. Reîncercați.",
+  "geo.genericError": "Eroare la geolocație.",
+  "geo.locateFailed": "Nu s-a putut determina geolocația.",
+  "obs.deletePhoto": "Șterge poza",
+
+  // Map
+  "map.title": "Hartă",
+  "map.sub":
+    "Toate observațiile pe OpenTopoMap. Public: doar aprobate.",
+  "map.subAuth": " Ranger/admin: toate, coordonate exacte.",
+  "map.export": "Export GeoJSON",
+  "map.points": "puncte afișate · încadrare automată pe date",
+  "map.loading": "Se încarcă…",
+
+  // Validation
+  "val.title": "Validare",
+  "val.queue": "Coadă de lucru: {count} observații în așteptare",
+  "val.approveSelected": "Aprobă selecția ({count})",
+  "val.authorRole": "Rol autor",
+  "val.empty": "Nu există observații de validat.",
+  "val.open": "Deschide",
+  "val.batchComment": "Validare în lot",
+
+  // Admin
+  "admin.title": "Administrare",
+  "admin.sub":
+    "Panou admin: observații de validat, utilizatori și export FAIR.",
+  "admin.toValidate": "De validat",
+  "admin.openQueue": "Deschide coada",
+  "admin.users": "Utilizatori",
+  "admin.manageUsers": "Gestiune utilizatori",
+  "admin.fairExport": "Export FAIR",
+  "admin.downloadCsv": "Descarcă CSV anonimizat",
+  "admin.recent": "Activitate recentă",
+  "admin.usersTitle": "Gestiune utilizatori",
+  "admin.createUser": "Creează utilizator",
+  "admin.close": "Închide",
+  "admin.parentalPdf": "Acord parental atașat (PDF) — obligatoriu",
+  "admin.save": "Salvare",
+  "admin.userCreated":
+    "Utilizator creat (inactiv). Link resetare parolă simulat.",
+  "admin.email": "Email",
+  "admin.name": "Nume",
+  "admin.role": "Rol",
+  "admin.registered": "Înregistrare",
+  "admin.lastLogin": "Ultima logare",
+  "admin.gdpr": "GDPR",
+  "admin.status": "Stare",
+  "admin.active": "Activ",
+  "admin.inactive": "Inactiv",
+
+  // Stats
+  "stats.loading": "Se încarcă statisticile…",
+  "stats.activeUsers": "Utilizatori activi (30 zile)",
+  "stats.obsMonth": "Observații (30 zile)",
+  "stats.validated": "Observații validate",
+  "stats.distMonth": "Perturbări (30 zile)",
+  "stats.byRole": "Observații pe rol",
+  "stats.phenStages": "Stadii fenologice",
+  "stats.distTypes": "Tipuri de perturbări",
+  "stats.last5": "Ultimele 5 observații validate",
+  "stats.noneValidated": "Nicio observație validată încă.",
+  "stats.role": "Rol",
+  "stats.count": "Număr",
+  "stats.stage": "Stadiu",
+
+  // Policy
+  "policy.title": "Politica de date",
+  "policy.version": "Versiune 2026.1 · CALI-LAB · Grant Agreement G-07-2025-2",
+  "policy.operator": "Operator",
+  "policy.operatorText":
+    "Operatorul datelor aplicației CALI-LAB este Institutul de Cercetare-Dezvoltare în Silvicultură (ISV), în parteneriat cu Administrația Parcului Național Călimani (APNC).",
+  "policy.categories": "Categorii de date",
+  "policy.cat1":
+    "Date de cont: nume, email, rol, acord GDPR, acord parental (elevi)",
+  "policy.cat2":
+    "Observații: fotografii, text liber, specie, parametrii de modul",
+  "policy.cat3":
+    "Geolocație: latitudine, longitudine, precizie, altitudine, oră captură",
+  "policy.purpose": "Scop",
+  "policy.purposeText":
+    "Colectarea observațiilor științifice pentru Climate-Smart Forestry și integrarea datelor validate în ForestWard Observatory (EFI/FORWARDS).",
+  "policy.retention": "Durata păstrării",
+  "policy.retentionText":
+    "Datele sunt păstrate pe durata proiectului și ulterior cât este necesar pentru cercetare științifică și arhivare FAIR, cu anonimizare la export.",
+  "policy.students": "Elevi",
+  "policy.studentsText":
+    "Conturile de elev sunt create de administrator pe baza listei școlare și a acordului parental. În interfețele publice și pentru roluri de teren, numele elevilor sunt anonimizate.",
+
+  // Footer
+  "footer.euEmblem": "Emblema Uniunii Europene",
+  "footer.dataPolicy": "Politica de date",
+  "footer.obsMap": "Hartă observații",
+} as const;
+
+export type RoMessages = typeof ro;

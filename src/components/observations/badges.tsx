@@ -1,9 +1,13 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
-import { STATUS_LABELS, MODULE_LABELS } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { moduleKey, statusKey } from "@/lib/i18n/labels";
 import type { ObservationModule, ObservationStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function StatusBadge({ status }: { status: ObservationStatus }) {
+  const { t } = useI18n();
   return (
     <Badge
       variant="outline"
@@ -13,12 +17,13 @@ export function StatusBadge({ status }: { status: ObservationStatus }) {
         status === "in_asteptare" && "border-amber-700/30 bg-amber-50 text-amber-900"
       )}
     >
-      {STATUS_LABELS[status]}
+      {t(statusKey(status))}
     </Badge>
   );
 }
 
 export function ModuleBadge({ module }: { module: ObservationModule }) {
+  const { t } = useI18n();
   return (
     <Badge
       variant="secondary"
@@ -28,7 +33,7 @@ export function ModuleBadge({ module }: { module: ObservationModule }) {
         module === "sol" && "bg-stone-200 text-stone-800"
       )}
     >
-      {MODULE_LABELS[module]}
+      {t(moduleKey(module))}
     </Badge>
   );
 }

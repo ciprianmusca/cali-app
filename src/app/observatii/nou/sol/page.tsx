@@ -12,29 +12,22 @@ import { GeoCapture } from "@/components/observations/geo-capture";
 import { PhotoCapture } from "@/components/observations/photo-capture";
 import { useCaliStore } from "@/lib/store";
 import type { GeoLocation, SolObservation } from "@/lib/types";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import type { MsgKey } from "@/lib/i18n/store";
 
 type CoverKey = "moss" | "litter" | "plants" | "bare";
 
-const LABELS: Record<CoverKey, { title: string; hint: string }> = {
-  moss: {
-    title: "Mușchi și licheni",
-    hint: "Verde, textură moale",
-  },
-  litter: {
-    title: "Litieră",
-    hint: "Ace, frunze uscate, ramuri, lemn căzut",
-  },
-  plants: {
-    title: "Plante",
-    hint: "Ierburi, ferigi, subarbuști, puieți (ce se vede de sus)",
-  },
-  bare: {
-    title: "Sol gol / rocă",
-    hint: "Pământ sau stâncă vizibile fără acoperire",
-  },
+const COVER_KEYS: CoverKey[] = ["moss", "litter", "plants", "bare"];
+
+const COVER_MSG: Record<CoverKey, { title: MsgKey; hint: MsgKey }> = {
+  moss: { title: "soil.moss", hint: "soil.mossHint" },
+  litter: { title: "soil.litter", hint: "soil.litterHint" },
+  plants: { title: "soil.plants", hint: "soil.plantsHint" },
+  bare: { title: "soil.bare", hint: "soil.bareHint" },
 };
 
 function SolForm() {
+  const { t } = useI18n();
   const router = useRouter();
   const user = useCaliStore((s) => s.currentUser())!;
   const addObservation = useCaliStore((s) => s.addObservation);
@@ -67,18 +60,18 @@ function SolForm() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!photos.length) e.photos = "Adăugați cel puțin o poză.";
+    if (!photos.length) e.photos = t("error.photoRequired");
     if (
       values.moss == null ||
       values.litter == null ||
       values.plants == null ||
       values.bare == null
     ) {
-      e.cover = "Setați toate cele 4 procente (pași de 5%).";
+      e.cover = t("error.coverUnset");
     } else if (sum !== 100) {
-      e.cover = `Suma trebuie să fie 100% (acum ${sum}%).`;
+      e.cover = t("error.coverSum", { sum });
     }
-    if (!location) e.location = "Geolocația este obligatorie.";
+    if (!location) e.location = t("error.locationRequired");
     setErrors(e);
     if (Object.keys(e).length) {
       const el = formRef.current?.querySelector(
@@ -130,11 +123,8 @@ function SolForm() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="font-display text-3xl text-forest">Observație sol</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Estimați ce se vede de sus — stratul de deasupra contează. Suma
-        celor 4 clase = 100%, pași de 5%. Cod: SOIL-NNNN.
-      </p>
+      <h1 className="font-display text-3xl text-forest">{t("soil.title")}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{t("soil.sub")}</p>
 
       <form ref={formRef} onSubmit={onSubmit} className="mt-8 space-y-6">
         <div data-field="photos">
@@ -147,26 +137,27 @@ function SolForm() {
 
         <div data-field="cover" className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label>Acoperire sol</Label>
+            <Label>{t("soil.cover")}</Label>
             <span
               className={`text-sm font-medium ${
                 sum === 100 ? "text-emerald-700" : "text-amber-800"
               }`}
             >
-              Sumă: {sum}%
+              {t("soil.sum")} {sum}%
             </span>
           </div>
           <p className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            Regula: estimați ce se vede de sus; stratul de deasupra contează.
-            Valorile pornesc nesetate.
+            {t("soil.rule")}
           </p>
-          {(Object.keys(LABELS) as CoverKey[]).map((key) => (
+          {COVER_KEYS.map((key) => (
             <div key={key} className="rounded-lg border bg-card/70 p-4">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <div className="font-medium">{LABELS[key].title}</div>
+                  <div className="font-medium">
+                    {t(COVER_MSG[key].title)}
+                  </div>
                   <div className="text-xs text-muted-foreground">
-                    {LABELS[key].hint}
+                    {t(COVER_MSG[key].hint)}
                   </div>
                 </div>
                 <div className="font-display text-xl tabular-nums">
@@ -196,11 +187,11 @@ function SolForm() {
             checked={seedlings}
             onCheckedChange={(v) => setSeedlings(v === true)}
           />
-          Puieți prezenți (în afara sumei de 100%)
+          {t("soil.seedlingsCheck")}
         </label>
 
         <div className="space-y-2">
-          <Label htmlFor="details">Detalii (opțional)</Label>
+          <Label htmlFor="details">{t("obs.detailsOptional")}</Label>
           <Textarea
             id="details"
             value={details}
@@ -217,9 +208,9 @@ function SolForm() {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Button type="submit">Salvare</Button>
+          <Button type="submit">{t("obs.save")}</Button>
           <Button type="button" variant="secondary" onClick={() => save(true)}>
-            Salvare și formular nou
+            {t("obs.saveAndNew")}
           </Button>
         </div>
       </form>

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useCaliStore } from "@/lib/store";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import type { UserRole } from "@/lib/types";
 
 export function AuthGate({
@@ -16,6 +17,7 @@ export function AuthGate({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useI18n();
   const hydrated = useCaliStore((s) => s.hydrated);
   const currentUserId = useCaliStore((s) => s.currentUserId);
   const users = useCaliStore((s) => s.users);
@@ -39,7 +41,7 @@ export function AuthGate({
   if (!hydrated || !user) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-16 text-muted-foreground">
-        Se încarcă…
+        {t("auth.loading")}
       </div>
     );
   }

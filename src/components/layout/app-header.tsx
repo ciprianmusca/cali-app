@@ -24,11 +24,14 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useCaliStore } from "@/lib/store";
-import { ROLE_LABELS } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { roleKey } from "@/lib/i18n/labels";
+import { LanguageSwitcher } from "@/lib/i18n/language-switcher";
 import { cn } from "@/lib/utils";
 
 export function AppHeader() {
   const pathname = usePathname();
+  const { t } = useI18n();
   const hydrated = useCaliStore((s) => s.hydrated);
   const currentUserId = useCaliStore((s) => s.currentUserId);
   const users = useCaliStore((s) => s.users);
@@ -41,26 +44,26 @@ export function AppHeader() {
 
   const authLinks = user
     ? [
-        { href: "/acasa", label: "Acasă", icon: Home },
-        { href: "/observatii", label: "Observații", icon: List },
-        { href: "/harta", label: "Hartă", icon: Map },
+        { href: "/acasa", label: t("nav.home"), icon: Home },
+        { href: "/observatii", label: t("nav.observations"), icon: List },
+        { href: "/harta", label: t("nav.map"), icon: Map },
         ...(user.role === "ranger" || user.role === "admin"
           ? [
               {
                 href: "/validare",
-                label: "Validare",
+                label: t("nav.validation"),
                 icon: ShieldCheck,
                 badge: pending,
               },
             ]
           : []),
         ...(user.role === "admin"
-          ? [{ href: "/admin", label: "Admin", icon: Settings }]
+          ? [{ href: "/admin", label: t("nav.admin"), icon: Settings }]
           : []),
       ]
     : [
-        { href: "/", label: "Statistici", icon: BarChart3 },
-        { href: "/harta", label: "Hartă", icon: Map },
+        { href: "/", label: t("nav.stats"), icon: BarChart3 },
+        { href: "/harta", label: t("nav.map"), icon: Map },
       ];
 
   useEffect(() => {
@@ -116,19 +119,21 @@ export function AppHeader() {
         <div className="hidden md:block">{hydrated ? <NavLinks /> : null}</div>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher className="hidden sm:inline-flex" />
+
           {hydrated && user ? (
             <div className="hidden items-center gap-3 sm:flex">
               <div className="text-right text-xs leading-tight">
                 <div className="font-medium">{user.name}</div>
                 <div className="text-muted-foreground">
-                  {ROLE_LABELS[user.role]}
+                  {t(roleKey(user.role))}
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={logout}
-                aria-label="Deconectare"
+                aria-label={t("nav.logout")}
               >
                 <LogOut className="size-4" />
               </Button>
@@ -139,10 +144,10 @@ export function AppHeader() {
                 href="/autentificare"
                 className={cn(buttonVariants({ variant: "ghost" }))}
               >
-                Autentificare
+                {t("nav.login")}
               </Link>
               <Link href="/inregistrare" className={cn(buttonVariants())}>
-                Creare cont
+                {t("nav.register")}
               </Link>
             </div>
           ) : null}
@@ -157,13 +162,14 @@ export function AppHeader() {
             </SheetTrigger>
             <SheetContent side="right" className="w-72">
               <SheetHeader>
-                <SheetTitle>Navigare</SheetTitle>
+                <SheetTitle>{t("nav.menu")}</SheetTitle>
               </SheetHeader>
               <div className="mt-4 space-y-4 px-2">
+                <LanguageSwitcher />
                 <NavLinks mobile />
                 {user ? (
                   <Button variant="outline" className="w-full" onClick={logout}>
-                    <LogOut className="mr-2 size-4" /> Deconectare
+                    <LogOut className="mr-2 size-4" /> {t("nav.logout")}
                   </Button>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -171,7 +177,7 @@ export function AppHeader() {
                       href="/autentificare"
                       className={cn(buttonVariants(), "justify-center")}
                     >
-                      Autentificare
+                      {t("nav.login")}
                     </Link>
                     <Link
                       href="/inregistrare"
@@ -180,7 +186,7 @@ export function AppHeader() {
                         "justify-center"
                       )}
                     >
-                      Creare cont
+                      {t("nav.register")}
                     </Link>
                   </div>
                 )}

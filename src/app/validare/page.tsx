@@ -15,10 +15,15 @@ import {
 import { ModuleBadge, StatusBadge } from "@/components/observations/badges";
 import { useCaliStore } from "@/lib/store";
 import { formatDateTime } from "@/lib/format";
-import type { ObservationModule } from "@/lib/types";
-import { ROLE_LABELS } from "@/lib/constants";
+import type { ObservationModule, UserRole } from "@/lib/types";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { moduleKey, roleKey } from "@/lib/i18n/labels";
+
+const MODULES: ObservationModule[] = ["fenologie", "perturbari", "sol"];
+const AUTHOR_ROLES: UserRole[] = ["turist", "rezident", "elev", "ranger"];
 
 function ValidationQueue() {
+  const { t } = useI18n();
   const observations = useCaliStore((s) => s.observations);
   const validateObservation = useCaliStore((s) => s.validateObservation);
   const [module, setModule] = useState<ObservationModule | "all">("all");
@@ -44,7 +49,7 @@ function ValidationQueue() {
 
   const approveBatch = () => {
     selected.forEach((id) => {
-      validateObservation(id, "aprobat", "Validare în lot");
+      validateObservation(id, "aprobat", t("val.batchComment"));
     });
     setSelected([]);
   };
@@ -53,19 +58,19 @@ function ValidationQueue() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl text-forest">Validare</h1>
+          <h1 className="font-display text-3xl text-forest">{t("val.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Coadă de lucru: {pending.length} observații în așteptare
+            {t("val.queue", { count: pending.length })}
           </p>
         </div>
         <Button disabled={!selected.length} onClick={approveBatch}>
-          Aprobă selecția ({selected.length})
+          {t("val.approveSelected", { count: selected.length })}
         </Button>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label>Modul</Label>
+          <Label>{t("obs.filterModule")}</Label>
           <Select
             value={module}
             onValueChange={(v) => setModule((v ?? "all") as typeof module)}
@@ -74,15 +79,17 @@ function ValidationQueue() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toate</SelectItem>
-              <SelectItem value="fenologie">Fenologie</SelectItem>
-              <SelectItem value="perturbari">Perturbări</SelectItem>
-              <SelectItem value="sol">Sol</SelectItem>
+              <SelectItem value="all">{t("obs.all")}</SelectItem>
+              {MODULES.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {t(moduleKey(m))}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>Rol autor</Label>
+          <Label>{t("val.authorRole")}</Label>
           <Select
             value={authorRole}
             onValueChange={(v) => setAuthorRole(v ?? "all")}
@@ -91,11 +98,12 @@ function ValidationQueue() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toate</SelectItem>
-              <SelectItem value="turist">Turist</SelectItem>
-              <SelectItem value="rezident">Rezident</SelectItem>
-              <SelectItem value="elev">Elev</SelectItem>
-              <SelectItem value="ranger">Ranger</SelectItem>
+              <SelectItem value="all">{t("obs.all")}</SelectItem>
+              {AUTHOR_ROLES.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {t(roleKey(r))}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -103,9 +111,7 @@ function ValidationQueue() {
 
       <div className="mt-6 divide-y rounded-lg border bg-card/80">
         {pending.length === 0 ? (
-          <p className="p-6 text-sm text-muted-foreground">
-            Nu există observații de validat.
-          </p>
+          <p className="p-6 text-sm text-muted-foreground">{t("val.empty")}</p>
         ) : (
           pending.map((o) => (
             <div
@@ -117,7 +123,7 @@ function ValidationQueue() {
                 className="size-4"
                 checked={selected.includes(o.id)}
                 onChange={() => toggle(o.id)}
-                aria-label={`Selectează ${o.code}`}
+                aria-label={`${t("val.open")} ${o.code}`}
               />
               <div className="h-14 w-20 overflow-hidden rounded bg-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -139,7 +145,7 @@ function ValidationQueue() {
                   <ModuleBadge module={o.module} />
                 </div>
                 <div className="text-sm">
-                  {o.code} · {o.authorName} ({ROLE_LABELS[o.authorRole]})
+                  {o.code} · {o.authorName} ({t(roleKey(o.authorRole))})
                 </div>
                 {o.details ? (
                   <div className="truncate text-xs text-muted-foreground">
@@ -151,7 +157,7 @@ function ValidationQueue() {
                 href={`/observatii/${o.id}`}
                 className="inline-flex h-7 items-center rounded-lg border border-border bg-background px-2.5 text-[0.8rem] hover:bg-muted"
               >
-                Deschide
+                {t("val.open")}
               </Link>
             </div>
           ))

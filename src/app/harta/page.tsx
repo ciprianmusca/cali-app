@@ -12,9 +12,14 @@ import {
 } from "@/components/ui/select";
 import { useCaliStore } from "@/lib/store";
 import type { ObservationModule, ObservationStatus } from "@/lib/types";
-import { MODULE_COLORS, MODULE_LABELS } from "@/lib/constants";
+import { MODULE_COLORS } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { moduleKey, statusKey } from "@/lib/i18n/labels";
+
+const MODULES: ObservationModule[] = ["fenologie", "perturbari", "sol"];
 
 export default function HartaPage() {
+  const { t } = useI18n();
   const observations = useCaliStore((s) => s.observations);
   const user = useCaliStore((s) => s.currentUser());
   const hydrated = useCaliStore((s) => s.hydrated);
@@ -67,10 +72,10 @@ export default function HartaPage() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl text-forest">Hartă</h1>
+          <h1 className="font-display text-3xl text-forest">{t("map.title")}</h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Toate observațiile pe OpenTopoMap. Public: doar aprobate.
-            {user ? " Ranger/admin: toate, coordonate exacte." : ""}
+            {t("map.sub")}
+            {user ? t("map.subAuth") : ""}
           </p>
         </div>
         <button
@@ -78,13 +83,13 @@ export default function HartaPage() {
           onClick={exportGeoJSON}
           className="rounded-md border bg-card px-3 py-2 text-sm hover:bg-muted"
         >
-          Export GeoJSON
+          {t("map.export")}
         </button>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label>Modul</Label>
+          <Label>{t("obs.filterModule")}</Label>
           <Select
             value={module}
             onValueChange={(v) => setModule((v ?? "all") as typeof module)}
@@ -93,15 +98,17 @@ export default function HartaPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toate</SelectItem>
-              <SelectItem value="fenologie">Fenologie</SelectItem>
-              <SelectItem value="perturbari">Perturbări</SelectItem>
-              <SelectItem value="sol">Sol</SelectItem>
+              <SelectItem value="all">{t("obs.all")}</SelectItem>
+              {MODULES.map((m) => (
+                <SelectItem key={m} value={m}>
+                  {t(moduleKey(m))}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>Stare</Label>
+          <Label>{t("obs.filterStatus")}</Label>
           <Select
             value={status}
             onValueChange={(v) => setStatus((v ?? "all") as typeof status)}
@@ -110,12 +117,16 @@ export default function HartaPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toate</SelectItem>
-              <SelectItem value="aprobat">Aprobat</SelectItem>
+              <SelectItem value="all">{t("obs.all")}</SelectItem>
+              <SelectItem value="aprobat">{t(statusKey("aprobat"))}</SelectItem>
               {!user ? null : (
                 <>
-                  <SelectItem value="in_asteptare">În așteptare</SelectItem>
-                  <SelectItem value="respins">Respins</SelectItem>
+                  <SelectItem value="in_asteptare">
+                    {t(statusKey("in_asteptare"))}
+                  </SelectItem>
+                  <SelectItem value="respins">
+                    {t(statusKey("respins"))}
+                  </SelectItem>
                 </>
               )}
             </SelectContent>
@@ -124,17 +135,15 @@ export default function HartaPage() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3 text-xs">
-        {(Object.keys(MODULE_LABELS) as (keyof typeof MODULE_LABELS)[]).map(
-          (m) => (
-            <span key={m} className="inline-flex items-center gap-1.5">
-              <span
-                className="size-2.5 rounded-full"
-                style={{ background: MODULE_COLORS[m] }}
-              />
-              {MODULE_LABELS[m]}
-            </span>
-          )
-        )}
+        {MODULES.map((m) => (
+          <span key={m} className="inline-flex items-center gap-1.5">
+            <span
+              className="size-2.5 rounded-full"
+              style={{ background: MODULE_COLORS[m] }}
+            />
+            {t(moduleKey(m))}
+          </span>
+        ))}
       </div>
 
       <div className="mt-4">
@@ -142,12 +151,12 @@ export default function HartaPage() {
           <ObservationsMap observations={filtered} height={520} />
         ) : (
           <div className="flex h-[520px] items-center justify-center rounded-lg border text-sm text-muted-foreground">
-            Se încarcă…
+            {t("map.loading")}
           </div>
         )}
       </div>
       <p className="mt-2 text-xs text-muted-foreground">
-        {filtered.length} puncte afișate · încadrare automată pe date
+        {filtered.length} {t("map.points")}
       </p>
     </div>
   );

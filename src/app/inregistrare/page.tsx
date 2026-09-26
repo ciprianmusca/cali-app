@@ -10,8 +10,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCaliStore } from "@/lib/store";
 import { isValidPassword } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/use-i18n";
 
 export default function RegisterPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const register = useCaliStore((s) => s.register);
   const [name, setName] = useState("");
@@ -28,26 +30,24 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
     if (password !== password2) {
-      setError("Parolele nu coincid.");
+      setError(t("error.passwordMismatch"));
       return;
     }
     if (!isValidPassword(password)) {
-      setError(
-        "Parola trebuie să aibă minim 8 caractere, litere, o cifră și un caracter special."
-      );
+      setError(t("error.passwordRules"));
       return;
     }
     if (captcha.trim() !== captchaAnswer) {
-      setError("Codul captcha este incorect.");
+      setError(t("error.captcha"));
       return;
     }
     if (!isAdult) {
-      setError("Confirmați că sunteți adult.");
+      setError(t("error.confirmAdult"));
       return;
     }
     const res = register({ name, email, password, role, isAdult });
     if (!res.ok) {
-      setError(res.error ?? "Eroare");
+      setError(res.error ?? t("obs.error"));
       return;
     }
     router.push("/acasa");
@@ -55,15 +55,14 @@ export default function RegisterPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-12">
-      <h1 className="font-display text-3xl text-forest">Creare cont</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Conturile de Elev și Ranger sunt create de administrator. Aici vă puteți
-        înregistra ca Turist sau Rezident.
-      </p>
+      <h1 className="font-display text-3xl text-forest">
+        {t("auth.registerTitle")}
+      </h1>
+      <p className="mt-2 text-sm text-muted-foreground">{t("auth.registerSub")}</p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Nume și prenume</Label>
+          <Label htmlFor="name">{t("auth.name")}</Label>
           <Input
             id="name"
             required
@@ -72,7 +71,7 @@ export default function RegisterPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t("auth.email")}</Label>
           <Input
             id="email"
             type="email"
@@ -82,7 +81,7 @@ export default function RegisterPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label>Rol solicitat</Label>
+          <Label>{t("auth.requestedRole")}</Label>
           <RadioGroup
             value={role}
             onValueChange={(v) => setRole(v as "turist" | "rezident")}
@@ -90,16 +89,16 @@ export default function RegisterPage() {
           >
             <label className="flex items-center gap-2 text-sm">
               <RadioGroupItem value="turist" />
-              Turist
+              {t("auth.roleTourist")}
             </label>
             <label className="flex items-center gap-2 text-sm">
               <RadioGroupItem value="rezident" />
-              Rezident (deținător de pădure)
+              {t("auth.roleResident")}
             </label>
           </RadioGroup>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Parolă</Label>
+          <Label htmlFor="password">{t("auth.password")}</Label>
           <Input
             id="password"
             type="password"
@@ -109,7 +108,7 @@ export default function RegisterPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password2">Verificare parolă</Label>
+          <Label htmlFor="password2">{t("auth.passwordConfirm")}</Label>
           <Input
             id="password2"
             type="password"
@@ -119,7 +118,7 @@ export default function RegisterPage() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="captcha">Cât face 3 + 4?</Label>
+          <Label htmlFor="captcha">{t("auth.captcha")}</Label>
           <Input
             id="captcha"
             required
@@ -132,24 +131,24 @@ export default function RegisterPage() {
             checked={isAdult}
             onCheckedChange={(v) => setIsAdult(v === true)}
           />
-          Confirm că sunt adult (18+)
+          {t("auth.adult")}
         </label>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <Button type="button" className="w-full" onClick={() => {
           const fake = { preventDefault() {} } as FormEvent;
           onSubmit(fake);
         }}>
-          Creează cont
+          {t("auth.submitRegister")}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm">
-        Aveți deja cont?{" "}
+        {t("auth.hasAccount")}{" "}
         <Link
           href="/autentificare"
           className="text-primary underline-offset-2 hover:underline"
         >
-          Autentificare
+          {t("auth.loginTitle")}
         </Link>
       </p>
     </div>

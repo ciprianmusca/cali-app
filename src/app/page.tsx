@@ -1,16 +1,21 @@
+"use client";
+
 import Link from "next/link";
 import { PublicStats } from "@/components/stats/public-stats";
 import { buttonVariants } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n/use-i18n";
 import { cn } from "@/lib/utils";
 
 export default function HomePage() {
+  const { t } = useI18n();
+
   return (
     <div>
       <section className="relative min-h-[88dvh] overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/hero-calimani.svg"
-          alt="Pădure vulcanică în ceață, Parcul Național Călimani"
+          alt={t("landing.heroAlt")}
           className="absolute inset-0 size-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0f1f18]/95 via-[#0f1f18]/45 to-[#0f1f18]/25" />
@@ -21,11 +26,10 @@ export default function HomePage() {
             CALI
           </p>
           <h1 className="animate-rise-delay-1 mt-3 max-w-xl font-display text-2xl font-medium leading-snug text-white/95 sm:text-3xl">
-            Observații din pădurile vulcanice ale Călimanilor
+            {t("landing.headline")}
           </h1>
           <p className="animate-rise-delay-2 mt-4 max-w-lg text-base text-white/80 sm:text-lg">
-            Colectați fenologie, perturbări și acoperire de sol pentru
-            Climate-Smart Forestry — date validate de rangerii PNC.
+            {t("landing.sub")}
           </p>
           <div className="animate-rise-delay-2 mt-8 flex flex-wrap gap-3">
             <Link
@@ -35,7 +39,7 @@ export default function HomePage() {
                 "bg-white text-forest hover:bg-white/90"
               )}
             >
-              Începeți o observație
+              {t("landing.ctaStart")}
             </Link>
             <Link
               href="/harta"
@@ -44,7 +48,7 @@ export default function HomePage() {
                 "border-white/40 bg-transparent text-white hover:bg-white/10"
               )}
             >
-              Explorați harta
+              {t("landing.ctaMap")}
             </Link>
           </div>
         </div>
@@ -53,12 +57,9 @@ export default function HomePage() {
       <section className="mx-auto max-w-6xl px-4 py-14">
         <div className="mb-8 max-w-2xl">
           <h2 className="font-display text-3xl tracking-tight text-forest">
-            Statistici publice
+            {t("landing.statsTitle")}
           </h2>
-          <p className="mt-2 text-muted-foreground">
-            Indicatori disponibili fără autentificare. Observațiile aprobate
-            alimentează ForestWard Observatory (EFI/FORWARDS).
-          </p>
+          <p className="mt-2 text-muted-foreground">{t("landing.statsSub")}</p>
         </div>
         <PublicStats />
       </section>

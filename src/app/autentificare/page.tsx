@@ -8,8 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCaliStore } from "@/lib/store";
 import { DEMO_ACCOUNTS } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { roleKey } from "@/lib/i18n/labels";
 
 function LoginForm() {
+  const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
   const login = useCaliStore((s) => s.login);
@@ -20,7 +23,7 @@ function LoginForm() {
   const handleLogin = () => {
     const res = login(email, password);
     if (!res.ok) {
-      setError(res.error ?? "Eroare");
+      setError(res.error ?? t("obs.error"));
       return;
     }
     const next = params.get("next") || "/acasa";
@@ -34,14 +37,12 @@ function LoginForm() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-12">
-      <h1 className="font-display text-3xl text-forest">Autentificare</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Accesați modulele de observații după email și parolă.
-      </p>
+      <h1 className="font-display text-3xl text-forest">{t("auth.loginTitle")}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{t("auth.loginSub")}</p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t("auth.email")}</Label>
           <Input
             id="email"
             name="email"
@@ -53,7 +54,7 @@ function LoginForm() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Parolă</Label>
+          <Label htmlFor="password">{t("auth.password")}</Label>
           <Input
             id="password"
             name="password"
@@ -66,12 +67,12 @@ function LoginForm() {
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <Button type="button" className="w-full" onClick={handleLogin}>
-          Intră în cont
+          {t("auth.submitLogin")}
         </Button>
       </form>
 
       <div className="mt-8 rounded-lg border bg-card/70 p-4 text-sm">
-        <p className="font-medium">Conturi demo</p>
+        <p className="font-medium">{t("auth.demoAccounts")}</p>
         <ul className="mt-2 space-y-1 text-muted-foreground">
           {DEMO_ACCOUNTS.map((a) => (
             <li key={a.email}>
@@ -83,7 +84,7 @@ function LoginForm() {
                   setPassword(a.password);
                 }}
               >
-                {a.role}: {a.email} / {a.password}
+                {t(roleKey(a.role))}: {a.email} / {a.password}
               </button>
             </li>
           ))}
@@ -91,12 +92,12 @@ function LoginForm() {
       </div>
 
       <p className="mt-6 text-center text-sm">
-        Nu aveți cont?{" "}
+        {t("auth.noAccount")}{" "}
         <Link
           href="/inregistrare"
           className="text-primary underline-offset-2 hover:underline"
         >
-          Creare cont
+          {t("nav.register")}
         </Link>
       </p>
     </div>

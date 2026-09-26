@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { GeoLocation } from "@/lib/types";
 import { captureGeolocation, formatCoord, formatDateTime, mockLocationNearPark } from "@/lib/format";
 import { useCaliStore } from "@/lib/store";
+import { useI18n } from "@/lib/i18n/use-i18n";
 
 interface Props {
   value: GeoLocation | null;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function GeoCapture({ value, onChange, onError }: Props) {
+  const { t } = useI18n();
   const warningMeters = useCaliStore((s) => s.settings.gpsAccuracyWarningMeters);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export function GeoCapture({ value, onChange, onError }: Props) {
       const msg =
         e instanceof Error
           ? e.message
-          : "Nu s-a putut determina geolocația.";
+          : t("geo.locateFailed");
       setError(msg);
       onError?.(msg);
       onChange(null);
@@ -56,7 +58,7 @@ export function GeoCapture({ value, onChange, onError }: Props) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 font-medium">
           <Crosshair className="size-4 text-moss" />
-          Geolocație
+          {t("geo.title")}
         </div>
         <Button
           type="button"
@@ -70,22 +72,22 @@ export function GeoCapture({ value, onChange, onError }: Props) {
           ) : (
             <RefreshCw className="size-4" />
           )}
-          Reîncercați
+          {t("geo.retry")}
         </Button>
       </div>
 
       {loading && !value ? (
-        <p className="text-sm text-muted-foreground">Se determină geolocația…</p>
+        <p className="text-sm text-muted-foreground">{t("geo.locating")}</p>
       ) : null}
 
       {error ? (
         <Alert variant="destructive">
           <AlertTriangle className="size-4" />
-          <AlertTitle>Locație indisponibilă</AlertTitle>
+          <AlertTitle>{t("geo.unavailable")}</AlertTitle>
           <AlertDescription className="space-y-2">
             <p>{error}</p>
             <Button type="button" size="sm" variant="secondary" onClick={useDemo}>
-              Folosiți poziție demonstrativă (Călimani)
+              {t("geo.demo")}
             </Button>
           </AlertDescription>
         </Alert>
@@ -94,27 +96,27 @@ export function GeoCapture({ value, onChange, onError }: Props) {
       {value ? (
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
           <div>
-            <dt className="text-muted-foreground">Latitudine</dt>
+            <dt className="text-muted-foreground">{t("geo.lat")}</dt>
             <dd className="font-medium">{formatCoord(value.latitude)}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Longitudine</dt>
+            <dt className="text-muted-foreground">{t("geo.lng")}</dt>
             <dd className="font-medium">{formatCoord(value.longitude)}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Precizie</dt>
+            <dt className="text-muted-foreground">{t("geo.accuracy")}</dt>
             <dd className="font-medium">
               {value.accuracy != null ? `${value.accuracy} m` : "—"}
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Altitudine</dt>
+            <dt className="text-muted-foreground">{t("geo.altitude")}</dt>
             <dd className="font-medium">
               {value.altitude != null ? `${value.altitude} m` : "—"}
             </dd>
           </div>
           <div className="col-span-2">
-            <dt className="text-muted-foreground">Ora capturii</dt>
+            <dt className="text-muted-foreground">{t("geo.capturedAt")}</dt>
             <dd className="font-medium">{formatDateTime(value.capturedAt)}</dd>
           </div>
         </dl>
@@ -123,10 +125,12 @@ export function GeoCapture({ value, onChange, onError }: Props) {
       {value?.accuracy != null && value.accuracy > warningMeters ? (
         <Alert>
           <AlertTriangle className="size-4" />
-          <AlertTitle>Precizie scăzută</AlertTitle>
+          <AlertTitle>{t("geo.lowAccuracy")}</AlertTitle>
           <AlertDescription>
-            Precizia GPS ({value.accuracy} m) depășește pragul de {warningMeters}{" "}
-            m. Preferabil semnal GPS, nu doar rețea.
+            {t("geo.lowAccuracyMsg", {
+              accuracy: value.accuracy,
+              threshold: warningMeters,
+            })}
           </AlertDescription>
         </Alert>
       ) : null}

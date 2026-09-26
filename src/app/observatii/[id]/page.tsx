@@ -14,19 +14,21 @@ import { ModuleBadge, StatusBadge } from "@/components/observations/badges";
 import { ObservationsMap } from "@/components/map/observations-map";
 import { useCaliStore } from "@/lib/store";
 import {
-  DISTURBANCE_LABELS,
-  PHENOLOGY_STAGES,
-  SEVERITY_LABELS,
-  SPECIES_LABELS,
-} from "@/lib/constants";
-import {
   displayAuthorName,
   formatCoord,
   formatDateTime,
   mapsDirectionsUrl,
 } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import {
+  disturbanceKey,
+  phenStageLabelKey,
+  severityKey,
+  speciesKey,
+} from "@/lib/i18n/labels";
 
 function ObservationDetail({ id }: { id: string }) {
+  const { t } = useI18n();
   const router = useRouter();
   const observations = useCaliStore((s) => s.observations);
   const user = useCaliStore((s) => s.currentUser())!;
@@ -44,9 +46,9 @@ function ObservationDetail({ id }: { id: string }) {
   if (!obs) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
-        <p>Observația nu a fost găsită.</p>
+        <p>{t("obs.notFound")}</p>
         <Link href="/observatii" className="text-primary underline">
-          Înapoi la listă
+          {t("obs.backList")}
         </Link>
       </div>
     );
@@ -62,7 +64,7 @@ function ObservationDetail({ id }: { id: string }) {
   const onValidate = () => {
     setError(null);
     if (!decision) {
-      setError("Selectați o decizie.");
+      setError(t("error.selectDecision"));
       setTimeout(() => {
         errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 50);
@@ -75,7 +77,7 @@ function ObservationDetail({ id }: { id: string }) {
       sentinel
     );
     if (!res.ok) {
-      setError(res.error ?? "Eroare");
+      setError(res.error ?? t("obs.error"));
       setTimeout(() => {
         errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 50);
@@ -91,7 +93,7 @@ function ObservationDetail({ id }: { id: string }) {
         <StatusBadge status={obs.status} />
         {obs.isSentinelTree ? (
           <span className="inline-flex items-center gap-1 text-sm text-amber-800">
-            <Shield className="size-3.5" /> Arbore santinelă
+            <Shield className="size-3.5" /> {t("obs.sentinel")}
           </span>
         ) : null}
       </div>
@@ -107,7 +109,7 @@ function ObservationDetail({ id }: { id: string }) {
           <img
             key={i}
             src={src}
-            alt={`Poză ${i + 1}`}
+            alt={`${t("obs.photos")} ${i + 1}`}
             className="w-full rounded-lg border object-cover"
           />
         ))}
@@ -116,41 +118,43 @@ function ObservationDetail({ id }: { id: string }) {
       <dl className="mt-8 grid gap-4 sm:grid-cols-2">
         {obs.species ? (
           <div>
-            <dt className="text-sm text-muted-foreground">Specie</dt>
-            <dd className="font-medium">{SPECIES_LABELS[obs.species]}</dd>
+            <dt className="text-sm text-muted-foreground">{t("obs.species")}</dt>
+            <dd className="font-medium">{t(speciesKey(obs.species))}</dd>
           </div>
         ) : null}
         {obs.module === "fenologie" ? (
           <div>
-            <dt className="text-sm text-muted-foreground">Stadiu</dt>
+            <dt className="text-sm text-muted-foreground">{t("obs.stage")}</dt>
             <dd className="font-medium">
-              {obs.stage} — {PHENOLOGY_STAGES[obs.stage].label}
+              {obs.stage} — {t(phenStageLabelKey(obs.stage))}
             </dd>
           </div>
         ) : null}
         {obs.module === "perturbari" ? (
           <>
             <div>
-              <dt className="text-sm text-muted-foreground">Tipuri</dt>
+              <dt className="text-sm text-muted-foreground">{t("obs.types")}</dt>
               <dd className="font-medium">
                 {obs.disturbanceTypes
-                  .map((t) => DISTURBANCE_LABELS[t])
+                  .map((d) => t(disturbanceKey(d)))
                   .join(", ")}
               </dd>
             </div>
             <div>
-              <dt className="text-sm text-muted-foreground">Severitate</dt>
+              <dt className="text-sm text-muted-foreground">
+                {t("obs.severity")}
+              </dt>
               <dd className="font-medium">
-                {obs.severity} — {SEVERITY_LABELS[obs.severity]}
+                {obs.severity} — {t(severityKey(obs.severity))}
               </dd>
             </div>
             <div>
-              <dt className="text-sm text-muted-foreground">Suprafață</dt>
+              <dt className="text-sm text-muted-foreground">{t("obs.area")}</dt>
               <dd className="font-medium">{obs.affectedAreaSqm} m²</dd>
             </div>
             {obs.insectType ? (
               <div>
-                <dt className="text-sm text-muted-foreground">Insectă</dt>
+                <dt className="text-sm text-muted-foreground">{t("obs.insect")}</dt>
                 <dd className="font-medium">{obs.insectType}</dd>
               </div>
             ) : null}
@@ -159,50 +163,52 @@ function ObservationDetail({ id }: { id: string }) {
         {obs.module === "sol" ? (
           <>
             <div>
-              <dt className="text-sm text-muted-foreground">Mușchi și licheni</dt>
+              <dt className="text-sm text-muted-foreground">{t("obs.moss")}</dt>
               <dd className="font-medium">{obs.mossPct}%</dd>
             </div>
             <div>
-              <dt className="text-sm text-muted-foreground">Litieră</dt>
+              <dt className="text-sm text-muted-foreground">{t("obs.litter")}</dt>
               <dd className="font-medium">{obs.litterPct}%</dd>
             </div>
             <div>
-              <dt className="text-sm text-muted-foreground">Plante</dt>
+              <dt className="text-sm text-muted-foreground">{t("obs.plants")}</dt>
               <dd className="font-medium">{obs.plantsPct}%</dd>
             </div>
             <div>
-              <dt className="text-sm text-muted-foreground">Sol gol / rocă</dt>
+              <dt className="text-sm text-muted-foreground">{t("obs.bare")}</dt>
               <dd className="font-medium">{obs.barePct}%</dd>
             </div>
             <div>
-              <dt className="text-sm text-muted-foreground">Puieți</dt>
+              <dt className="text-sm text-muted-foreground">{t("obs.seedlings")}</dt>
               <dd className="font-medium">
-                {obs.seedlingsPresent ? "Prezenți" : "Absenți"}
+                {obs.seedlingsPresent
+                  ? t("obs.seedlingsYes")
+                  : t("obs.seedlingsNo")}
               </dd>
             </div>
           </>
         ) : null}
         <div>
-          <dt className="text-sm text-muted-foreground">Coordonate</dt>
+          <dt className="text-sm text-muted-foreground">{t("obs.coords")}</dt>
           <dd className="font-medium">
             {formatCoord(obs.location.latitude)},{" "}
             {formatCoord(obs.location.longitude)}
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-muted-foreground">Precizie GPS</dt>
+          <dt className="text-sm text-muted-foreground">{t("obs.accuracy")}</dt>
           <dd className="font-medium">
             {obs.location.accuracy != null ? `${obs.location.accuracy} m` : "—"}
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-muted-foreground">Altitudine</dt>
+          <dt className="text-sm text-muted-foreground">{t("obs.altitude")}</dt>
           <dd className="font-medium">
             {obs.location.altitude != null ? `${obs.location.altitude} m` : "—"}
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-muted-foreground">Oră captură GPS</dt>
+          <dt className="text-sm text-muted-foreground">{t("obs.gpsTime")}</dt>
           <dd className="font-medium">
             {formatDateTime(obs.location.capturedAt)}
           </dd>
@@ -216,7 +222,7 @@ function ObservationDetail({ id }: { id: string }) {
       ) : null}
 
       <div className="mt-6">
-        <h2 className="mb-2 font-display text-lg">Mini-hartă</h2>
+        <h2 className="mb-2 font-display text-lg">{t("obs.miniMap")}</h2>
         <ObservationsMap observations={[obs]} height={240} />
       </div>
 
@@ -231,21 +237,21 @@ function ObservationDetail({ id }: { id: string }) {
         >
           <Button variant="outline">
             <ExternalLink className="size-4" />
-            Direcționează-mă
+            {t("obs.directions")}
           </Button>
         </a>
         {canDelete ? (
           <Button
             variant="destructive"
             onClick={() => {
-              if (confirm("Ștergeți această observație?")) {
+              if (confirm(t("obs.deleteConfirm"))) {
                 deleteObservation(obs.id);
                 router.push("/observatii");
               }
             }}
           >
             <Trash2 className="size-4" />
-            Ștergere
+            {t("obs.delete")}
           </Button>
         ) : null}
       </div>
@@ -253,8 +259,8 @@ function ObservationDetail({ id }: { id: string }) {
       {obs.validatedAt ? (
         <div className="mt-8 rounded-lg border bg-card/80 p-4 text-sm">
           <p>
-            Validat de <strong>{obs.validatorName}</strong> la{" "}
-            {formatDateTime(obs.validatedAt)}
+            {t("obs.validatedBy")} <strong>{obs.validatorName}</strong>{" "}
+            {t("obs.at")} {formatDateTime(obs.validatedAt)}
           </p>
           {obs.validationComment ? (
             <p className="mt-2 text-muted-foreground">{obs.validationComment}</p>
@@ -266,7 +272,7 @@ function ObservationDetail({ id }: { id: string }) {
               variant="outline"
               size="sm"
               onClick={() => {
-                const reason = prompt("Motiv demarcare (obligatoriu):");
+                const reason = prompt(t("obs.unmarkPrompt"));
                 if (!reason?.trim()) return;
                 updateObservation(obs.id, {
                   isSentinelTree: false,
@@ -274,7 +280,7 @@ function ObservationDetail({ id }: { id: string }) {
                 });
               }}
             >
-              Demarcare arbore santinelă
+              {t("obs.unmarkSentinel")}
             </Button>
           ) : null}
         </div>
@@ -282,13 +288,11 @@ function ObservationDetail({ id }: { id: string }) {
 
       {canValidate ? (
         <section className="mt-10 space-y-4 rounded-xl border border-primary/20 bg-card p-5">
-          <h2 className="font-display text-xl text-forest">Validare</h2>
+          <h2 className="font-display text-xl text-forest">{t("obs.validation")}</h2>
           {obs.authorId === user.id && user.role === "ranger" ? (
             <Alert>
-              <AlertTitle>Auto-validare blocată</AlertTitle>
-              <AlertDescription>
-                Nu vă puteți valida propriile observații.
-              </AlertDescription>
+              <AlertTitle>{t("obs.selfValidateBlocked")}</AlertTitle>
+              <AlertDescription>{t("obs.selfValidateMsg")}</AlertDescription>
             </Alert>
           ) : (
             <>
@@ -298,14 +302,14 @@ function ObservationDetail({ id }: { id: string }) {
                   variant={decision === "aprobat" ? "default" : "outline"}
                   onClick={() => setDecision("aprobat")}
                 >
-                  Aprobă
+                  {t("obs.approve")}
                 </Button>
                 <Button
                   type="button"
                   variant={decision === "respins" ? "destructive" : "outline"}
                   onClick={() => setDecision("respins")}
                 >
-                  Respinge
+                  {t("obs.reject")}
                 </Button>
               </div>
               {obs.module === "perturbari" && decision === "aprobat" ? (
@@ -314,16 +318,16 @@ function ObservationDetail({ id }: { id: string }) {
                     checked={sentinel}
                     onCheckedChange={(v) => setSentinel(v === true)}
                   />
-                  Marchează Arbore santinelă
+                  {t("obs.markSentinel")}
                 </label>
               ) : null}
               <div className="space-y-2">
                 <Label htmlFor="comment">
-                  Comentariu
+                  {t("obs.comment")}
                   {decision === "respins" ? (
                     <span className="text-destructive"> *</span>
                   ) : (
-                    " (opțional)"
+                    t("obs.commentOptional")
                   )}
                 </Label>
                 <Textarea
@@ -336,12 +340,12 @@ function ObservationDetail({ id }: { id: string }) {
               <div ref={errorRef}>
                 {error ? (
                   <Alert variant="destructive">
-                    <AlertTitle>Eroare</AlertTitle>
+                    <AlertTitle>{t("obs.error")}</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 ) : null}
               </div>
-              <Button onClick={onValidate}>Salvează decizia</Button>
+              <Button onClick={onValidate}>{t("obs.saveDecision")}</Button>
             </>
           )}
         </section>

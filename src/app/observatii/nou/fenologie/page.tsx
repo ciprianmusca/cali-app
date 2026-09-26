@@ -16,15 +16,33 @@ import {
 import { GeoCapture } from "@/components/observations/geo-capture";
 import { PhotoCapture } from "@/components/observations/photo-capture";
 import { useCaliStore } from "@/lib/store";
-import { PHENOLOGY_STAGES, SPECIES_LABELS } from "@/lib/constants";
+import { PHENOLOGY_STAGES } from "@/lib/constants";
 import type {
   FenologieObservation,
   GeoLocation,
   PhenologyStage,
   Species,
 } from "@/lib/types";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import {
+  phenStageDescKey,
+  phenStageLabelKey,
+  speciesKey,
+} from "@/lib/i18n/labels";
+
+const SPECIES: Species[] = [
+  "picea_abies",
+  "abies_alba",
+  "fagus_sylvatica",
+  "pinus_sylvestris",
+  "larix_decidua",
+  "acer_pseudoplatanus",
+  "sorbus_aucuparia",
+  "alta",
+];
 
 function FenologieForm() {
+  const { t } = useI18n();
   const router = useRouter();
   const user = useCaliStore((s) => s.currentUser())!;
   const addObservation = useCaliStore((s) => s.addObservation);
@@ -41,10 +59,10 @@ function FenologieForm() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!photos.length) e.photos = "Adăugați cel puțin o poză.";
-    if (!stage) e.stage = "Selectați stadiul fenologic.";
-    if (!species) e.species = "Selectați specia.";
-    if (!location) e.location = "Geolocația este obligatorie.";
+    if (!photos.length) e.photos = t("error.photoRequired");
+    if (!stage) e.stage = t("error.stageRequired");
+    if (!species) e.species = t("error.speciesRequired");
+    if (!location) e.location = t("error.locationRequired");
     setErrors(e);
     if (Object.keys(e).length) {
       const first = Object.keys(e)[0];
@@ -94,11 +112,8 @@ function FenologieForm() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="font-display text-3xl text-forest">Observație fenologie</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Fotografiați un arbore și încadrați stadiul fenologic. Codul se
-        generează automat (PHEN-NNNN).
-      </p>
+      <h1 className="font-display text-3xl text-forest">{t("phen.title")}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{t("phen.sub")}</p>
 
       <form ref={formRef} onSubmit={onSubmit} className="mt-8 space-y-6">
         <div data-field="photos">
@@ -111,19 +126,19 @@ function FenologieForm() {
 
         <div data-field="species" className="space-y-2">
           <Label>
-            Specie <span className="text-destructive">*</span>
+            {t("obs.species")} <span className="text-destructive">*</span>
           </Label>
           <Select
             value={species}
             onValueChange={(v) => setSpecies(v as Species)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selectați specia" />
+              <SelectValue placeholder={t("obs.selectSpecies")} />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(SPECIES_LABELS).map(([k, label]) => (
+              {SPECIES.map((k) => (
                 <SelectItem key={k} value={k}>
-                  {label}
+                  {t(speciesKey(k))}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -135,11 +150,10 @@ function FenologieForm() {
 
         <div data-field="stage" className="space-y-3">
           <Label>
-            Stadiu fenologic <span className="text-destructive">*</span>
+            {t("phen.stageLabel")} <span className="text-destructive">*</span>
           </Label>
           <div className="grid gap-2">
             {([1, 2, 3, 4, 5] as PhenologyStage[]).map((s) => {
-              const info = PHENOLOGY_STAGES[s];
               const selected = stage === s;
               return (
                 <button
@@ -154,14 +168,14 @@ function FenologieForm() {
                 >
                   <span
                     className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md text-sm font-bold text-white"
-                    style={{ background: info.color }}
+                    style={{ background: PHENOLOGY_STAGES[s].color }}
                   >
                     {s}
                   </span>
                   <span>
-                    <span className="font-medium">{info.label}</span>
+                    <span className="font-medium">{t(phenStageLabelKey(s))}</span>
                     <span className="mt-0.5 block text-xs text-muted-foreground">
-                      {info.description}
+                      {t(phenStageDescKey(s))}
                     </span>
                   </span>
                 </button>
@@ -174,7 +188,7 @@ function FenologieForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="details">Detalii (opțional)</Label>
+          <Label htmlFor="details">{t("obs.detailsOptional")}</Label>
           <Textarea
             id="details"
             value={details}
@@ -192,7 +206,7 @@ function FenologieForm() {
 
         <div className="flex flex-wrap gap-3 pt-2">
           <Button type="submit" disabled={saving}>
-            Salvare
+            {t("obs.save")}
           </Button>
           <Button
             type="button"
@@ -200,7 +214,7 @@ function FenologieForm() {
             disabled={saving}
             onClick={() => save(true)}
           >
-            Salvare și formular nou
+            {t("obs.saveAndNew")}
           </Button>
         </div>
       </form>

@@ -14,11 +14,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCaliStore } from "@/lib/store";
-import { ROLE_LABELS } from "@/lib/constants";
 import { formatDateTime } from "@/lib/format";
 import type { UserRole, UserStatus } from "@/lib/types";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { roleKey } from "@/lib/i18n/labels";
+
+const ALL_ROLES: UserRole[] = ["admin", "ranger", "rezident", "turist", "elev"];
 
 function UsersAdmin() {
+  const { t } = useI18n();
   const users = useCaliStore((s) => s.users);
   const createUser = useCaliStore((s) => s.createUser);
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
@@ -49,10 +53,10 @@ function UsersAdmin() {
       parentalConsent: role === "elev" ? parental : undefined,
     });
     if (!res.ok) {
-      setMsg(res.error ?? "Eroare");
+      setMsg(res.error ?? t("obs.error"));
       return;
     }
-    setMsg("Utilizator creat (inactiv). Link resetare parolă simulat.");
+    setMsg(t("admin.userCreated"));
     setShowForm(false);
     setName("");
     setEmail("");
@@ -63,10 +67,10 @@ function UsersAdmin() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl text-forest">
-          Gestiune utilizatori
+          {t("admin.usersTitle")}
         </h1>
         <Button onClick={() => setShowForm((v) => !v)}>
-          {showForm ? "Închide" : "Creează utilizator"}
+          {showForm ? t("admin.close") : t("admin.createUser")}
         </Button>
       </div>
 
@@ -77,11 +81,11 @@ function UsersAdmin() {
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
-              <Label>Nume și prenume</Label>
+              <Label>{t("auth.name")}</Label>
               <Input required value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label>Email</Label>
+              <Label>{t("auth.email")}</Label>
               <Input
                 type="email"
                 required
@@ -91,16 +95,16 @@ function UsersAdmin() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Rol</Label>
+            <Label>{t("admin.role")}</Label>
             <RadioGroup
               value={role}
               onValueChange={(v) => setRole(v as UserRole)}
               className="grid gap-2 sm:grid-cols-3"
             >
-              {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
+              {ALL_ROLES.map((r) => (
                 <label key={r} className="flex items-center gap-2 text-sm">
                   <RadioGroupItem value={r} />
-                  {ROLE_LABELS[r]}
+                  {t(roleKey(r))}
                 </label>
               ))}
             </RadioGroup>
@@ -112,10 +116,10 @@ function UsersAdmin() {
                 checked={parental}
                 onChange={(e) => setParental(e.target.checked)}
               />
-              Acord parental atașat (PDF) — obligatoriu
+              {t("admin.parentalPdf")}
             </label>
           ) : null}
-          <Button type="submit">Salvare</Button>
+          <Button type="submit">{t("admin.save")}</Button>
         </form>
       ) : null}
 
@@ -123,7 +127,7 @@ function UsersAdmin() {
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label>Rol</Label>
+          <Label>{t("admin.role")}</Label>
           <Select
             value={roleFilter}
             onValueChange={(v) =>
@@ -134,17 +138,17 @@ function UsersAdmin() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toate</SelectItem>
-              {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
+              <SelectItem value="all">{t("obs.all")}</SelectItem>
+              {ALL_ROLES.map((r) => (
                 <SelectItem key={r} value={r}>
-                  {ROLE_LABELS[r]}
+                  {t(roleKey(r))}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>Stare</Label>
+          <Label>{t("admin.status")}</Label>
           <Select
             value={statusFilter}
             onValueChange={(v) =>
@@ -155,9 +159,9 @@ function UsersAdmin() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toate</SelectItem>
-              <SelectItem value="activ">Activ</SelectItem>
-              <SelectItem value="inactiv">Inactiv</SelectItem>
+              <SelectItem value="all">{t("obs.all")}</SelectItem>
+              <SelectItem value="activ">{t("admin.active")}</SelectItem>
+              <SelectItem value="inactiv">{t("admin.inactive")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -167,13 +171,13 @@ function UsersAdmin() {
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b bg-muted/40 text-muted-foreground">
             <tr>
-              <th className="px-3 py-2">Email</th>
-              <th className="px-3 py-2">Nume</th>
-              <th className="px-3 py-2">Rol</th>
-              <th className="px-3 py-2">Înregistrare</th>
-              <th className="px-3 py-2">Ultima logare</th>
-              <th className="px-3 py-2">GDPR</th>
-              <th className="px-3 py-2">Stare</th>
+              <th className="px-3 py-2">{t("admin.email")}</th>
+              <th className="px-3 py-2">{t("admin.name")}</th>
+              <th className="px-3 py-2">{t("admin.role")}</th>
+              <th className="px-3 py-2">{t("admin.registered")}</th>
+              <th className="px-3 py-2">{t("admin.lastLogin")}</th>
+              <th className="px-3 py-2">{t("admin.gdpr")}</th>
+              <th className="px-3 py-2">{t("admin.status")}</th>
             </tr>
           </thead>
           <tbody>
@@ -181,7 +185,7 @@ function UsersAdmin() {
               <tr key={u.id} className="border-b last:border-0">
                 <td className="px-3 py-2">{u.email}</td>
                 <td className="px-3 py-2">{u.name}</td>
-                <td className="px-3 py-2">{ROLE_LABELS[u.role]}</td>
+                <td className="px-3 py-2">{t(roleKey(u.role))}</td>
                 <td className="px-3 py-2">{formatDateTime(u.registeredAt)}</td>
                 <td className="px-3 py-2">
                   {u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "—"}
@@ -189,7 +193,9 @@ function UsersAdmin() {
                 <td className="px-3 py-2">
                   {u.gdprAcceptedAt ? formatDateTime(u.gdprAcceptedAt) : "—"}
                 </td>
-                <td className="px-3 py-2 capitalize">{u.status}</td>
+                <td className="px-3 py-2">
+                  {u.status === "activ" ? t("admin.active") : t("admin.inactive")}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -1,7 +1,8 @@
 import { format } from "date-fns";
 import { ro } from "date-fns/locale";
 import type { GeoLocation, ObservationModule, UserRole } from "./types";
-import { ROLE_LABELS } from "./constants";
+import { tKey } from "./i18n/store";
+import { roleKey } from "./i18n/labels";
 
 export function formatDate(iso: string): string {
   return format(new Date(iso), "dd.MM.yyyy", { locale: ro });
@@ -32,10 +33,10 @@ export function displayAuthorName(
 ): string {
   if (isOwn) return name;
   if (role === "elev" && viewerRole !== "admin" && viewerRole !== "ranger") {
-    return "Elev (anonimizat)";
+    return tKey("role.elevAnon");
   }
   if (!viewerRole || viewerRole === "turist" || viewerRole === "rezident" || viewerRole === "elev") {
-    return ROLE_LABELS[role];
+    return tKey(roleKey(role));
   }
   return name;
 }
@@ -103,7 +104,7 @@ export function captureGeolocation(
 ): Promise<GeoLocation> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error("Geolocația nu este disponibilă pe acest dispozitiv."));
+      reject(new Error(tKey("geo.unavailableDevice")));
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -124,11 +125,11 @@ export function captureGeolocation(
       },
       (err) => {
         const messages: Record<number, string> = {
-          1: "Permisiunea de locație a fost refuzată. Activați locația și reîncercați.",
-          2: "Poziția nu a putut fi determinată. Verificați semnalul GPS.",
-          3: "Expirare la determinarea locației. Reîncercați.",
+          1: tKey("geo.permissionDenied"),
+          2: tKey("geo.positionUnavailable"),
+          3: tKey("geo.timeout"),
         };
-        reject(new Error(messages[err.code] ?? "Eroare la geolocație."));
+        reject(new Error(messages[err.code] ?? tKey("geo.genericError")));
       },
       { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 }
     );

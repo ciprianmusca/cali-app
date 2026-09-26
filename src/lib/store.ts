@@ -11,6 +11,7 @@ import type {
 } from "./types";
 import { GDPR_VERSION } from "./constants";
 import { generateCode, mockLocationNearPark } from "./format";
+import { tKey } from "./i18n/store";
 
 interface CaliState {
   users: User[];
@@ -301,11 +302,11 @@ export const useCaliStore = create<CaliState>()(
             u.email.toLowerCase() === email.toLowerCase() &&
             u.password === password
         );
-        if (!user) return { ok: false, error: "Email sau parolă incorectă." };
+        if (!user) return { ok: false, error: tKey("error.invalidLogin") };
         if (user.status !== "activ")
           return {
             ok: false,
-            error: "Contul nu este activ. Verificați emailul de activare.",
+            error: tKey("error.inactiveAccount"),
           };
         set({
           users: get().users.map((u) =>
@@ -324,10 +325,10 @@ export const useCaliStore = create<CaliState>()(
         if (!isAdult)
           return {
             ok: false,
-            error: "Trebuie să confirmați că sunteți adult.",
+            error: tKey("error.mustBeAdult"),
           };
         if (get().users.some((u) => u.email.toLowerCase() === email.toLowerCase()))
-          return { ok: false, error: "Există deja un cont cu acest email." };
+          return { ok: false, error: tKey("error.emailExists") };
         const user: User = {
           id: `u-${crypto.randomUUID().slice(0, 8)}`,
           email,
@@ -382,20 +383,20 @@ export const useCaliStore = create<CaliState>()(
       validateObservation: (id, decision, comment, markSentinel) => {
         const user = get().currentUser();
         if (!user || (user.role !== "ranger" && user.role !== "admin"))
-          return { ok: false, error: "Doar rangerii pot valida." };
+          return { ok: false, error: tKey("error.onlyRangers") };
         const obs = get().observations.find((o) => o.id === id);
-        if (!obs) return { ok: false, error: "Observație inexistentă." };
+        if (!obs) return { ok: false, error: tKey("error.obsMissing") };
         if (obs.status !== "in_asteptare")
-          return { ok: false, error: "Observația nu este în așteptare." };
+          return { ok: false, error: tKey("error.notPending") };
         if (obs.authorId === user.id && user.role === "ranger")
           return {
             ok: false,
-            error: "Nu vă puteți valida propriile observații.",
+            error: tKey("error.selfValidate"),
           };
         if (decision === "respins" && !comment.trim())
           return {
             ok: false,
-            error: "Comentariul este obligatoriu la respingere.",
+            error: tKey("error.rejectComment"),
           };
 
         const status: ObservationStatus = decision;
@@ -422,11 +423,11 @@ export const useCaliStore = create<CaliState>()(
 
       createUser: ({ name, email, role, parentalConsent }) => {
         if (get().users.some((u) => u.email.toLowerCase() === email.toLowerCase()))
-          return { ok: false, error: "Email deja folosit." };
+          return { ok: false, error: tKey("error.emailUsed") };
         if (role === "elev" && !parentalConsent)
           return {
             ok: false,
-            error: "Pentru elevi este necesar acordul parental.",
+            error: tKey("error.parental"),
           };
         const user: User = {
           id: `u-${crypto.randomUUID().slice(0, 8)}`,

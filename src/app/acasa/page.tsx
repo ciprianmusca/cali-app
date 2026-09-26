@@ -15,10 +15,13 @@ import { AuthGate } from "@/components/layout/auth-gate";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useCaliStore } from "@/lib/store";
-import { GDPR_VERSION, MODULE_LABELS } from "@/lib/constants";
+import { GDPR_VERSION } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { moduleKey } from "@/lib/i18n/labels";
 import { cn } from "@/lib/utils";
 
 function GdprGate({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
   const user = useCaliStore((s) => s.currentUser());
   const acceptGdpr = useCaliStore((s) => s.acceptGdpr);
   const logout = useCaliStore((s) => s.logout);
@@ -28,27 +31,15 @@ function GdprGate({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="font-display text-3xl text-forest">
-        Confirmare prelucrare date (GDPR)
-      </h1>
+      <h1 className="font-display text-3xl text-forest">{t("gdpr.title")}</h1>
       <div className="mt-6 space-y-4 rounded-lg border bg-card/80 p-5 text-sm leading-relaxed">
+        <p>{t("gdpr.p1")}</p>
+        <p>{t("gdpr.p2")}</p>
         <p>
-          CALI-LAB (operator: ISV, partener APNC) colectează observații
-          științifice care pot include fotografii, coordonate GPS (latitudine,
-          longitudine, precizie, altitudine, oră captură) și date de cont
-          (nume, email, rol).
-        </p>
-        <p>
-          Datele sunt validate de rangerii PNC și pot fi exportate anonimizat
-          către ForestWard Observatory (EFI/FORWARDS). Durata de păstrare:
-          pe perioada proiectului și ulterior cât este necesar pentru cercetare
-          științifică, conform politicii de date.
-        </p>
-        <p>
-          Versiune text: <strong>{GDPR_VERSION}</strong>
+          {t("gdpr.version")} <strong>{GDPR_VERSION}</strong>
         </p>
         <Link href="/politica-date" className="text-primary underline">
-          Citește politica de date completă
+          {t("gdpr.readPolicy")}
         </Link>
       </div>
       <label className="mt-6 flex items-start gap-2 text-sm">
@@ -56,7 +47,7 @@ function GdprGate({ children }: { children: React.ReactNode }) {
           checked={accepted}
           onCheckedChange={(v) => setAccepted(v === true)}
         />
-        Accept condițiile de prelucrare a datelor
+        {t("gdpr.accept")}
       </label>
       <div className="mt-6 flex flex-wrap gap-3">
         <Button
@@ -65,7 +56,7 @@ function GdprGate({ children }: { children: React.ReactNode }) {
             acceptGdpr();
           }}
         >
-          Continuă
+          {t("gdpr.continue")}
         </Button>
         <Button
           variant="outline"
@@ -74,7 +65,7 @@ function GdprGate({ children }: { children: React.ReactNode }) {
             window.location.href = "/";
           }}
         >
-          Nu accept — ieșire
+          {t("gdpr.decline")}
         </Button>
       </div>
     </div>
@@ -82,6 +73,7 @@ function GdprGate({ children }: { children: React.ReactNode }) {
 }
 
 function HomeContent() {
+  const { t } = useI18n();
   const user = useCaliStore((s) => s.currentUser());
   const observations = useCaliStore((s) => s.observations);
   const users = useCaliStore((s) => s.users);
@@ -95,22 +87,22 @@ function HomeContent() {
   const modules = [
     {
       href: "/observatii/nou/fenologie",
-      title: MODULE_LABELS.fenologie,
-      desc: "Stadiu fenologic al arborilor (muguri → stres)",
+      title: t(moduleKey("fenologie")),
+      desc: t("home.modPhenDesc"),
       icon: Leaf,
       color: "bg-emerald-800",
     },
     {
       href: "/observatii/nou/perturbari",
-      title: MODULE_LABELS.perturbari,
-      desc: "Insecte, doborâtură, uscare și alte perturbări",
+      title: t(moduleKey("perturbari")),
+      desc: t("home.modDistDesc"),
       icon: TreePine,
       color: "bg-orange-900",
     },
     {
       href: "/observatii/nou/sol",
-      title: MODULE_LABELS.sol,
-      desc: "Mușchi, litieră, plante și sol gol — suma 100%",
+      title: t(moduleKey("sol")),
+      desc: t("home.modSoilDesc"),
       icon: Mountain,
       color: "bg-stone-700",
     },
@@ -119,14 +111,11 @@ function HomeContent() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
       <div className="animate-rise">
-        <p className="text-sm text-muted-foreground">Bine ați venit</p>
+        <p className="text-sm text-muted-foreground">{t("home.welcome")}</p>
         <h1 className="font-display text-3xl text-forest sm:text-4xl">
           {user?.name}
         </h1>
-        <p className="mt-2 max-w-xl text-muted-foreground">
-          Alegeți un modul pentru o observație nouă din teren sau consultați
-          lista și harta.
-        </p>
+        <p className="mt-2 max-w-xl text-muted-foreground">{t("home.sub")}</p>
       </div>
 
       {(user?.role === "ranger" || user?.role === "admin") && (
@@ -137,7 +126,7 @@ function HomeContent() {
           >
             <div className="flex items-center gap-2 text-amber-950">
               <ShieldCheck className="size-4" />
-              De validat
+              {t("home.toValidate")}
             </div>
             <div className="mt-2 font-display text-3xl text-amber-950">
               {pending}
@@ -151,14 +140,14 @@ function HomeContent() {
               >
                 <div className="flex items-center gap-2">
                   <Users className="size-4" />
-                  Utilizatori noi (30 zile)
+                  {t("home.newUsers")}
                 </div>
                 <div className="mt-2 font-display text-3xl text-forest">
                   {newUsers}
                 </div>
               </Link>
               <div className="rounded-lg border bg-card/80 px-4 py-4">
-                <div>Observațiile mele</div>
+                <div>{t("home.myObs")}</div>
                 <div className="mt-2 font-display text-3xl text-forest">
                   {myObs.length}
                 </div>
@@ -166,7 +155,7 @@ function HomeContent() {
             </>
           ) : (
             <div className="rounded-lg border bg-card/80 px-4 py-4 sm:col-span-2">
-              <div>Observațiile mele</div>
+              <div>{t("home.myObs")}</div>
               <div className="mt-2 font-display text-3xl text-forest">
                 {myObs.length}
               </div>
@@ -195,7 +184,7 @@ function HomeContent() {
               <h2 className="font-display text-xl">{m.title}</h2>
               <p className="mt-2 text-sm text-muted-foreground">{m.desc}</p>
               <span className="mt-4 inline-block text-sm font-medium text-primary">
-                Observație nouă →
+                {t("home.newObs")}
               </span>
             </Link>
           );
@@ -208,14 +197,14 @@ function HomeContent() {
           className={cn(buttonVariants({ variant: "outline" }))}
         >
           <List className="size-4" />
-          Listare observații
+          {t("home.listObs")}
         </Link>
         <Link
           href="/harta"
           className={cn(buttonVariants({ variant: "outline" }))}
         >
           <Map className="size-4" />
-          Hartă
+          {t("home.map")}
         </Link>
       </div>
     </div>

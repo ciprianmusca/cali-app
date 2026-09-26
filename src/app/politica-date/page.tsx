@@ -1,50 +1,36 @@
+"use client";
+
+import { useI18n } from "@/lib/i18n/use-i18n";
+
 export default function PoliticaDatePage() {
+  const { t } = useI18n();
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 prose-none">
-      <h1 className="font-display text-3xl text-forest">Politica de date</h1>
+      <h1 className="font-display text-3xl text-forest">{t("policy.title")}</h1>
       <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-        Versiune 2026.1 · CALI-LAB · Grant Agreement G-07-2025-2
+        {t("policy.version")}
       </p>
 
       <section className="mt-8 space-y-4 text-sm leading-relaxed">
-        <h2 className="font-display text-xl">Operator</h2>
-        <p>
-          Operatorul datelor aplicației CALI-LAB este Institutul de
-          Cercetare-Dezvoltare în Silvicultură (ISV), în parteneriat cu
-          Administrația Parcului Național Călimani (APNC).
-        </p>
+        <h2 className="font-display text-xl">{t("policy.operator")}</h2>
+        <p>{t("policy.operatorText")}</p>
 
-        <h2 className="font-display text-xl">Categorii de date</h2>
+        <h2 className="font-display text-xl">{t("policy.categories")}</h2>
         <ul className="list-disc space-y-1 pl-5">
-          <li>Date de cont: nume, email, rol, acord GDPR, acord parental (elevi)</li>
-          <li>
-            Observații: fotografii, text liber, specie, parametrii de modul
-          </li>
-          <li>
-            Geolocație: latitudine, longitudine, precizie, altitudine, oră
-            captură
-          </li>
+          <li>{t("policy.cat1")}</li>
+          <li>{t("policy.cat2")}</li>
+          <li>{t("policy.cat3")}</li>
         </ul>
 
-        <h2 className="font-display text-xl">Scop</h2>
-        <p>
-          Colectarea observațiilor științifice pentru Climate-Smart Forestry și
-          integrarea datelor validate în ForestWard Observatory (EFI/FORWARDS).
-        </p>
+        <h2 className="font-display text-xl">{t("policy.purpose")}</h2>
+        <p>{t("policy.purposeText")}</p>
 
-        <h2 className="font-display text-xl">Durata păstrării</h2>
-        <p>
-          Datele sunt păstrate pe durata proiectului și ulterior cât este
-          necesar pentru cercetare științifică și arhivare FAIR, cu
-          anonimizare la export.
-        </p>
+        <h2 className="font-display text-xl">{t("policy.retention")}</h2>
+        <p>{t("policy.retentionText")}</p>
 
-        <h2 className="font-display text-xl">Elevi</h2>
-        <p>
-          Conturile de elev sunt create de administrator pe baza listei școlare
-          și a acordului parental. În interfețele publice și pentru roluri de
-          teren, numele elevilor sunt anonimizate.
-        </p>
+        <h2 className="font-display text-xl">{t("policy.students")}</h2>
+        <p>{t("policy.studentsText")}</p>
       </section>
     </div>
   );

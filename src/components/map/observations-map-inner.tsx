@@ -10,8 +10,10 @@ import {
 } from "react-leaflet";
 import Link from "next/link";
 import type { Observation } from "@/lib/types";
-import { MODULE_COLORS, MODULE_LABELS, STATUS_LABELS } from "@/lib/constants";
+import { MODULE_COLORS } from "@/lib/constants";
 import { formatCoord, formatDateTime } from "@/lib/format";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { moduleKey, statusKey } from "@/lib/i18n/labels";
 import "leaflet/dist/leaflet.css";
 
 function FitBounds({ observations }: { observations: Observation[] }) {
@@ -38,6 +40,7 @@ export default function ObservationsMapInner({
   observations: Observation[];
   height: number;
 }) {
+  const { t } = useI18n();
   const center = useMemo(() => {
     if (!observations.length) return { lat: 47.125, lng: 25.175 };
     const lat =
@@ -78,7 +81,7 @@ export default function ObservationsMapInner({
               <div className="space-y-1 text-sm">
                 <div className="font-medium">{o.code}</div>
                 <div>
-                  {MODULE_LABELS[o.module]} · {STATUS_LABELS[o.status]}
+                  {t(moduleKey(o.module))} · {t(statusKey(o.status))}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {formatCoord(o.location.latitude)},{" "}
@@ -95,7 +98,7 @@ export default function ObservationsMapInner({
                   href={`/observatii/${o.id}`}
                   className="text-emerald-800 underline"
                 >
-                  Detalii
+                  {t("obs.details")}
                 </Link>
               </div>
             </Popup>

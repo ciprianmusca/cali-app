@@ -16,9 +16,9 @@ const body = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "CALI-LAB · Observații forestiere Călimani",
+  title: "CALI-LAB · Călimani forest observations",
   description:
-    "Aplicație PWA pentru colectarea observațiilor științifice din Parcul Național Călimani — fenologie, perturbări și sol — pentru Climate-Smart Forestry.",
+    "PWA for scientific forest observations in Călimani National Park — phenology, disturbances and soil cover — for Climate-Smart Forestry.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

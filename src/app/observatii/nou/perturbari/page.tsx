@@ -18,19 +18,39 @@ import {
 import { GeoCapture } from "@/components/observations/geo-capture";
 import { PhotoCapture } from "@/components/observations/photo-capture";
 import { useCaliStore } from "@/lib/store";
-import {
-  DISTURBANCE_LABELS,
-  SEVERITY_LABELS,
-  SPECIES_LABELS,
-} from "@/lib/constants";
 import type {
   DisturbanceType,
   GeoLocation,
   PerturbariObservation,
   Species,
 } from "@/lib/types";
+import { useI18n } from "@/lib/i18n/use-i18n";
+import { disturbanceKey, severityKey, speciesKey } from "@/lib/i18n/labels";
+
+const SPECIES: Species[] = [
+  "picea_abies",
+  "abies_alba",
+  "fagus_sylvatica",
+  "pinus_sylvestris",
+  "larix_decidua",
+  "acer_pseudoplatanus",
+  "sorbus_aucuparia",
+  "alta",
+];
+
+const DISTURBANCE_TYPES: DisturbanceType[] = [
+  "atac_insecte",
+  "doboratura_vant",
+  "uscare",
+  "rupturi_zapada",
+  "ciuperci",
+  "vatamari_vanat",
+  "incendiu",
+  "alta",
+];
 
 function PerturbariForm() {
+  const { t } = useI18n();
   const router = useRouter();
   const user = useCaliStore((s) => s.currentUser())!;
   const addObservation = useCaliStore((s) => s.addObservation);
@@ -47,21 +67,21 @@ function PerturbariForm() {
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const toggleType = (t: DisturbanceType) => {
+  const toggleType = (d: DisturbanceType) => {
     setTypes((prev) =>
-      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
+      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
     );
   };
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!photos.length) e.photos = "Adăugați cel puțin o poză.";
-    if (!types.length) e.types = "Selectați cel puțin un tip de perturbare.";
-    if (!species) e.species = "Selectați specia.";
-    if (!severity) e.severity = "Severitatea este obligatorie.";
+    if (!photos.length) e.photos = t("error.photoRequired");
+    if (!types.length) e.types = t("error.disturbanceType");
+    if (!species) e.species = t("error.speciesRequired");
+    if (!severity) e.severity = t("error.severityRequired");
     if (!area.trim() || Number(area.replace(",", ".")) <= 0)
-      e.area = "Suprafața afectată (m²) este obligatorie.";
-    if (!location) e.location = "Geolocația este obligatorie.";
+      e.area = t("error.areaRequired");
+    if (!location) e.location = t("error.locationRequired");
     setErrors(e);
     if (Object.keys(e).length) {
       const el = formRef.current?.querySelector(
@@ -118,12 +138,8 @@ function PerturbariForm() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="font-display text-3xl text-forest">
-        Observație perturbări
-      </h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Documentați tipul, severitatea și suprafața afectată. Cod: DIST-NNNN.
-      </p>
+      <h1 className="font-display text-3xl text-forest">{t("dist.title")}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{t("dist.sub")}</p>
 
       <form ref={formRef} onSubmit={onSubmit} className="mt-8 space-y-6">
         <div data-field="photos">
@@ -136,19 +152,19 @@ function PerturbariForm() {
 
         <div data-field="species" className="space-y-2">
           <Label>
-            Specie <span className="text-destructive">*</span>
+            {t("obs.species")} <span className="text-destructive">*</span>
           </Label>
           <Select
             value={species}
             onValueChange={(v) => setSpecies((v ?? "") as Species)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selectați specia" />
+              <SelectValue placeholder={t("obs.selectSpecies")} />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(SPECIES_LABELS).map(([k, label]) => (
+              {SPECIES.map((k) => (
                 <SelectItem key={k} value={k}>
-                  {label}
+                  {t(speciesKey(k))}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -160,23 +176,21 @@ function PerturbariForm() {
 
         <div data-field="types" className="space-y-3">
           <Label>
-            Tipul perturbării <span className="text-destructive">*</span>
+            {t("dist.typeLabel")} <span className="text-destructive">*</span>
           </Label>
           <div className="grid gap-2 sm:grid-cols-2">
-            {(Object.keys(DISTURBANCE_LABELS) as DisturbanceType[]).map(
-              (t) => (
-                <label
-                  key={t}
-                  className="flex items-center gap-2 rounded-md border bg-card/60 px-3 py-2 text-sm"
-                >
-                  <Checkbox
-                    checked={types.includes(t)}
-                    onCheckedChange={() => toggleType(t)}
-                  />
-                  {DISTURBANCE_LABELS[t]}
-                </label>
-              )
-            )}
+            {DISTURBANCE_TYPES.map((d) => (
+              <label
+                key={d}
+                className="flex items-center gap-2 rounded-md border bg-card/60 px-3 py-2 text-sm"
+              >
+                <Checkbox
+                  checked={types.includes(d)}
+                  onCheckedChange={() => toggleType(d)}
+                />
+                {t(disturbanceKey(d))}
+              </label>
+            ))}
           </div>
           {errors.types ? (
             <p className="text-sm text-destructive">{errors.types}</p>
@@ -185,10 +199,10 @@ function PerturbariForm() {
 
         {types.includes("atac_insecte") ? (
           <div className="space-y-2">
-            <Label htmlFor="insect">Tip insectă (opțional)</Label>
+            <Label htmlFor="insect">{t("dist.insectOptional")}</Label>
             <Input
               id="insect"
-              placeholder="ex. Ips typographus, Lymantria monacha"
+              placeholder={t("dist.insectPlaceholder")}
               value={insectType}
               onChange={(e) => setInsectType(e.target.value)}
             />
@@ -197,7 +211,8 @@ function PerturbariForm() {
 
         <div data-field="severity" className="space-y-3">
           <Label>
-            Scor severitate <span className="text-destructive">*</span>
+            {t("dist.severityLabel")}{" "}
+            <span className="text-destructive">*</span>
           </Label>
           <div className="grid gap-2">
             {([1, 2, 3, 4, 5] as const).map((s) => (
@@ -211,7 +226,7 @@ function PerturbariForm() {
                     : "border-border bg-card/60"
                 }`}
               >
-                <strong>{s}</strong> — {SEVERITY_LABELS[s]}
+                <strong>{s}</strong> — {t(severityKey(s))}
               </button>
             ))}
           </div>
@@ -222,7 +237,7 @@ function PerturbariForm() {
 
         <div data-field="area" className="space-y-2">
           <Label htmlFor="area">
-            Suprafață afectată (m²) <span className="text-destructive">*</span>
+            {t("dist.areaLabel")} <span className="text-destructive">*</span>
           </Label>
           <Input
             id="area"
@@ -237,7 +252,7 @@ function PerturbariForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="details">Detalii (opțional)</Label>
+          <Label htmlFor="details">{t("obs.detailsOptional")}</Label>
           <Textarea
             id="details"
             value={details}
@@ -254,13 +269,13 @@ function PerturbariForm() {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Button type="submit">Salvare</Button>
+          <Button type="submit">{t("obs.save")}</Button>
           <Button
             type="button"
             variant="secondary"
             onClick={() => save(true)}
           >
-            Salvare și formular nou
+            {t("obs.saveAndNew")}
           </Button>
         </div>
       </form>

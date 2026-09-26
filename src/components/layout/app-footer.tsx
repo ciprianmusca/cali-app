@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n/use-i18n";
 
 export function AppFooter() {
+  const { t } = useI18n();
+
   return (
     <footer className="mt-auto border-t border-border/60 bg-forest text-primary-foreground">
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 md:grid-cols-[1fr_auto] md:items-start">
@@ -8,7 +13,7 @@ export function AppFooter() {
           <div className="flex flex-wrap items-center gap-4">
             <div
               className="flex h-12 w-16 items-center justify-center rounded-sm bg-[#003399] text-[10px] font-bold tracking-wide text-yellow-300"
-              aria-label="Emblema Uniunii Europene"
+              aria-label={t("footer.euEmblem")}
             >
               EU
             </div>
@@ -32,10 +37,10 @@ export function AppFooter() {
         </div>
         <div className="flex flex-col gap-2 text-sm">
           <Link href="/politica-date" className="underline-offset-2 hover:underline">
-            Politica de date
+            {t("footer.dataPolicy")}
           </Link>
           <Link href="/harta" className="underline-offset-2 hover:underline">
-            Hartă observații
+            {t("footer.obsMap")}
           </Link>
           <a
             href="https://cali.ipsv.ro"
