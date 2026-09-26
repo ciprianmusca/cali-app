@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ModuleBadge, StatusBadge } from "@/components/observations/badges";
+import { ObservationThumb } from "@/components/observations/observation-thumb";
 import { useCaliStore } from "@/lib/store";
 import { formatDateTime } from "@/lib/format";
 import type { ObservationModule, UserRole } from "@/lib/types";
@@ -125,14 +126,11 @@ function ValidationQueue() {
                 onChange={() => toggle(o.id)}
                 aria-label={`${t("val.open")} ${o.code}`}
               />
-              <div className="h-14 w-20 overflow-hidden rounded bg-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={o.photos[0]}
-                  alt=""
-                  className="size-full object-cover"
-                />
-              </div>
+              <ObservationThumb
+                module={o.module}
+                src={o.photos[0]}
+                className="h-14 w-20 rounded"
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link

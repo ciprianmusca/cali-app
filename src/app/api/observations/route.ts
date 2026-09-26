@@ -8,21 +8,7 @@ import {
   upsertObservation,
 } from "@/lib/db";
 import type { Observation } from "@/lib/types";
-
-function slimObservation(obs: Observation): Observation {
-  const placeholder =
-    obs.module === "fenologie"
-      ? "/placeholders/tree-1.svg"
-      : obs.module === "sol"
-        ? "/placeholders/soil-1.svg"
-        : "/placeholders/disturbance-1.svg";
-  return {
-    ...obs,
-    photos: (obs.photos ?? []).map((src) =>
-      typeof src === "string" && src.startsWith("data:") ? placeholder : src
-    ),
-  };
-}
+import { slimObservationPhotos } from "@/lib/photos";
 
 export async function GET() {
   try {
@@ -30,7 +16,7 @@ export async function GET() {
     await ensureSchema(db);
     await seedIfEmpty(db);
     const session = await getSessionUser();
-    const all = (await listObservations(db)).map(slimObservation);
+    const all = (await listObservations(db)).map(slimObservationPhotos);
     if (!session) {
       return NextResponse.json({
         ok: true,

@@ -19,6 +19,7 @@ import {
   StatusBadge,
   SyncBadge,
 } from "@/components/observations/badges";
+import { ObservationThumb } from "@/components/observations/observation-thumb";
 import { useCaliStore } from "@/lib/store";
 import {
   formatCoord,
@@ -151,14 +152,11 @@ function ObservationsList() {
               key={o.id}
               className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center"
             >
-              <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-md bg-muted">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={o.photos[0]}
-                  alt=""
-                  className="size-full object-cover"
-                />
-              </div>
+              <ObservationThumb
+                module={o.module}
+                src={o.photos[0]}
+                className="relative h-16 w-24 shrink-0 rounded-md"
+              />
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link

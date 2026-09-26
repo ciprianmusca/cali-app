@@ -8,29 +8,14 @@ import {
   migratePlaintextPasswords,
   seedIfEmpty,
 } from "@/lib/db";
-import type { Observation } from "@/lib/types";
-
-/** Inline data-URI photos bloat bootstrap to multi‑MB and break login on mobile. */
-function slimObservation(obs: Observation): Observation {
-  const placeholder =
-    obs.module === "fenologie"
-      ? "/placeholders/tree-1.svg"
-      : obs.module === "sol"
-        ? "/placeholders/soil-1.svg"
-        : "/placeholders/disturbance-1.svg";
-  const photos = (obs.photos ?? []).map((src) =>
-    typeof src === "string" && src.startsWith("data:") ? placeholder : src
-  );
-  return { ...obs, photos };
-}
+import { slimObservationPhotos } from "@/lib/photos";
 
 /**
  * Canonical data from D1.
  * - Never returns passwords.
  * - Unauthenticated: only approved observations, no user directory.
- * - Authenticated: observations (all for ranger/admin, else all for app use)
- *   + user directory only for admin (without passwords).
- * - Inline photo payloads are stripped; use GET /api/observations/[id] for full photos.
+ * - Authenticated: observations + user directory only for admin.
+ * - Inline photo payloads are replaced with /api/observations/:id/photo/:i URLs.
  */
 export async function GET() {
   try {
@@ -40,7 +25,9 @@ export async function GET() {
     await migratePlaintextPasswords(db);
 
     const session = await getSessionUser();
-    const allObservations = (await listObservations(db)).map(slimObservation);
+    const allObservations = (await listObservations(db)).map(
+      slimObservationPhotos
+    );
 
     if (!session) {
       return NextResponse.json({
@@ -57,8 +44,6 @@ export async function GET() {
         ? (await listUsers(db)).map(toPublicUser)
         : [toPublicUser(session)];
 
-    // Rangers/admins see all; field roles see all for list/map workflows
-    // (author names are already masked client-side for privacy).
     const observations = canValidate(session.role)
       ? allObservations
       : allObservations;

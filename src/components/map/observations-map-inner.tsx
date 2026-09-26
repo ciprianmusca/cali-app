@@ -14,6 +14,7 @@ import { MODULE_COLORS } from "@/lib/constants";
 import { formatCoord, formatDateTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { moduleKey, statusKey } from "@/lib/i18n/labels";
+import { ObservationThumb } from "@/components/observations/observation-thumb";
 import "leaflet/dist/leaflet.css";
 
 function FitBounds({ observations }: { observations: Observation[] }) {
@@ -88,11 +89,10 @@ export default function ObservationsMapInner({
                   {formatCoord(o.location.longitude)}
                 </div>
                 <div className="text-xs">{formatDateTime(o.createdAt)}</div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <ObservationThumb
+                  module={o.module}
                   src={o.photos[0]}
-                  alt=""
-                  className="mt-1 h-20 w-full rounded object-cover"
+                  className="mt-1 h-20 w-full rounded"
                 />
                 <Link
                   href={`/observatii/${o.id}`}
