@@ -74,7 +74,7 @@ La autentificare GitHub: [Personal Access Token](https://github.com/settings/tok
 |------|---------|
 | Worker name | `cali-lab` (trebuie să coincidă cu `name` din `wrangler.jsonc`) |
 | Production branch | `main` |
-| Build command | `npm run cf:build` |
+| Build command | `npm run cf:build` (`build` trebuie să fie `next build`, nu OpenNext) |
 | Deploy command | `npx wrangler deploy` |
 | Root directory | (gol) |
 | GitHub repo | `ciprianmusca/cali-app` |
