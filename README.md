@@ -30,34 +30,62 @@ Proiectul e pregătit cu `@opennextjs/cloudflare`. Subdomeniul **cali.ipsv.ro** 
 
 **Condiție:** zona DNS `ipsv.ro` trebuie să fie pe același cont Cloudflare.
 
-### GitHub + Cloudflare (recomandat)
+### GitLab + Cloudflare (fără deploy local)
 
-1. În Cursor, creează repo GitHub (**Create repo**), dacă încă nu există.
-2. În Cloudflare: **Create an app** → **Continue with GitHub** → autorizează contul → alege repo-ul `cali-lab` (sau numele ales).
-3. Setări de build (important):
+Cloudflare nu citește Cursor Origin. Codul trebuie să fie pe **GitLab**, apoi Cloudflare îl construiește la fiecare push.
+
+#### A. Creează proiectul pe GitLab
+
+1. [gitlab.com/projects/new](https://gitlab.com/projects/new)
+2. Project name: `cali-app`
+3. Visibility: Private (sau Public)
+4. **Nu** bifa „Initialize repository with a README”
+5. Create project — copiază URL-ul, ex. `https://gitlab.com/<user>/cali-app.git`
+
+#### B. Împinge codul din Origin pe GitLab (o singură dată)
+
+Pe calculatorul tău (sau orice mașină cu git):
+
+```bash
+curl -fsSL https://downloads.cursor.com/origin/install.sh | sh
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+
+origin auth login
+origin repo clone ciprian-musca/cali-app
+cd cali-app
+
+git remote add gitlab https://gitlab.com/<user>/cali-app.git
+git push -u gitlab main
+```
+
+Înlocuiește `<user>` cu userul/grupul tău GitLab. La autentificare folosește un [Personal Access Token](https://gitlab.com/-/user_settings/personal_access_tokens) cu scope `write_repository` (nu parola contului).
+
+#### C. Leagă în Cloudflare
+
+1. Cloudflare → **Create an app** → **Connect with GitLab**
+2. Autorizează GitLab → alege proiectul `cali-app`
+3. Setări:
 
 | Câmp | Valoare |
 |------|---------|
-| Project / Worker name | `cali-lab` (trebuie să coincidă cu `name` din `wrangler.jsonc`) |
+| Worker name | `cali-lab` |
 | Production branch | `main` |
 | Build command | `npm run cf:build` |
 | Deploy command | `npm run cf:deploy` |
-| Root directory | `/` (gol / rădăcină) |
+| Root directory | (gol) |
 
-4. **Save and Deploy**.
-5. După primul deploy reușit: Worker → **Settings** → **Domains & Routes** → **Custom Domain** → `cali.ipsv.ro`  
-   (sau lasă Wrangler să-l creeze automat din `wrangler.jsonc` la deploy).
+4. **Save and Deploy** — Cloudflare face build-ul în cloud.
+5. Domeniul `cali.ipsv.ro` e deja în `wrangler.jsonc`; după deploy verifică **Settings → Domains & Routes**.
 
-Nu adăuga manual un CNAME pentru `cali` — Custom Domain gestionează DNS + SSL.
+La fiecare `git push` pe `main` (GitLab), Cloudflare redeploy-uiește automat.
 
-### Din terminal (fără GitHub)
+### Alternativ: deploy local cu Wrangler
 
 ```bash
 npm install
 npx wrangler login
 npm run deploy
 ```
-
 ## Funcționalități (slice livrat)
 
 - Statistici publice, hartă Leaflet/OpenTopoMap, autentificare / înregistrare, GDPR
