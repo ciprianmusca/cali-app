@@ -3,7 +3,7 @@ import type { Observation, UserRole } from "@/lib/types";
 /** Public labels used when full names must not be exposed. */
 export const PUBLIC_ROLE_LABEL: Record<UserRole, string> = {
   admin: "Administrator",
-  ranger: "Ranger PNC",
+  ranger: "Ranger",
   profesor: "Profesor",
   rezident: "Rezident",
   turist: "Turist",

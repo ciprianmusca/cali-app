@@ -32,10 +32,10 @@ export const ro = {
   "status.clarificare": "Clarificare",
 
   // Landing
-  "landing.heroAlt": "Pădure vulcanică în ceață, Parcul Național Călimani",
-  "landing.headline": "Observații din pădurile vulcanice ale Călimanilor",
+  "landing.heroAlt": "Pădure în ceață",
+  "landing.headline": "Observații din pădure pentru Climate-Smart Forestry",
   "landing.sub":
-    "Colectați fenologie, perturbări și acoperire de sol pentru Climate-Smart Forestry — date validate de rangerii PNC.",
+    "Colectați fenologie, perturbări și acoperire de sol — date validate de rangeri.",
   "landing.ctaStart": "Începeți o observație",
   "landing.ctaMap": "Explorați harta",
   "landing.statsTitle": "Statistici publice",
@@ -124,7 +124,7 @@ export const ro = {
   "gdpr.p1":
     "CALI-LAB (operator: ISV, partener APNC) colectează observații științifice care pot include fotografii, coordonate GPS (latitudine, longitudine, precizie, altitudine, oră captură) și date de cont (nume, email, rol).",
   "gdpr.p2":
-    "Datele sunt validate de rangerii PNC și pot fi exportate anonimizat către ForestWard Observatory (EFI/FORWARDS). Durata de păstrare: pe perioada proiectului și ulterior cât este necesar pentru cercetare științifică, conform politicii de date.",
+    "Datele sunt validate de rangeri și pot fi exportate anonimizat către ForestWard Observatory (EFI/FORWARDS). Durata de păstrare: pe perioada proiectului și ulterior cât este necesar pentru cercetare științifică, conform politicii de date.",
   "gdpr.version": "Versiune text:",
   "gdpr.readPolicy": "Citește politica de date completă",
   "gdpr.accept": "Accept condițiile de prelucrare a datelor",
@@ -155,6 +155,7 @@ export const ro = {
   "obs.delete": "Ștergere",
   "obs.miniMap": "Mini-hartă",
   "obs.validatedBy": "Validat de",
+  "obs.validatedByRanger": "Validat de un ranger",
   "obs.at": "la",
   "obs.unmarkSentinel": "Demarcare arbore santinelă",
   "obs.unmarkPrompt": "Motiv demarcare (obligatoriu):",
@@ -391,7 +392,7 @@ export const ro = {
   "admin.usersTitle": "Gestiune utilizatori",
   "admin.createUser": "Creează utilizator",
   "admin.close": "Închide",
-  "admin.parentalPdf": "Acord parental atașat (PDF) — obligatoriu",
+  "admin.parentalPdf": "Acord parental — obligatoriu",
   "admin.save": "Salvare",
   "admin.userCreated":
     "Utilizator creat (inactiv). Link resetare parolă simulat.",

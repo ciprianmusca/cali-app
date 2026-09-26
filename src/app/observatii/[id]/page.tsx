@@ -49,6 +49,7 @@ import {
 } from "@/lib/i18n/labels";
 import { speciesDisplayLabel } from "@/lib/species";
 import { canViewObservation } from "@/lib/visibility";
+import { canSeeFullNames } from "@/lib/privacy";
 import { DISTURBANCE_LABELS } from "@/lib/constants";
 
 type DecisionChoice =
@@ -669,11 +670,20 @@ function ObservationDetail({ id }: { id: string }) {
       {obs.validatedAt ? (
         <div className="mt-8 rounded-lg border bg-card/80 p-4 text-sm">
           <p>
-            {t("obs.validatedBy")}{" "}
-            <strong>
-              {displayValidatorName(obs.validatorName, user.role)}
-            </strong>{" "}
-            {t("obs.at")} {formatDateTime(obs.validatedAt)}
+            {canSeeFullNames(user.role) ? (
+              <>
+                {t("obs.validatedBy")}{" "}
+                <strong>
+                  {displayValidatorName(obs.validatorName, user.role)}
+                </strong>{" "}
+                {t("obs.at")} {formatDateTime(obs.validatedAt)}
+              </>
+            ) : (
+              <>
+                {t("obs.validatedByRanger")} {t("obs.at")}{" "}
+                {formatDateTime(obs.validatedAt)}
+              </>
+            )}
           </p>
           {obs.validationComment ? (
             <p className="mt-2 text-muted-foreground">{obs.validationComment}</p>

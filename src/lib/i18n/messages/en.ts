@@ -29,11 +29,10 @@ export const en: { [K in keyof RoMessages]: string } = {
   "status.respins": "Rejected",
   "status.clarificare": "Clarification",
 
-  "landing.heroAlt":
-    "Misty volcanic forest, Călimani National Park",
-  "landing.headline": "Observations from the volcanic forests of Călimani",
+  "landing.heroAlt": "Misty forest",
+  "landing.headline": "Forest observations for Climate-Smart Forestry",
   "landing.sub":
-    "Collect phenology, disturbances and soil cover for Climate-Smart Forestry — data validated by PNC rangers.",
+    "Collect phenology, disturbances and soil cover — data validated by rangers.",
   "landing.ctaStart": "Start an observation",
   "landing.ctaMap": "Explore the map",
   "landing.statsTitle": "Public statistics",
@@ -118,7 +117,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "gdpr.p1":
     "CALI-LAB (controller: ISV, partner APNC) collects scientific observations that may include photographs, GPS coordinates (latitude, longitude, accuracy, altitude, capture time) and account data (name, email, role).",
   "gdpr.p2":
-    "Data are validated by PNC rangers and may be exported anonymously to the ForestWard Observatory (EFI/FORWARDS). Retention: for the project duration and thereafter as needed for scientific research, per the data policy.",
+    "Data are validated by rangers and may be exported anonymously to the ForestWard Observatory (EFI/FORWARDS). Retention: for the project duration and thereafter as needed for scientific research, per the data policy.",
   "gdpr.version": "Text version:",
   "gdpr.readPolicy": "Read the full data policy",
   "gdpr.accept": "I accept the data processing terms",
@@ -148,6 +147,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "obs.delete": "Delete",
   "obs.miniMap": "Mini-map",
   "obs.validatedBy": "Validated by",
+  "obs.validatedByRanger": "Validated by a ranger",
   "obs.at": "at",
   "obs.unmarkSentinel": "Unmark sentinel tree",
   "obs.unmarkPrompt": "Reason for unmarking (required):",
@@ -373,7 +373,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "admin.usersTitle": "User management",
   "admin.createUser": "Create user",
   "admin.close": "Close",
-  "admin.parentalPdf": "Parental consent attached (PDF) — required",
+  "admin.parentalPdf": "Parental consent — required",
   "admin.save": "Save",
   "admin.userCreated":
     "User created (inactive). Password-reset link simulated.",
