@@ -30,21 +30,20 @@ Proiectul e pregătit cu `@opennextjs/cloudflare`. Subdomeniul **cali.ipsv.ro** 
 
 **Condiție:** zona DNS `ipsv.ro` trebuie să fie pe același cont Cloudflare.
 
-### GitLab + Cloudflare (fără deploy local)
+### GitHub + Cloudflare (fără deploy local)
 
-Cloudflare nu citește Cursor Origin. Codul trebuie să fie pe **GitLab**, apoi Cloudflare îl construiește la fiecare push.
+Cloudflare nu citește Cursor Origin. Codul trebuie să fie pe **GitHub** (`ciprianmusca`), apoi Cloudflare îl construiește la fiecare push.
 
-#### A. Creează proiectul pe GitLab
+#### A. Creează repo pe GitHub
 
-1. [gitlab.com/projects/new](https://gitlab.com/projects/new)
-2. Project name: `cali-app`
-3. Visibility: Private (sau Public)
-4. **Nu** bifa „Initialize repository with a README”
-5. Create project — copiază URL-ul, ex. `https://gitlab.com/<user>/cali-app.git`
+1. [github.com/new](https://github.com/new)
+2. Owner: `ciprianmusca`
+3. Repository name: `cali-app`
+4. Private (sau Public)
+5. **Nu** bifa „Add a README” / .gitignore / license (repo gol)
+6. Create repository
 
-#### B. Împinge codul din Origin pe GitLab (o singură dată)
-
-Pe calculatorul tău (sau orice mașină cu git):
+#### B. Împinge codul din Origin pe GitHub (o singură dată)
 
 ```bash
 curl -fsSL https://downloads.cursor.com/origin/install.sh | sh
@@ -54,17 +53,18 @@ origin auth login
 origin repo clone ciprian-musca/cali-app
 cd cali-app
 
-git remote add gitlab https://gitlab.com/<user>/cali-app.git
-git push -u gitlab main
+git remote add github https://github.com/ciprianmusca/cali-app.git
+git push -u github main
 ```
 
-Înlocuiește `<user>` cu userul/grupul tău GitLab. La autentificare folosește un [Personal Access Token](https://gitlab.com/-/user_settings/personal_access_tokens) cu scope `write_repository` (nu parola contului).
+La autentificare GitHub: [Personal Access Token](https://github.com/settings/tokens) cu `repo` (sau login via `gh auth login`).
 
 #### C. Leagă în Cloudflare
 
-1. Cloudflare → **Create an app** → **Connect with GitLab**
-2. Autorizează GitLab → alege proiectul `cali-app`
-3. Setări:
+1. Cloudflare → **Create an app** → **Continue with GitHub**
+2. Dacă `cali-app` nu apare: **Configure** Cloudflare GitHub App → bifează `cali-app` → salvează → refresh
+3. Selectează `ciprianmusca/cali-app` → **Next**
+4. Setări:
 
 | Câmp | Valoare |
 |------|---------|
@@ -74,10 +74,10 @@ git push -u gitlab main
 | Deploy command | `npm run cf:deploy` |
 | Root directory | (gol) |
 
-4. **Save and Deploy** — Cloudflare face build-ul în cloud.
-5. Domeniul `cali.ipsv.ro` e deja în `wrangler.jsonc`; după deploy verifică **Settings → Domains & Routes**.
+5. **Save and Deploy** — build în cloud.
+6. Verifică `cali.ipsv.ro` (deja în `wrangler.jsonc`) la **Settings → Domains & Routes**.
 
-La fiecare `git push` pe `main` (GitLab), Cloudflare redeploy-uiește automat.
+La fiecare push pe GitHub `main`, Cloudflare redeploy-uiește automat.
 
 ### Alternativ: deploy local cu Wrangler
 
