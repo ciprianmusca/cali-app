@@ -26,27 +26,37 @@ Datele sunt stocate local în browser (localStorage) — fără backend. Potrivi
 
 ## Deploy pe Cloudflare → https://cali.ipsv.ro
 
-Proiectul e pregătit cu `@opennextjs/cloudflare`. Subdomeniul **cali.ipsv.ro** este deja în `wrangler.jsonc`.
+Proiectul e pregătit cu `@opennextjs/cloudflare`. Subdomeniul **cali.ipsv.ro** este în `wrangler.jsonc`.
 
-**Condiție:** zona DNS `ipsv.ro` trebuie să fie pe același cont Cloudflare (nameservere Cloudflare).
+**Condiție:** zona DNS `ipsv.ro` trebuie să fie pe același cont Cloudflare.
 
-### Din terminal (recomandat)
+### GitHub + Cloudflare (recomandat)
+
+1. În Cursor, creează repo GitHub (**Create repo**), dacă încă nu există.
+2. În Cloudflare: **Create an app** → **Continue with GitHub** → autorizează contul → alege repo-ul `cali-lab` (sau numele ales).
+3. Setări de build (important):
+
+| Câmp | Valoare |
+|------|---------|
+| Project / Worker name | `cali-lab` (trebuie să coincidă cu `name` din `wrangler.jsonc`) |
+| Production branch | `main` |
+| Build command | `npm run cf:build` |
+| Deploy command | `npm run cf:deploy` |
+| Root directory | `/` (gol / rădăcină) |
+
+4. **Save and Deploy**.
+5. După primul deploy reușit: Worker → **Settings** → **Domains & Routes** → **Custom Domain** → `cali.ipsv.ro`  
+   (sau lasă Wrangler să-l creeze automat din `wrangler.jsonc` la deploy).
+
+Nu adăuga manual un CNAME pentru `cali` — Custom Domain gestionează DNS + SSL.
+
+### Din terminal (fără GitHub)
 
 ```bash
 npm install
-npx wrangler login          # autentificare Cloudflare
-npm run deploy              # creează Worker-ul + DNS/SSL pentru cali.ipsv.ro
+npx wrangler login
+npm run deploy
 ```
-
-Cloudflare creează automat înregistrarea DNS și certificatul SSL pentru `cali.ipsv.ro`. Nu e nevoie să adaugi manual un CNAME.
-
-### Din dashboard (dacă Worker-ul există deja)
-
-1. [Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages) → Worker **cali-lab**
-2. **Settings** → **Domains & Routes** → **Add** → **Custom Domain**
-3. Introdu: `cali.ipsv.ro` → **Add Custom Domain**
-
-URL public: **https://cali.ipsv.ro** (plus `*.workers.dev` pentru test).
 
 ## Funcționalități (slice livrat)
 
