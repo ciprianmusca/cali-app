@@ -8,6 +8,21 @@ import {
   migratePlaintextPasswords,
   seedIfEmpty,
 } from "@/lib/db";
+import type { Observation } from "@/lib/types";
+
+/** Inline data-URI photos bloat bootstrap to multi‑MB and break login on mobile. */
+function slimObservation(obs: Observation): Observation {
+  const placeholder =
+    obs.module === "fenologie"
+      ? "/placeholders/tree-1.svg"
+      : obs.module === "sol"
+        ? "/placeholders/soil-1.svg"
+        : "/placeholders/disturbance-1.svg";
+  const photos = (obs.photos ?? []).map((src) =>
+    typeof src === "string" && src.startsWith("data:") ? placeholder : src
+  );
+  return { ...obs, photos };
+}
 
 /**
  * Canonical data from D1.
@@ -15,6 +30,7 @@ import {
  * - Unauthenticated: only approved observations, no user directory.
  * - Authenticated: observations (all for ranger/admin, else all for app use)
  *   + user directory only for admin (without passwords).
+ * - Inline photo payloads are stripped; use GET /api/observations/[id] for full photos.
  */
 export async function GET() {
   try {
@@ -24,7 +40,7 @@ export async function GET() {
     await migratePlaintextPasswords(db);
 
     const session = await getSessionUser();
-    const allObservations = await listObservations(db);
+    const allObservations = (await listObservations(db)).map(slimObservation);
 
     if (!session) {
       return NextResponse.json({

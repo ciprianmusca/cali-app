@@ -404,8 +404,14 @@ export const useCaliStore = create<CaliState>()(
               ...get().users.filter((u) => u.id !== data.user!.id),
             ],
           });
-          await get().pullFromServer();
-          void get().flushOfflineQueue();
+          // Pull/sync must not fail the login — large bootstrap payloads were
+          // causing a false "invalid password" after a successful auth.
+          void get()
+            .pullFromServer()
+            .then((r) => {
+              if (r.ok) void get().flushOfflineQueue();
+            })
+            .catch(() => undefined);
           return { ok: true };
         } catch {
           return { ok: false, error: tKey("error.invalidLogin") };
@@ -455,8 +461,12 @@ export const useCaliStore = create<CaliState>()(
             currentUserId: data.user.id,
             users: [data.user, ...get().users.filter((u) => u.id !== data.user!.id)],
           });
-          await get().pullFromServer();
-          void get().flushOfflineQueue();
+          void get()
+            .pullFromServer()
+            .then((r) => {
+              if (r.ok) void get().flushOfflineQueue();
+            })
+            .catch(() => undefined);
           return { ok: true };
         } catch {
           return { ok: false, error: tKey("obs.error") };

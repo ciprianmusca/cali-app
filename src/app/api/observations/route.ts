@@ -9,13 +9,28 @@ import {
 } from "@/lib/db";
 import type { Observation } from "@/lib/types";
 
+function slimObservation(obs: Observation): Observation {
+  const placeholder =
+    obs.module === "fenologie"
+      ? "/placeholders/tree-1.svg"
+      : obs.module === "sol"
+        ? "/placeholders/soil-1.svg"
+        : "/placeholders/disturbance-1.svg";
+  return {
+    ...obs,
+    photos: (obs.photos ?? []).map((src) =>
+      typeof src === "string" && src.startsWith("data:") ? placeholder : src
+    ),
+  };
+}
+
 export async function GET() {
   try {
     const db = await getDB();
     await ensureSchema(db);
     await seedIfEmpty(db);
     const session = await getSessionUser();
-    const all = await listObservations(db);
+    const all = (await listObservations(db)).map(slimObservation);
     if (!session) {
       return NextResponse.json({
         ok: true,

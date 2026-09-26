@@ -74,12 +74,7 @@ function LoginForm() {
           />
         </div>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button
-          type="button"
-          className="w-full"
-          disabled={busy}
-          onClick={() => void handleLogin()}
-        >
+        <Button type="submit" className="w-full" disabled={busy}>
           {busy ? t("auth.loading") : t("auth.submitLogin")}
         </Button>
       </form>

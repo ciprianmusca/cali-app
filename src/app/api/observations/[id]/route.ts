@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { canValidate, requireUser } from "@/lib/auth";
+import { canValidate, getSessionUser, requireUser } from "@/lib/auth";
 import {
   deleteObservation,
   ensureSchema,
@@ -8,6 +8,42 @@ import {
   upsertObservation,
 } from "@/lib/db";
 import type { Observation } from "@/lib/types";
+
+/** Full observation including inline photos (bootstrap strips data-URIs). */
+export async function GET(
+  _request: Request,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await ctx.params;
+    const db = await getDB();
+    await ensureSchema(db);
+    const all = await listObservations(db);
+    const existing = all.find((o) => o.id === id);
+    if (!existing) {
+      return NextResponse.json(
+        { ok: false, error: "not_found" },
+        { status: 404 }
+      );
+    }
+
+    const session = await getSessionUser();
+    if (!session) {
+      if (existing.status !== "aprobat") {
+        return NextResponse.json(
+          { ok: false, error: "unauthorized" },
+          { status: 401 }
+        );
+      }
+      return NextResponse.json({ ok: true, observation: existing });
+    }
+
+    return NextResponse.json({ ok: true, observation: existing });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "get_failed";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
+}
 
 export async function PATCH(
   request: Request,

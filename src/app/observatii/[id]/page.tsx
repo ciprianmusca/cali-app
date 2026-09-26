@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExternalLink, Shield, Trash2 } from "lucide-react";
@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ModuleBadge, StatusBadge } from "@/components/observations/badges";
 import { ObservationsMap } from "@/components/map/observations-map";
 import { useCaliStore } from "@/lib/store";
+import type { Observation } from "@/lib/types";
 import {
   displayAuthorName,
   formatCoord,
@@ -42,6 +43,25 @@ function ObservationDetail({ id }: { id: string }) {
   const [sentinel, setSentinel] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const errorRef = useRef<HTMLDivElement>(null);
+
+  // Bootstrap strips inline photos; load full record for the detail view.
+  useEffect(() => {
+    if (!id || typeof navigator === "undefined" || !navigator.onLine) return;
+    let cancelled = false;
+    void fetch(`/api/observations/${id}`, { credentials: "include" })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          observation?: Observation;
+        };
+        if (cancelled || !data.observation) return;
+        updateObservation(id, data.observation);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, updateObservation]);
 
   if (!obs) {
     return (
