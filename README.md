@@ -42,7 +42,7 @@ Cloudflare nu citește Cursor Origin. Codul trebuie să fie pe **GitHub** (`cipr
 
 1. [github.com/new](https://github.com/new)
 2. Owner: `ciprianmusca`
-3. Repository name: `cali-app`
+3. Repository name: `cali-lab`
 4. Private (sau Public)
 5. **Nu** bifa „Add a README” / .gitignore / license (repo gol)
 6. Create repository
@@ -54,10 +54,10 @@ curl -fsSL https://downloads.cursor.com/origin/install.sh | sh
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
 
 origin auth login
-origin repo clone ciprian-musca/cali-app
-cd cali-app
+origin repo clone ciprian-musca/cali-lab
+cd cali-lab
 
-git remote add github https://github.com/ciprianmusca/cali-app.git
+git remote add github https://github.com/ciprianmusca/cali-lab.git
 git push -u github main
 ```
 
@@ -66,8 +66,8 @@ La autentificare GitHub: [Personal Access Token](https://github.com/settings/tok
 #### C. Leagă în Cloudflare
 
 1. Cloudflare → **Create an app** → **Continue with GitHub**
-2. Dacă `cali-app` nu apare: **Configure** Cloudflare GitHub App → bifează `cali-app` → salvează → refresh
-3. Selectează `ciprianmusca/cali-app` → **Next**
+2. Dacă `cali-lab` nu apare: **Configure** Cloudflare GitHub App → bifează `cali-lab` → salvează → refresh
+3. Selectează `ciprianmusca/cali-lab` → **Next**
 4. Setări:
 
 | Câmp | Valoare |
@@ -77,7 +77,7 @@ La autentificare GitHub: [Personal Access Token](https://github.com/settings/tok
 | Build command | `npm run cf:build` |
 | Deploy command | `npx wrangler deploy` |
 | Root directory | (gol) |
-| GitHub repo | `ciprianmusca/cali-app` |
+| GitHub repo | `ciprianmusca/cali-lab` |
 
 5. **Save and Deploy** — build în cloud.
 6. Verifică `cali.ipsv.ro` (deja în `wrangler.jsonc`) la **Settings → Domains & Routes**.
