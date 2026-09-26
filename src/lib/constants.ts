@@ -36,6 +36,7 @@ export const STATUS_LABELS: Record<ObservationStatus, string> = {
   in_asteptare: "În așteptare",
   aprobat: "Aprobat",
   respins: "Respins",
+  clarificare: "Clarificare",
 };
 
 /** Stages 1–4 only; crown health is separate (DATA-03). */

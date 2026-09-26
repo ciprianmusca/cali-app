@@ -5,9 +5,11 @@ import { persist } from "zustand/middleware";
 import type {
   AppSettings,
   Observation,
+  ObservationFieldSnapshot,
   PublicUser,
-  ObservationStatus,
   UserRole,
+  ValidationDecision,
+  ValidationDecisionKind,
 } from "./types";
 import { GDPR_VERSION } from "./constants";
 import {
@@ -23,6 +25,12 @@ import {
 } from "./photo-idb";
 import { stripBase64Photos } from "./photos";
 import { migrateObservationList } from "./migrate-observation";
+import {
+  appendDecision,
+  applyCorrections,
+  snapshotFields,
+  statusForDecision,
+} from "./validation";
 
 interface CaliState {
   users: PublicUser[];
@@ -55,10 +63,22 @@ interface CaliState {
   deleteObservation: (id: string) => void;
   validateObservation: (
     id: string,
-    decision: "aprobat" | "respins",
+    decision: ValidationDecisionKind,
     comment: string,
-    markSentinel?: boolean
+    options?: {
+      markSentinel?: boolean;
+      corrections?: ObservationFieldSnapshot;
+    }
   ) => { ok: boolean; error?: string };
+  /** ROL-01: restore observations from the last batch within the undo window. */
+  undoValidationBatch: () => { ok: boolean; error?: string };
+  replyToClarification: (
+    id: string,
+    reply: string
+  ) => { ok: boolean; error?: string };
+  validationUndo:
+    | { expiresAt: number; previous: Observation[] }
+    | null;
   createUser: (data: {
     name: string;
     email: string;
@@ -453,6 +473,8 @@ export const useCaliStore = create<CaliState>()(
       pendingCount: () =>
         get().observations.filter((o) => o.status === "in_asteptare").length,
 
+      validationUndo: null,
+
       clearExpiredSession: () => {
         set({
           currentUserId: null,
@@ -800,48 +822,185 @@ export const useCaliStore = create<CaliState>()(
         }
       },
 
-      validateObservation: (id, decision, comment, markSentinel) => {
+      validateObservation: (id, decision, comment, options) => {
         const user = get().currentUser();
         if (!user || (user.role !== "ranger" && user.role !== "admin"))
           return { ok: false, error: tKey("error.onlyRangers") };
         const obs = get().observations.find((o) => o.id === id);
         if (!obs) return { ok: false, error: tKey("error.obsMissing") };
-        if (obs.status !== "in_asteptare")
-          return { ok: false, error: tKey("error.notPending") };
         if (obs.authorId === user.id && user.role === "ranger")
-          return {
-            ok: false,
-            error: tKey("error.selfValidate"),
-          };
-        if (decision === "respins" && !comment.trim())
-          return {
-            ok: false,
-            error: tKey("error.rejectComment"),
-          };
+          return { ok: false, error: tKey("error.selfValidate") };
 
-        const status: ObservationStatus = decision;
-        const patched = get().observations.map((o) =>
-          o.id === id
-            ? {
-                ...o,
-                status,
-                validatedAt: new Date().toISOString(),
-                validatorId: user.id,
-                validatorName: user.name,
-                validationComment: comment.trim() || undefined,
-                isSentinelTree:
-                  markSentinel && o.module === "perturbari"
-                    ? true
-                    : o.isSentinelTree,
-                syncStatus: "pending" as const,
-              }
-            : o
+        const trimmed = comment.trim();
+        const isReopen = decision === "reopen";
+        const isClarify = decision === "cere_clarificari";
+        const isCorrect = decision === "aprobat_cu_corectii";
+        const isReject = decision === "respins";
+
+        if (isReopen) {
+          if (obs.status !== "aprobat" && obs.status !== "respins")
+            return { ok: false, error: tKey("error.notDecided") };
+          if (!trimmed)
+            return { ok: false, error: tKey("error.reopenComment") };
+        } else {
+          if (obs.status !== "in_asteptare")
+            return { ok: false, error: tKey("error.notPending") };
+          if ((isReject || isClarify) && !trimmed)
+            return {
+              ok: false,
+              error: isClarify
+                ? tKey("error.clarifyComment")
+                : tKey("error.rejectComment"),
+            };
+          if (isCorrect && !options?.corrections)
+            return { ok: false, error: tKey("error.correctionsRequired") };
+        }
+
+        const previous = structuredClone(obs) as Observation;
+        const at = new Date().toISOString();
+        const nextStatus = statusForDecision(decision);
+        const originalSnapshot = snapshotFields(obs);
+        let next: Observation = { ...obs };
+
+        if (isCorrect && options?.corrections) {
+          if (!next.originalFields) {
+            next.originalFields = originalSnapshot;
+          }
+          next = applyCorrections(next, options.corrections);
+        }
+
+        const record: ValidationDecision = {
+          id: `vd-${crypto.randomUUID().slice(0, 10)}`,
+          at,
+          byId: user.id,
+          byName: user.name,
+          kind: decision,
+          comment: trimmed,
+          previousStatus: obs.status,
+          nextStatus,
+          corrections: isCorrect ? options?.corrections : undefined,
+          originalSnapshot:
+            isCorrect || isReopen ? originalSnapshot : undefined,
+        };
+
+        next = appendDecision(
+          {
+            ...next,
+            status: nextStatus,
+            validatedAt: isReopen ? undefined : at,
+            validatorId: isReopen ? undefined : user.id,
+            validatorName: isReopen ? undefined : user.name,
+            validationComment: trimmed || undefined,
+            clarificationQuestion: isClarify
+              ? trimmed
+              : isReopen
+                ? undefined
+                : next.clarificationQuestion,
+            clarificationReply: isReopen
+              ? undefined
+              : next.clarificationReply,
+            isSentinelTree:
+              options?.markSentinel && next.module === "perturbari"
+                ? true
+                : next.isSentinelTree,
+            syncStatus: "pending",
+          },
+          record
         );
-        const updated = patched.find((o) => o.id === id)!;
+
+        const undo = get().validationUndo;
+        const previousBatch =
+          undo && undo.expiresAt > Date.now() ? undo.previous : [];
+        const mergedPrevious = [
+          previous,
+          ...previousBatch.filter((p) => p.id !== id),
+        ];
+
+        const patched = get().observations.map((o) =>
+          o.id === id ? next : o
+        );
         set({
           observations: patched,
           offlineQueue: [
-            updated,
+            next,
+            ...get().offlineQueue.filter((o) => o.id !== id),
+          ],
+          validationUndo: {
+            expiresAt: Date.now() + 10_000,
+            previous: mergedPrevious,
+          },
+        });
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          void get().flushOfflineQueue();
+        }
+        return { ok: true };
+      },
+
+      undoValidationBatch: () => {
+        const undo = get().validationUndo;
+        if (!undo || undo.expiresAt < Date.now())
+          return { ok: false, error: tKey("error.undoExpired") };
+        const byId = new Map(undo.previous.map((o) => [o.id, o]));
+        const restored = get().observations.map((o) => byId.get(o.id) ?? o);
+        const queueExtras = undo.previous.map((o) => ({
+          ...o,
+          syncStatus: "pending" as const,
+        }));
+        set({
+          observations: restored.map((o) =>
+            byId.has(o.id) ? { ...o, syncStatus: "pending" as const } : o
+          ),
+          offlineQueue: [
+            ...queueExtras,
+            ...get().offlineQueue.filter((o) => !byId.has(o.id)),
+          ],
+          validationUndo: null,
+        });
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          void get().flushOfflineQueue();
+        }
+        return { ok: true };
+      },
+
+      replyToClarification: (id, reply) => {
+        const user = get().currentUser();
+        if (!user) return { ok: false, error: tKey("error.forbidden") };
+        const obs = get().observations.find((o) => o.id === id);
+        if (!obs) return { ok: false, error: tKey("error.obsMissing") };
+        if (obs.authorId !== user.id)
+          return { ok: false, error: tKey("error.forbidden") };
+        if (obs.status !== "clarificare")
+          return { ok: false, error: tKey("error.notClarification") };
+        const trimmed = reply.trim();
+        if (!trimmed)
+          return { ok: false, error: tKey("error.clarifyReply") };
+
+        const at = new Date().toISOString();
+        const record: ValidationDecision = {
+          id: `vd-${crypto.randomUUID().slice(0, 10)}`,
+          at,
+          byId: user.id,
+          byName: user.name,
+          kind: "clarificare_raspuns",
+          comment: trimmed,
+          previousStatus: obs.status,
+          nextStatus: "in_asteptare",
+        };
+        const next = appendDecision(
+          {
+            ...obs,
+            status: "in_asteptare",
+            clarificationReply: trimmed,
+            syncStatus: "pending",
+          },
+          record
+        );
+        set({
+          observations: get().observations.map((o) =>
+            o.id === id ? next : o
+          ),
+          offlineQueue: [
+            next,
             ...get().offlineQueue.filter((o) => o.id !== id),
           ],
         });

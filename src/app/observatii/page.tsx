@@ -31,9 +31,15 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { moduleKey, statusKey } from "@/lib/i18n/labels";
 import { filterObservationsForViewer } from "@/lib/visibility";
+import { sortByCreatedDesc } from "@/lib/validation";
 
 const MODULES: ObservationModule[] = ["fenologie", "perturbari", "sol"];
-const STATUSES: ObservationStatus[] = ["in_asteptare", "aprobat", "respins"];
+const STATUSES: ObservationStatus[] = [
+  "in_asteptare",
+  "aprobat",
+  "respins",
+  "clarificare",
+];
 
 function ObservationsList() {
   const { t } = useI18n();
@@ -47,14 +53,17 @@ function ObservationsList() {
 
   const filtered = useMemo(() => {
     const viewer = user ? { id: user.id, role: user.role } : null;
-    return filterObservationsForViewer(observations, viewer).filter((o) => {
-      if (module !== "all" && o.module !== module) return false;
-      if (status !== "all" && o.status !== status) return false;
-      if (mineOnly && o.authorId !== user?.id) return false;
-      if (from && new Date(o.createdAt) < new Date(from)) return false;
-      if (to && new Date(o.createdAt) > new Date(to + "T23:59:59")) return false;
-      return true;
-    });
+    return sortByCreatedDesc(
+      filterObservationsForViewer(observations, viewer).filter((o) => {
+        if (module !== "all" && o.module !== module) return false;
+        if (status !== "all" && o.status !== status) return false;
+        if (mineOnly && o.authorId !== user?.id) return false;
+        if (from && new Date(o.createdAt) < new Date(from)) return false;
+        if (to && new Date(o.createdAt) > new Date(to + "T23:59:59"))
+          return false;
+        return true;
+      })
+    );
   }, [observations, module, status, from, to, mineOnly, user]);
 
   return (

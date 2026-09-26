@@ -11,6 +11,7 @@ import type { Observation } from "@/lib/types";
 import { filterObservationsForViewer } from "@/lib/visibility";
 
 function fairRow(o: Observation): (string | number)[] {
+  const orig = o.originalFields;
   const base: (string | number)[] = [
     o.code,
     o.module,
@@ -23,19 +24,37 @@ function fairRow(o: Observation): (string | number)[] {
     o.location.altitude ?? "",
     o.authorRole,
     o.species ?? "",
+    orig?.species ?? "",
     o.validatedAt ?? "",
     o.photos?.length ?? 0,
     o.details ?? "",
   ];
   if (o.module === "fenologie") {
-    return [...base, o.stage, "", "", "", "", "", "", "", ""];
+    return [
+      ...base,
+      o.stage,
+      orig?.stage ?? "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+    ];
   }
   if (o.module === "perturbari") {
     return [
       ...base,
       "",
+      "",
       o.disturbanceTypes.join("|"),
+      (orig?.disturbanceTypes ?? []).join("|"),
       o.severity,
+      orig?.severity ?? "",
       o.affectedAreaSqm,
       "",
       "",
@@ -46,6 +65,9 @@ function fairRow(o: Observation): (string | number)[] {
   }
   return [
     ...base,
+    "",
+    "",
+    "",
     "",
     "",
     "",
@@ -70,12 +92,16 @@ const FAIR_HEADERS = [
   "altitude_m",
   "author_role",
   "species",
+  "species_original",
   "validated_at",
   "photo_count",
   "details",
   "phenology_stage",
+  "phenology_stage_original",
   "disturbance_types",
+  "disturbance_types_original",
   "severity",
+  "severity_original",
   "affected_area_sqm",
   "soil_moss_percentage",
   "soil_litter_percentage",

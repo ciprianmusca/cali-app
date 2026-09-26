@@ -8,18 +8,14 @@ import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { moduleKey, roleKey, statusKey } from "@/lib/i18n/labels";
+import { sortByCreatedDesc } from "@/lib/validation";
 
 function AdminHome() {
   const { t } = useI18n();
   const observations = useCaliStore((s) => s.observations);
   const users = useCaliStore((s) => s.users);
   const pending = observations.filter((o) => o.status === "in_asteptare").length;
-  const recent = [...observations]
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )
-    .slice(0, 5);
+  const recent = sortByCreatedDesc(observations).slice(0, 5);
 
   const exportFairCsv = () => {
     // Server checks admin session (SEC-04).

@@ -1,7 +1,48 @@
 export type UserRole = "admin" | "ranger" | "rezident" | "turist" | "elev";
 export type UserStatus = "activ" | "inactiv";
 export type ObservationModule = "fenologie" | "perturbari" | "sol";
-export type ObservationStatus = "in_asteptare" | "aprobat" | "respins";
+export type ObservationStatus =
+  | "in_asteptare"
+  | "aprobat"
+  | "respins"
+  | "clarificare";
+
+/** Ranger/admin validation actions (ROL-02 / ROL-03). */
+export type ValidationDecisionKind =
+  | "aprobat"
+  | "respins"
+  | "aprobat_cu_corectii"
+  | "cere_clarificari"
+  | "reopen"
+  | "clarificare_raspuns";
+
+/** Field snapshot before corrections (kept for FAIR export). */
+export interface ObservationFieldSnapshot {
+  species?: Species;
+  speciesOther?: string;
+  stage?: PhenologyStage;
+  crownCondition?: CrownCondition;
+  disturbanceTypes?: DisturbanceType[];
+  severity?: 1 | 2 | 3 | 4 | 5;
+  affectedAreaSqm?: number;
+  insectType?: string;
+  details?: string;
+}
+
+export interface ValidationDecision {
+  id: string;
+  at: string;
+  byId: string;
+  byName: string;
+  kind: ValidationDecisionKind;
+  comment: string;
+  previousStatus: ObservationStatus;
+  nextStatus: ObservationStatus;
+  /** Values applied as corrections (if any). */
+  corrections?: ObservationFieldSnapshot;
+  /** Original values at decision time (export / audit). */
+  originalSnapshot?: ObservationFieldSnapshot;
+}
 /** Local persistence vs server upload */
 export type SyncStatus = "pending" | "synced" | "error";
 
@@ -101,6 +142,13 @@ export interface ObservationBase {
   validatorId?: string;
   validatorName?: string;
   validationComment?: string;
+  /** Full audit trail of validation decisions (ROL-02). */
+  validationHistory?: ValidationDecision[];
+  /** First-submitted scientific fields (preserved when corrected). */
+  originalFields?: ObservationFieldSnapshot;
+  /** Open clarification question from ranger (ROL-03). */
+  clarificationQuestion?: string;
+  clarificationReply?: string;
   /** Legacy flag; prefer sentinelTreeId when set. */
   isSentinelTree?: boolean;
   /** Link to permanent sentinel tree (DATA-02). */

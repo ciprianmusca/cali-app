@@ -25,9 +25,17 @@ export default function HartaPage() {
   const user = useCaliStore((s) => s.currentUser());
   const hydrated = useCaliStore((s) => s.hydrated);
   const [module, setModule] = useState<ObservationModule | "all">("all");
-  const [status, setStatus] = useState<ObservationStatus | "all">(
-    user ? "all" : "aprobat"
-  );
+  /** ROL-12: ranger default „În așteptare”; public = approved; others = all. */
+  const [statusOverride, setStatusOverride] = useState<
+    ObservationStatus | "all" | null
+  >(null);
+  const status: ObservationStatus | "all" =
+    statusOverride ??
+    (!user
+      ? "aprobat"
+      : user.role === "ranger" || user.role === "admin"
+        ? "in_asteptare"
+        : "all");
 
   const filtered = useMemo(() => {
     const viewer = user ? { id: user.id, role: user.role } : null;
@@ -85,7 +93,9 @@ export default function HartaPage() {
           <Label>{t("obs.filterStatus")}</Label>
           <Select
             value={status}
-            onValueChange={(v) => setStatus((v ?? "all") as typeof status)}
+            onValueChange={(v) =>
+              setStatusOverride((v ?? "all") as ObservationStatus | "all")
+            }
           >
             <SelectTrigger className="w-full">
               <SelectValue />
@@ -100,6 +110,9 @@ export default function HartaPage() {
                   </SelectItem>
                   <SelectItem value="respins">
                     {t(statusKey("respins"))}
+                  </SelectItem>
+                  <SelectItem value="clarificare">
+                    {t(statusKey("clarificare"))}
                   </SelectItem>
                 </>
               )}

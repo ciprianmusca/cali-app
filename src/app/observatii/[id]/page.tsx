@@ -10,11 +10,26 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ModuleBadge, StatusBadge } from "@/components/observations/badges";
 import { ObservationThumb } from "@/components/observations/observation-thumb";
+import { SpeciesSelect } from "@/components/observations/species-select";
 import { ObservationsMap } from "@/components/map/observations-map";
 import { useCaliStore } from "@/lib/store";
-import type { Observation } from "@/lib/types";
+import type {
+  DisturbanceType,
+  Observation,
+  ObservationFieldSnapshot,
+  PhenologyStage,
+  Species,
+  ValidationDecisionKind,
+} from "@/lib/types";
 import {
   displayAuthorName,
   displayValidatorName,
@@ -25,12 +40,21 @@ import {
 import { useI18n } from "@/lib/i18n/use-i18n";
 import {
   crownKey,
+  decisionKey,
   disturbanceKey,
   phenStageLabelKey,
   severityKey,
 } from "@/lib/i18n/labels";
 import { speciesDisplayLabel } from "@/lib/species";
 import { canViewObservation } from "@/lib/visibility";
+import { DISTURBANCE_LABELS } from "@/lib/constants";
+
+type DecisionChoice =
+  | "aprobat"
+  | "respins"
+  | "aprobat_cu_corectii"
+  | "cere_clarificari"
+  | "";
 
 function ObservationDetail({ id }: { id: string }) {
   const { t, locale } = useI18n();
@@ -39,6 +63,7 @@ function ObservationDetail({ id }: { id: string }) {
   const observations = useCaliStore((s) => s.observations);
   const user = useCaliStore((s) => s.currentUser())!;
   const validateObservation = useCaliStore((s) => s.validateObservation);
+  const replyToClarification = useCaliStore((s) => s.replyToClarification);
   const deleteObservation = useCaliStore((s) => s.deleteObservation);
   const updateObservation = useCaliStore((s) => s.updateObservation);
   const [creatingTree, setCreatingTree] = useState(false);
@@ -49,11 +74,29 @@ function ObservationDetail({ id }: { id: string }) {
     canViewObservation(candidate, { id: user.id, role: user.role })
       ? candidate
       : undefined;
-  const [decision, setDecision] = useState<"aprobat" | "respins" | "">("");
+  const [decision, setDecision] = useState<DecisionChoice>("");
   const [comment, setComment] = useState("");
   const [sentinel, setSentinel] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clarifyReply, setClarifyReply] = useState("");
+  const [reopenComment, setReopenComment] = useState("");
+  const [corrSpecies, setCorrSpecies] = useState<Species | "">("");
+  const [corrSpeciesOther, setCorrSpeciesOther] = useState("");
+  const [corrStage, setCorrStage] = useState<PhenologyStage | "">("");
+  const [corrTypes, setCorrTypes] = useState<DisturbanceType[]>([]);
+  const [corrSeverity, setCorrSeverity] = useState<1 | 2 | 3 | 4 | 5 | "">("");
   const errorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!obs) return;
+    setCorrSpecies(obs.species ?? "");
+    setCorrSpeciesOther(obs.speciesOther ?? "");
+    if (obs.module === "fenologie") setCorrStage(obs.stage);
+    if (obs.module === "perturbari") {
+      setCorrTypes([...obs.disturbanceTypes]);
+      setCorrSeverity(obs.severity);
+    }
+  }, [obs?.id, obs?.status]);
 
   // Prefer the server record (photos as /api/... URLs). Drop ghost local rows.
   useEffect(() => {
@@ -63,7 +106,6 @@ function ObservationDetail({ id }: { id: string }) {
       .then(async (res) => {
         if (cancelled) return;
         if (res.status === 404 || res.status === 403) {
-          // Ghost local row (never made it to D1) — drop without DELETE API.
           useCaliStore.setState({
             observations: useCaliStore
               .getState()
@@ -80,7 +122,6 @@ function ObservationDetail({ id }: { id: string }) {
           observation?: Observation;
         };
         if (!data.observation) return;
-        // Replace the whole row so stale local fields/photos cannot linger.
         useCaliStore.setState({
           observations: useCaliStore
             .getState()
@@ -108,16 +149,19 @@ function ObservationDetail({ id }: { id: string }) {
     );
   }
 
-  const canValidate =
-    (user.role === "ranger" || user.role === "admin") &&
-    obs.status === "in_asteptare";
+  const isStaff = user.role === "ranger" || user.role === "admin";
+  const canValidate = isStaff && obs.status === "in_asteptare";
+  const canReopen =
+    isStaff && (obs.status === "aprobat" || obs.status === "respins");
   const canDelete =
-    obs.status === "in_asteptare" && obs.authorId === user.id;
+    (obs.status === "in_asteptare" || obs.status === "clarificare") &&
+    obs.authorId === user.id;
   const canEdit =
-    obs.status === "in_asteptare" && obs.authorId === user.id;
-  const canCreateTree =
-    (user.role === "ranger" || user.role === "admin") &&
-    Boolean(obs.species);
+    (obs.status === "in_asteptare" || obs.status === "clarificare") &&
+    obs.authorId === user.id;
+  const canReplyClarify =
+    obs.status === "clarificare" && obs.authorId === user.id;
+  const canCreateTree = isStaff && Boolean(obs.species);
   const isOwn = obs.authorId === user.id;
 
   const createSentinel = async () => {
@@ -151,6 +195,24 @@ function ObservationDetail({ id }: { id: string }) {
     }
   };
 
+  const buildCorrections = (): ObservationFieldSnapshot | undefined => {
+    if (decision !== "aprobat_cu_corectii") return undefined;
+    const snap: ObservationFieldSnapshot = {};
+    if (corrSpecies) {
+      snap.species = corrSpecies;
+      snap.speciesOther =
+        corrSpecies === "alta" ? corrSpeciesOther.trim() : undefined;
+    }
+    if (obs.module === "fenologie" && corrStage) {
+      snap.stage = corrStage;
+    }
+    if (obs.module === "perturbari") {
+      if (corrTypes.length) snap.disturbanceTypes = corrTypes;
+      if (corrSeverity) snap.severity = corrSeverity;
+    }
+    return snap;
+  };
+
   const onValidate = () => {
     setError(null);
     if (!decision) {
@@ -160,11 +222,38 @@ function ObservationDetail({ id }: { id: string }) {
       }, 50);
       return;
     }
+    if (decision === "aprobat_cu_corectii") {
+      if (!corrSpecies) {
+        setError(t("error.speciesRequired"));
+        return;
+      }
+      if (corrSpecies === "alta" && !corrSpeciesOther.trim()) {
+        setError(t("error.speciesOther"));
+        return;
+      }
+      if (obs.module === "fenologie" && !corrStage) {
+        setError(t("error.stageRequired"));
+        return;
+      }
+      if (obs.module === "perturbari") {
+        if (!corrTypes.length) {
+          setError(t("error.disturbanceType"));
+          return;
+        }
+        if (!corrSeverity) {
+          setError(t("error.severityRequired"));
+          return;
+        }
+      }
+    }
     const res = validateObservation(
       obs.id,
-      decision,
+      decision as ValidationDecisionKind,
       comment,
-      sentinel
+      {
+        markSentinel: sentinel,
+        corrections: buildCorrections(),
+      }
     );
     if (!res.ok) {
       setError(res.error ?? t("obs.error"));
@@ -175,6 +264,36 @@ function ObservationDetail({ id }: { id: string }) {
     }
     router.push("/validare");
   };
+
+  const onReopen = () => {
+    setError(null);
+    const res = validateObservation(obs.id, "reopen", reopenComment);
+    if (!res.ok) {
+      setError(res.error ?? t("obs.error"));
+      return;
+    }
+    setReopenComment("");
+  };
+
+  const onClarifyReply = () => {
+    setError(null);
+    const res = replyToClarification(obs.id, clarifyReply);
+    if (!res.ok) {
+      setError(res.error ?? t("obs.error"));
+      return;
+    }
+    setClarifyReply("");
+  };
+
+  const toggleDistType = (d: DisturbanceType) => {
+    setCorrTypes((prev) =>
+      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
+    );
+  };
+
+  const history = [...(obs.validationHistory ?? [])].sort(
+    (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()
+  );
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -356,10 +475,68 @@ function ObservationDetail({ id }: { id: string }) {
         </div>
       </dl>
 
+      {obs.originalFields ? (
+        <div className="mt-6 rounded-lg border border-dashed bg-muted/30 px-4 py-3 text-sm">
+          <p className="font-medium">{t("obs.originalValues")}</p>
+          <ul className="mt-2 space-y-1 text-muted-foreground">
+            {obs.originalFields.species ? (
+              <li>
+                {t("obs.species")}:{" "}
+                {speciesDisplayLabel(
+                  obs.originalFields.species,
+                  loc,
+                  obs.originalFields.speciesOther
+                )}
+              </li>
+            ) : null}
+            {obs.originalFields.stage != null ? (
+              <li>
+                {t("obs.stage")}: {obs.originalFields.stage} —{" "}
+                {t(phenStageLabelKey(obs.originalFields.stage))}
+              </li>
+            ) : null}
+            {obs.originalFields.disturbanceTypes?.length ? (
+              <li>
+                {t("obs.types")}:{" "}
+                {obs.originalFields.disturbanceTypes
+                  .map((d) => t(disturbanceKey(d)))
+                  .join(", ")}
+              </li>
+            ) : null}
+            {obs.originalFields.severity != null ? (
+              <li>
+                {t("obs.severity")}: {obs.originalFields.severity} —{" "}
+                {t(severityKey(obs.originalFields.severity))}
+              </li>
+            ) : null}
+          </ul>
+        </div>
+      ) : null}
+
       {obs.details ? (
         <p className="mt-6 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
           {obs.details}
         </p>
+      ) : null}
+
+      {obs.status === "clarificare" && obs.clarificationQuestion ? (
+        <Alert className="mt-6">
+          <AlertTitle>{t("obs.clarifyQuestion")}</AlertTitle>
+          <AlertDescription>{obs.clarificationQuestion}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {canReplyClarify ? (
+        <section className="mt-6 space-y-3 rounded-xl border bg-card p-5">
+          <Label htmlFor="clarify-reply">{t("obs.clarifyReply")}</Label>
+          <Textarea
+            id="clarify-reply"
+            value={clarifyReply}
+            onChange={(e) => setClarifyReply(e.target.value)}
+            rows={3}
+          />
+          <Button onClick={onClarifyReply}>{t("obs.clarifyReplyBtn")}</Button>
+        </section>
       ) : null}
 
       {obs.editHistory?.length ? (
@@ -369,6 +546,24 @@ function ObservationDetail({ id }: { id: string }) {
             {obs.editHistory.map((h, i) => (
               <li key={i}>
                 {formatDateTime(h.at)} · {h.byName}: {h.summary}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {history.length ? (
+        <div className="mt-6">
+          <h2 className="font-display text-lg">{t("obs.decisionHistory")}</h2>
+          <ul className="mt-2 space-y-2 text-sm">
+            {history.map((h) => (
+              <li key={h.id} className="rounded-md border px-3 py-2">
+                <div className="font-medium">
+                  {formatDateTime(h.at)} · {t(decisionKey(h.kind))} · {h.byName}
+                </div>
+                {h.comment ? (
+                  <p className="mt-1 text-muted-foreground">{h.comment}</p>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -422,8 +617,7 @@ function ObservationDetail({ id }: { id: string }) {
           {obs.validationComment ? (
             <p className="mt-2 text-muted-foreground">{obs.validationComment}</p>
           ) : null}
-          {obs.isSentinelTree &&
-          (user.role === "ranger" || user.role === "admin") ? (
+          {obs.isSentinelTree && isStaff ? (
             <Button
               className="mt-3"
               variant="outline"
@@ -441,6 +635,29 @@ function ObservationDetail({ id }: { id: string }) {
             </Button>
           ) : null}
         </div>
+      ) : null}
+
+      {canReopen ? (
+        <section className="mt-8 space-y-3 rounded-xl border border-amber-800/20 bg-amber-50/50 p-5">
+          <h2 className="font-display text-lg text-forest">{t("obs.reopen")}</h2>
+          <p className="text-sm text-muted-foreground">{t("obs.reopenHint")}</p>
+          <Textarea
+            value={reopenComment}
+            onChange={(e) => setReopenComment(e.target.value)}
+            rows={2}
+          />
+          <div ref={errorRef}>
+            {error ? (
+              <Alert variant="destructive">
+                <AlertTitle>{t("obs.error")}</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
+          </div>
+          <Button variant="outline" onClick={onReopen}>
+            {t("obs.reopen")}
+          </Button>
+        </section>
       ) : null}
 
       {canValidate ? (
@@ -463,13 +680,118 @@ function ObservationDetail({ id }: { id: string }) {
                 </Button>
                 <Button
                   type="button"
+                  variant={
+                    decision === "aprobat_cu_corectii" ? "default" : "outline"
+                  }
+                  onClick={() => setDecision("aprobat_cu_corectii")}
+                >
+                  {t("obs.approveCorrections")}
+                </Button>
+                <Button
+                  type="button"
+                  variant={
+                    decision === "cere_clarificari" ? "secondary" : "outline"
+                  }
+                  onClick={() => setDecision("cere_clarificari")}
+                >
+                  {t("obs.requestClarify")}
+                </Button>
+                <Button
+                  type="button"
                   variant={decision === "respins" ? "destructive" : "outline"}
                   onClick={() => setDecision("respins")}
                 >
                   {t("obs.reject")}
                 </Button>
               </div>
-              {obs.module === "perturbari" && decision === "aprobat" ? (
+
+              {decision === "aprobat_cu_corectii" ? (
+                <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+                  <p className="text-sm font-medium">{t("obs.correctionsTitle")}</p>
+                  {(obs.module === "fenologie" ||
+                    obs.module === "perturbari") && (
+                    <SpeciesSelect
+                      species={corrSpecies}
+                      speciesOther={corrSpeciesOther}
+                      onSpeciesChange={setCorrSpecies}
+                      onOtherChange={setCorrSpeciesOther}
+                    />
+                  )}
+                  {obs.module === "fenologie" ? (
+                    <div className="space-y-1">
+                      <Label>{t("obs.stage")}</Label>
+                      <Select
+                        value={corrStage ? String(corrStage) : undefined}
+                        onValueChange={(v) =>
+                          setCorrStage(Number(v) as PhenologyStage)
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {([1, 2, 3, 4] as PhenologyStage[]).map((s) => (
+                            <SelectItem key={s} value={String(s)}>
+                              {s} — {t(phenStageLabelKey(s))}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : null}
+                  {obs.module === "perturbari" ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label>{t("obs.types")}</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {(
+                            Object.keys(DISTURBANCE_LABELS) as DisturbanceType[]
+                          ).map((d) => (
+                            <label
+                              key={d}
+                              className="inline-flex items-center gap-1.5 text-sm"
+                            >
+                              <Checkbox
+                                checked={corrTypes.includes(d)}
+                                onCheckedChange={() => toggleDistType(d)}
+                              />
+                              {t(disturbanceKey(d))}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label>{t("obs.severity")}</Label>
+                        <Select
+                          value={
+                            corrSeverity ? String(corrSeverity) : undefined
+                          }
+                          onValueChange={(v) =>
+                            setCorrSeverity(
+                              Number(v) as 1 | 2 | 3 | 4 | 5
+                            )
+                          }
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {([1, 2, 3, 4, 5] as const).map((s) => (
+                              <SelectItem key={s} value={String(s)}>
+                                {s} — {t(severityKey(s))}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {obs.module === "perturbari" &&
+              (decision === "aprobat" ||
+                decision === "aprobat_cu_corectii") ? (
                 <label className="flex items-center gap-2 text-sm">
                   <Checkbox
                     checked={sentinel}
@@ -480,8 +802,11 @@ function ObservationDetail({ id }: { id: string }) {
               ) : null}
               <div className="space-y-2">
                 <Label htmlFor="comment">
-                  {t("obs.comment")}
-                  {decision === "respins" ? (
+                  {decision === "cere_clarificari"
+                    ? t("obs.clarifyQuestion")
+                    : t("obs.comment")}
+                  {decision === "respins" ||
+                  decision === "cere_clarificari" ? (
                     <span className="text-destructive"> *</span>
                   ) : (
                     t("obs.commentOptional")

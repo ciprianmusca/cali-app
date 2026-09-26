@@ -18,7 +18,8 @@ export function StatusBadge({ status }: { status: ObservationStatus }) {
       className={cn(
         status === "aprobat" && "border-emerald-700/30 bg-emerald-50 text-emerald-800",
         status === "respins" && "border-red-700/30 bg-red-50 text-red-800",
-        status === "in_asteptare" && "border-amber-700/30 bg-amber-50 text-amber-900"
+        status === "in_asteptare" && "border-amber-700/30 bg-amber-50 text-amber-900",
+        status === "clarificare" && "border-sky-700/30 bg-sky-50 text-sky-900"
       )}
     >
       {t(statusKey(status))}

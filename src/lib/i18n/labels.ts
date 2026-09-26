@@ -7,6 +7,7 @@ import type {
   UserRole,
   ObservationModule,
   ObservationStatus,
+  ValidationDecisionKind,
 } from "@/lib/types";
 import { isConifer } from "@/lib/species";
 
@@ -20,6 +21,10 @@ export function moduleKey(module: ObservationModule): MsgKey {
 
 export function statusKey(status: ObservationStatus): MsgKey {
   return `status.${status}` as MsgKey;
+}
+
+export function decisionKey(kind: ValidationDecisionKind): MsgKey {
+  return `decision.${kind}` as MsgKey;
 }
 
 export function speciesKey(species: Species): MsgKey {

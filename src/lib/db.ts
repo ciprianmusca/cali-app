@@ -183,6 +183,21 @@ export function observationFromRow(row: ObsRow): Observation {
     validatorId: row.validator_id ?? undefined,
     validatorName: row.validator_name ?? undefined,
     validationComment: row.validation_comment ?? undefined,
+    validationHistory: Array.isArray(payload.validationHistory)
+      ? (payload.validationHistory as Observation["validationHistory"])
+      : undefined,
+    originalFields:
+      payload.originalFields && typeof payload.originalFields === "object"
+        ? (payload.originalFields as Observation["originalFields"])
+        : undefined,
+    clarificationQuestion:
+      typeof payload.clarificationQuestion === "string"
+        ? payload.clarificationQuestion
+        : undefined,
+    clarificationReply:
+      typeof payload.clarificationReply === "string"
+        ? payload.clarificationReply
+        : undefined,
     isSentinelTree: row.is_sentinel_tree === 1,
     sentinelTreeId:
       typeof payload.sentinelTreeId === "string"
@@ -242,6 +257,10 @@ function payloadFor(obs: Observation): Record<string, unknown> {
     sentinelTreeId: obs.sentinelTreeId,
     speciesOther: obs.speciesOther,
     editHistory: obs.editHistory,
+    validationHistory: obs.validationHistory,
+    originalFields: obs.originalFields,
+    clarificationQuestion: obs.clarificationQuestion,
+    clarificationReply: obs.clarificationReply,
   };
   if (obs.module === "fenologie") {
     return {

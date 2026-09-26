@@ -149,6 +149,7 @@ export async function DELETE(
     }
     if (
       existing.status !== "in_asteptare" &&
+      existing.status !== "clarificare" &&
       auth.user.role !== "admin"
     ) {
       return NextResponse.json(

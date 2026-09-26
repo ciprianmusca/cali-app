@@ -16,6 +16,7 @@ export function canViewObservation(
 ): boolean {
   if (!viewer) return obs.status === "aprobat";
   if (viewer.role === "admin" || viewer.role === "ranger") return true;
+  // Field users: approved + own (any status, incl. clarificare / pending).
   return obs.status === "aprobat" || obs.authorId === viewer.id;
 }
 

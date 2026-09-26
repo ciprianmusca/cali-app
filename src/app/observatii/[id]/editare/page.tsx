@@ -32,7 +32,10 @@ function EditForm({ id }: { id: string }) {
     );
   }
 
-  if (obs.status !== "in_asteptare" || obs.authorId !== user.id) {
+  if (
+    (obs.status !== "in_asteptare" && obs.status !== "clarificare") ||
+    obs.authorId !== user.id
+  ) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16">
         <p>{t("error.forbidden") ?? t("obs.error")}</p>
