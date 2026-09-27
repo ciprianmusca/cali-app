@@ -20,6 +20,10 @@ import { useI18n } from "@/lib/i18n/use-i18n";
 import type { MsgKey } from "@/lib/i18n/store";
 import { GlossaryTip } from "@/components/glossary/glossary-tip";
 import type { GlossaryTermId } from "@/lib/glossary";
+import {
+  suggestSoilCover,
+  type SoilCoverSuggestion,
+} from "@/lib/ai/soil-cover";
 
 type CoverKey = "moss" | "litter" | "plants" | "bare";
 const COVER_KEYS: CoverKey[] = ["moss", "litter", "plants", "bare"];
@@ -51,8 +55,44 @@ function SolForm() {
   const [locationAdjusted, setLocationAdjusted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [review, setReview] = useState<SolObservation | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<SoilCoverSuggestion | null>(
+    null
+  );
 
   const sum = cover.moss + cover.litter + cover.plants + cover.bare;
+
+  const runAiSuggest = async () => {
+    if (!photos[0]) {
+      setAiNote(t("soil.aiNeedPhoto"));
+      return;
+    }
+    setAiBusy(true);
+    setAiNote(null);
+    try {
+      const suggestion = await suggestSoilCover(photos[0]);
+      setCover(suggestion.cover);
+      if (typeof suggestion.seedlingsPresent === "boolean") {
+        setSeedlings(suggestion.seedlingsPresent);
+      }
+      setAiSuggestion(suggestion);
+      setAiNote(
+        suggestion.mode === "online"
+          ? t("soil.aiAppliedOnline")
+          : t("soil.aiAppliedOffline")
+      );
+      setErrors((e) => {
+        const next = { ...e };
+        delete next.cover;
+        return next;
+      });
+    } catch {
+      setAiNote(t("soil.aiError"));
+    } finally {
+      setAiBusy(false);
+    }
+  };
 
   const setPct = (key: CoverKey, pct: number) => {
     setCover((c) => ({ ...c, [key]: pct }));
@@ -116,6 +156,17 @@ function SolForm() {
       barePct: cover.bare,
       seedlingsPresent: seedlings,
       plotSize: "1x1m",
+      aiCoverSuggestion: aiSuggestion
+        ? {
+            mossPct: aiSuggestion.cover.moss,
+            litterPct: aiSuggestion.cover.litter,
+            plantsPct: aiSuggestion.cover.plants,
+            barePct: aiSuggestion.cover.bare,
+            mode: aiSuggestion.mode,
+            model: aiSuggestion.model,
+            at: aiSuggestion.at,
+          }
+        : undefined,
       details: details.trim() || undefined,
       photos,
       photoMeta,
@@ -154,9 +205,27 @@ function SolForm() {
             onChange={(p, m) => {
               setPhotos(p);
               setPhotoMeta(m);
+              setAiSuggestion(null);
+              setAiNote(null);
             }}
             error={errors.photos}
           />
+        </div>
+
+        <div className="space-y-2 rounded-lg border border-dashed border-primary/35 bg-accent/30 px-3 py-3">
+          <p className="text-xs text-muted-foreground">{t("soil.aiHint")}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={aiBusy || photos.length === 0}
+            onClick={() => void runAiSuggest()}
+          >
+            {aiBusy ? t("soil.aiWorking") : t("soil.aiSuggest")}
+          </Button>
+          {aiNote ? (
+            <p className="text-xs font-medium text-forest">{aiNote}</p>
+          ) : null}
         </div>
 
         <div data-field="cover" className="space-y-4">

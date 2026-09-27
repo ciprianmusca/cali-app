@@ -165,10 +165,21 @@ npm install
 npx wrangler login
 npm run deploy
 ```
+## Demo AI acoperire sol
+
+Pe formularul **Sol** (`/observatii/nou/sol`), după fotografie: buton **Propune acoperirea (AI)**.
+
+| Mod | Cum |
+|-----|-----|
+| **Online** | `POST /api/ai/soil-cover` → Workers AI (`@cf/meta/llama-3.2-11b-vision-instruct`), binding `AI` în `wrangler.jsonc` |
+| **Offline** | Heuristică pe culori în browser (canvas) — fără rețea |
+
+Sugestia precompletează sliderele; utilizatorul corectează; rangerul validează. În payload se salvează `aiCoverSuggestion` (mode/model/at). Dacă Workers AI lipsește sau eșuează, clientul folosește automat modul offline.
+
 ## Funcționalități (slice livrat)
 
 - Statistici publice, hartă Leaflet/OpenTopoMap, autentificare / înregistrare, GDPR
-- Formulare Fenologie, Perturbări, Sol (GPS accuracy/altitudine/oră, specie, 4 clase sol + puieți, tipuri perturbare extinse, comprimare poze)
+- Formulare Fenologie, Perturbări, Sol (GPS accuracy/altitudine/oră, specie, 4 clase sol + puieți, tipuri perturbare extinse, comprimare poze, demo AI acoperire online/offline)
 - Listă observații, detalii, validare ranger, admin + export FAIR (ZIP: CSV + GeoJSON + datapackage/README, CC BY 4.0; pseudonime stabile; specii științifice + GBIF)
 - Footer vizibilitate UE / EFI / FORWARDS / ISV / APNC
 

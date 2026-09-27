@@ -309,6 +309,14 @@ export const ro = {
   "soil.sumShort": "Suma trebuie să fie 100% — lipsesc {n}%",
   "soil.sumOver": "Suma trebuie să fie 100% — ai depășit cu {n}%",
   "soil.fillRest": "Completează restul",
+  "soil.aiSuggest": "Propune acoperirea (AI)",
+  "soil.aiWorking": "Analizez fotografia…",
+  "soil.aiHint":
+    "Demo AI: online folosește Workers AI; offline estimează din culori. Verifică și corectează valorile.",
+  "soil.aiAppliedOnline": "Sugestie AI (online) aplicată — poți ajusta sliderele.",
+  "soil.aiAppliedOffline": "Sugestie AI (offline) aplicată — poți ajusta sliderele.",
+  "soil.aiNeedPhoto": "Adaugă mai întâi o fotografie a parcelei.",
+  "soil.aiError": "Nu am putut estima acoperirea. Încearcă din nou.",
 
   // Species
   "sp.picea_abies": "Molid (Picea abies)",

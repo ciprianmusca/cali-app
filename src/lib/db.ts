@@ -30,6 +30,12 @@ import { DELETED_USER_LABEL } from "@/lib/privacy";
 export type CloudflareEnv = {
   DB: D1Database;
   PHOTOS: R2Bucket;
+  AI?: {
+    run: (
+      model: string,
+      inputs: Record<string, unknown>
+    ) => Promise<unknown>;
+  };
 };
 
 export async function getDB(): Promise<D1Database> {
@@ -309,6 +315,11 @@ export function observationFromRow(row: ObsRow): Observation {
       plantsPct: payload.plantsPct as number,
       seedlingsPresent: Boolean(payload.seedlingsPresent),
       plotSize: "1x1m",
+      aiCoverSuggestion:
+        payload.aiCoverSuggestion &&
+        typeof payload.aiCoverSuggestion === "object"
+          ? (payload.aiCoverSuggestion as SolObservation["aiCoverSuggestion"])
+          : undefined,
     } as SolObservation;
   }
   return migrateObservation(obs);
@@ -353,6 +364,7 @@ function payloadFor(obs: Observation): Record<string, unknown> {
     plantsPct: obs.plantsPct,
     seedlingsPresent: obs.seedlingsPresent,
     plotSize: obs.plotSize ?? "1x1m",
+    aiCoverSuggestion: obs.aiCoverSuggestion,
   };
 }
 

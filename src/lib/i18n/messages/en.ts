@@ -296,6 +296,14 @@ export const en: { [K in keyof RoMessages]: string } = {
   "soil.sumShort": "Sum must be 100% — missing {n}%",
   "soil.sumOver": "Sum must be 100% — exceeded by {n}%",
   "soil.fillRest": "Fill the rest",
+  "soil.aiSuggest": "Suggest cover (AI)",
+  "soil.aiWorking": "Analysing photo…",
+  "soil.aiHint":
+    "AI demo: online uses Workers AI; offline estimates from colours. Always review and correct the values.",
+  "soil.aiAppliedOnline": "AI suggestion (online) applied — you can adjust the sliders.",
+  "soil.aiAppliedOffline": "AI suggestion (offline) applied — you can adjust the sliders.",
+  "soil.aiNeedPhoto": "Add a plot photo first.",
+  "soil.aiError": "Could not estimate cover. Try again.",
 
   "sp.picea_abies": "Norway spruce (Picea abies)",
   "sp.abies_alba": "Silver fir (Abies alba)",

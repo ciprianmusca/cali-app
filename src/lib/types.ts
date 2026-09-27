@@ -264,6 +264,16 @@ export interface SolObservation extends ObservationBase {
   seedlingsPresent: boolean;
   /** DATA-05 protocol plot size. */
   plotSize: "1x1m";
+  /** Optional AI demo suggestion (human values above remain authoritative). */
+  aiCoverSuggestion?: {
+    mossPct: number;
+    litterPct: number;
+    plantsPct: number;
+    barePct: number;
+    mode: "offline" | "online";
+    model: string;
+    at: string;
+  };
 }
 
 export type Observation =
