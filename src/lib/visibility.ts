@@ -9,8 +9,11 @@ export type Viewer = Pick<User, "id" | "role"> | null;
  * - visitor (null): approved only
  * - turist / rezident / elev: approved + own (any status)
  * - ranger / admin: all
- * - profesor: approved + own + observations on activities they created
- *   (extra activity ids passed by the caller when known)
+ * - profesor: approved + own + observations on school activities
+ *   (any status — classroom work does not require ranger approval).
+ *   When `teacherActivityIds` is provided (server), only those activities;
+ *   when omitted (client after bootstrap), any activity-linked row already
+ *   in the store is treated as visible.
  */
 export function canViewObservation(
   obs: Observation,
@@ -19,12 +22,10 @@ export function canViewObservation(
 ): boolean {
   if (!viewer) return obs.status === "aprobat";
   if (viewer.role === "admin" || viewer.role === "ranger") return true;
-  if (
-    viewer.role === "profesor" &&
-    obs.activityId &&
-    teacherActivityIds?.has(obs.activityId)
-  ) {
-    return true;
+  if (viewer.role === "profesor" && obs.activityId) {
+    if (!teacherActivityIds || teacherActivityIds.has(obs.activityId)) {
+      return true;
+    }
   }
   // Field users: approved + own (any status, incl. clarificare / pending).
   return obs.status === "aprobat" || obs.authorId === viewer.id;

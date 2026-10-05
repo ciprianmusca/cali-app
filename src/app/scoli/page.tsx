@@ -191,9 +191,17 @@ function SchoolsHome() {
           <p className="mt-1 text-sm text-muted-foreground">{t("school.sub")}</p>
         </div>
         {canCreate ? (
-          <Button type="button" onClick={() => setShowForm((v) => !v)}>
-            {showForm ? t("admin.close") : t("school.new")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/scoli/lectie"
+              className="inline-flex h-8 items-center rounded-lg border border-border bg-background px-2.5 text-sm hover:bg-muted"
+            >
+              {t("school.lessonCta")}
+            </Link>
+            <Button type="button" onClick={() => setShowForm((v) => !v)}>
+              {showForm ? t("admin.close") : t("school.new")}
+            </Button>
+          </div>
         ) : null}
       </div>
 

@@ -133,6 +133,29 @@ function HomeContent() {
         <p className="mt-2 max-w-xl text-muted-foreground">{t("home.sub")}</p>
       </div>
 
+      {(user?.role === "profesor" || user?.role === "admin") && (
+        <div className="animate-rise-delay-1 mt-8 grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/scoli"
+            className="rounded-lg border bg-card/80 px-4 py-4 hover:border-primary/40"
+          >
+            <div className="font-medium">{t("nav.schools")}</div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("school.sub")}
+            </p>
+          </Link>
+          <Link
+            href="/scoli/lectie"
+            className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-4 hover:border-primary/40"
+          >
+            <div className="font-medium">{t("lesson.title")}</div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("lesson.crumb")} — {t("nav.lesson")}
+            </p>
+          </Link>
+        </div>
+      )}
+
       {(user?.role === "ranger" || user?.role === "admin") && (
         <div className="animate-rise-delay-1 mt-8 grid gap-3 sm:grid-cols-3">
           <Link

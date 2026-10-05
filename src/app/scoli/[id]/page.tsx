@@ -336,6 +336,11 @@ function ActivityDetail({ id }: { id: string }) {
       ) : null}
 
       <h2 className="mt-8 font-display text-xl">{t("school.observations")}</h2>
+      {canValidateHere ? (
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t("lesson.sub")}
+        </p>
+      ) : null}
 
       {canValidateHere ? (
         <div className="mt-3 space-y-1">

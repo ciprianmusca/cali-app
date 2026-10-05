@@ -510,7 +510,7 @@ export const en: { [K in keyof RoMessages]: string } = {
 
   "school.title": "Schools — field activities",
   "school.sub":
-    "The teacher creates an activity and shares the code; field observations show up here for class discussion and validation.",
+    "The teacher creates an activity and shares the code. Field observations attach to the activity and are discussed in class — ranger approval is not required for lessons.",
   "school.new": "New activity",
   "school.empty": "No activities yet. Join with a code or create one.",
   "school.date": "Date",
@@ -545,16 +545,50 @@ export const en: { [K in keyof RoMessages]: string } = {
   "school.activeHint":
     "New observations are linked to this activity automatically.",
   "school.clearActive": "Clear",
-  "school.approve": "Approve",
-  "school.reject": "Reject",
+  "school.approve": "Validated in class",
+  "school.reject": "Rejected in class",
   "school.validateComment":
-    "Comment (optional when approving, required when rejecting)",
+    "Comment (optional when approving, required when rejecting). This does not replace scientific ranger validation.",
   "school.validateOk": "Decision saved.",
   "school.validateError": "Could not save the decision.",
   "school.createdCode": "Activity created. Student code:",
   "school.copyCode": "Copy code",
   "school.copied": "Copied",
   "school.memberOnly": "Join with your teacher’s code to see activities.",
+  "school.lessonCta": "Lesson prep",
+
+  "lesson.title": "Lesson prep — hub",
+  "lesson.crumb": "Class report",
+  "lesson.sub":
+    "Map of observation locations from your activities and a report of those analyzed in class. Rangers do not need to approve these for classroom use.",
+  "lesson.forbidden": "This page is for teachers.",
+  "lesson.loadError": "Could not load lesson data.",
+  "lesson.print": "Print / PDF",
+  "lesson.filterActivity": "Activity",
+  "lesson.allActivities": "All my activities",
+  "lesson.total": "Total attached",
+  "lesson.pending": "To discuss",
+  "lesson.analyzed": "Analyzed in class",
+  "lesson.rejected": "Rejected in class",
+  "lesson.mapTitle": "Map — observation locations",
+  "lesson.mapSub": "All observations attached to the selected activity (any status).",
+  "lesson.mapEmpty": "No observations on the map for this filter.",
+  "lesson.reportTitle": "Report — analyzed observations",
+  "lesson.reportSub":
+    "Observations marked as validated in class, useful for preparing the lesson.",
+  "lesson.reportEmpty":
+    "No analyzed observations yet. Open an activity and mark them as validated in class.",
+  "lesson.pendingTitle": "To discuss in class",
+  "lesson.pendingSub": "Attached observations still without a class decision.",
+  "lesson.colCode": "Code",
+  "lesson.colStudent": "Student",
+  "lesson.colModule": "Module",
+  "lesson.colSpecies": "Species",
+  "lesson.colActivity": "Activity",
+  "lesson.colWhen": "Date",
+  "lesson.colLoc": "Coordinates",
+
+  "nav.lesson": "Lesson",
 
   "dir.elevBlocked":
     "Navigation is only available for observations in your activity zone.",

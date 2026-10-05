@@ -532,7 +532,7 @@ export const ro = {
 
   "school.title": "Școli — activități de teren",
   "school.sub":
-    "Profesorul creează activitatea și dă codul elevilor; observațiile din teren apar aici pentru discuție și validare.",
+    "Profesorul creează activitatea și dă codul elevilor. Observațiile din teren se atașează la activitate și se discută la clasă — nu e nevoie de aprobare de ranger pentru lecție.",
   "school.new": "Activitate nouă",
   "school.empty": "Nicio activitate încă. Intră cu un cod sau creează una nouă.",
   "school.date": "Dată",
@@ -566,15 +566,50 @@ export const ro = {
   "school.activeHint":
     "Observațiile noi se leagă automat de această activitate.",
   "school.clearActive": "Renunță",
-  "school.approve": "Validează",
-  "school.reject": "Invalidează",
-  "school.validateComment": "Comentariu (opțional la validare, obligatoriu la invalidare)",
+  "school.approve": "Validat la clasă",
+  "school.reject": "Respins la clasă",
+  "school.validateComment":
+    "Comentariu (opțional la validare, obligatoriu la respingere). Nu înlocuiește validarea științifică a rangerilor.",
   "school.validateOk": "Decizia a fost salvată.",
   "school.validateError": "Nu am putut salva decizia.",
   "school.createdCode": "Activitate creată. Cod pentru elevi:",
   "school.copyCode": "Copiază codul",
   "school.copied": "Copiat",
   "school.memberOnly": "Intră cu codul de la profesor pentru a vedea activitățile.",
+  "school.lessonCta": "Pregătire lecție",
+
+  "lesson.title": "Pregătire lecție — centralizator",
+  "lesson.crumb": "Raport pentru clasă",
+  "lesson.sub":
+    "Hartă cu locațiile observațiilor din activități și raportul celor analizate la clasă. Rangerii nu trebuie să aprobe aceste observații ca să le folosiți la lecție.",
+  "lesson.forbidden": "Această pagină e pentru profesori.",
+  "lesson.loadError": "Nu am putut încărca datele pentru lecție.",
+  "lesson.print": "Tipărește / PDF",
+  "lesson.filterActivity": "Activitate",
+  "lesson.allActivities": "Toate activitățile mele",
+  "lesson.total": "Total atașate",
+  "lesson.pending": "De discutat",
+  "lesson.analyzed": "Analizate la clasă",
+  "lesson.rejected": "Respinse la clasă",
+  "lesson.mapTitle": "Hartă — locațiile observațiilor",
+  "lesson.mapSub": "Toate observațiile atașate la activitatea selectată (orice statut).",
+  "lesson.mapEmpty": "Nicio observație pe hartă pentru filtrul ales.",
+  "lesson.reportTitle": "Raport — observații analizate",
+  "lesson.reportSub":
+    "Observațiile marcate ca validate la clasă, utile pentru pregătirea lecției.",
+  "lesson.reportEmpty":
+    "Încă nu există observații analizate. Deschideți o activitate și marcați-le ca validate la clasă.",
+  "lesson.pendingTitle": "De discutat la clasă",
+  "lesson.pendingSub": "Observații atașate, încă neatribuită o decizie de clasă.",
+  "lesson.colCode": "Cod",
+  "lesson.colStudent": "Elev",
+  "lesson.colModule": "Modul",
+  "lesson.colSpecies": "Specie",
+  "lesson.colActivity": "Activitate",
+  "lesson.colWhen": "Dată",
+  "lesson.colLoc": "Coordonate",
+
+  "nav.lesson": "Lecție",
 
   "dir.elevBlocked":
     "Navigația e disponibilă doar pentru observațiile din zona activității.",

@@ -18,6 +18,7 @@ import {
   BookOpen,
   HelpCircle,
   Mail,
+  ClipboardList,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +62,15 @@ export function AppHeader() {
         { href: "/observatii", label: t("nav.observations"), icon: List },
         { href: "/harta", label: t("nav.map"), icon: Map },
         { href: "/scoli", label: t("nav.schools"), icon: GraduationCap },
+        ...(user.role === "profesor" || user.role === "admin"
+          ? [
+              {
+                href: "/scoli/lectie",
+                label: t("nav.lesson"),
+                icon: ClipboardList,
+              },
+            ]
+          : []),
         ...(user.role === "ranger" || user.role === "admin"
           ? [
               {
@@ -100,7 +110,15 @@ export function AppHeader() {
         const Icon = link.icon;
         const active =
           pathname === link.href ||
-          (link.href !== "/" && pathname.startsWith(link.href + "/"));
+          (link.href !== "/" &&
+            pathname.startsWith(link.href + "/") &&
+            !authLinks.some(
+              (other) =>
+                other.href !== link.href &&
+                other.href.startsWith(link.href + "/") &&
+                (pathname === other.href ||
+                  pathname.startsWith(other.href + "/"))
+            ));
         return (
           <Link
             key={link.href}
