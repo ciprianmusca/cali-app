@@ -94,6 +94,8 @@ interface CaliState {
     email: string;
     role: UserRole;
     parentalConsent?: boolean;
+    canManageRegistrations?: boolean;
+    canTeachSchool?: boolean;
   }) => Promise<{ ok: boolean; error?: string }>;
   nextCode: (module: Observation["module"]) => string;
   currentUser: () => PublicUser | null;
@@ -1225,7 +1227,14 @@ export const useCaliStore = create<CaliState>()(
         return { ok: true };
       },
 
-      createUser: async ({ name, email, role, parentalConsent }) => {
+      createUser: async ({
+        name,
+        email,
+        role,
+        parentalConsent,
+        canManageRegistrations,
+        canTeachSchool,
+      }) => {
         if (get().users.some((u) => u.email.toLowerCase() === email.toLowerCase()))
           return { ok: false, error: tKey("error.emailUsed") };
         if (role === "elev" && !parentalConsent)
@@ -1242,6 +1251,9 @@ export const useCaliStore = create<CaliState>()(
           isAdult: role !== "elev",
           parentalConsent: role === "elev" ? true : undefined,
           registeredAt: new Date().toISOString(),
+          canManageRegistrations:
+            role === "ranger" ? Boolean(canManageRegistrations) : false,
+          canTeachSchool: role === "ranger" ? Boolean(canTeachSchool) : false,
         };
         try {
           const res = await fetch("/api/users", {

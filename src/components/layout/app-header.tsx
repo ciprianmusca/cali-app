@@ -30,6 +30,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useCaliStore } from "@/lib/store";
+import { canManageRegistrations, canTeachSchool } from "@/lib/capabilities";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { roleKey } from "@/lib/i18n/labels";
 import { LanguageSwitcher } from "@/lib/i18n/language-switcher";
@@ -62,7 +63,7 @@ export function AppHeader() {
         { href: "/observatii", label: t("nav.observations"), icon: List },
         { href: "/harta", label: t("nav.map"), icon: Map },
         { href: "/scoli", label: t("nav.schools"), icon: GraduationCap },
-        ...(user.role === "profesor" || user.role === "admin"
+        ...(canTeachSchool(user)
           ? [
               {
                 href: "/scoli/lectie",
@@ -83,7 +84,15 @@ export function AppHeader() {
           : []),
         ...(user.role === "admin"
           ? [{ href: "/admin", label: t("nav.admin"), icon: Settings }]
-          : []),
+          : canManageRegistrations(user)
+            ? [
+                {
+                  href: "/admin/utilizatori",
+                  label: t("admin.users"),
+                  icon: Settings,
+                },
+              ]
+            : []),
         { href: "/profil", label: t("nav.profile"), icon: UserRound },
       ]
     : [

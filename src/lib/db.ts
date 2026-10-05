@@ -66,7 +66,9 @@ export async function ensureSchema(db: D1Database): Promise<void> {
         gdpr_accepted_at TEXT,
         gdpr_version TEXT,
         registered_at TEXT NOT NULL,
-        last_login_at TEXT
+        last_login_at TEXT,
+        can_manage_registrations INTEGER NOT NULL DEFAULT 0,
+        can_teach_school INTEGER NOT NULL DEFAULT 0
       )
     `),
     db.prepare(`
@@ -191,6 +193,7 @@ export async function ensureSchema(db: D1Database): Promise<void> {
     ),
   ]);
   await migrateFieldActivitiesSchema(db);
+  await migrateUsersCapabilitiesSchema(db);
 }
 
 /** Add join_code to older D1 installs and backfill missing codes. */
@@ -217,6 +220,20 @@ async function migrateFieldActivitiesSchema(db: D1Database): Promise<void> {
   }
 }
 
+/** Ranger capability flags (registrations + school/lessons). */
+async function migrateUsersCapabilitiesSchema(db: D1Database): Promise<void> {
+  for (const sql of [
+    `ALTER TABLE users ADD COLUMN can_manage_registrations INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN can_teach_school INTEGER NOT NULL DEFAULT 0`,
+  ]) {
+    try {
+      await db.prepare(sql).run();
+    } catch {
+      /* column already exists */
+    }
+  }
+}
+
 export type UserRow = {
   id: string;
   email: string;
@@ -230,6 +247,8 @@ export type UserRow = {
   gdpr_version: string | null;
   registered_at: string;
   last_login_at: string | null;
+  can_manage_registrations?: number | null;
+  can_teach_school?: number | null;
 };
 
 type ObsRow = {
@@ -255,6 +274,7 @@ type ObsRow = {
 };
 
 export function userFromRow(row: UserRow): User {
+  const isRanger = row.role === "ranger";
   return {
     id: row.id,
     email: row.email,
@@ -269,6 +289,10 @@ export function userFromRow(row: UserRow): User {
     gdprVersion: row.gdpr_version ?? undefined,
     registeredAt: row.registered_at,
     lastLoginAt: row.last_login_at ?? undefined,
+    canManageRegistrations: isRanger
+      ? row.can_manage_registrations === 1
+      : false,
+    canTeachSchool: isRanger ? row.can_teach_school === 1 : false,
   };
 }
 
@@ -569,12 +593,16 @@ export async function getObservationById(
 }
 
 export async function upsertUser(db: D1Database, user: User): Promise<void> {
+  const manageRegs =
+    user.role === "ranger" && user.canManageRegistrations ? 1 : 0;
+  const teachSchool = user.role === "ranger" && user.canTeachSchool ? 1 : 0;
   await db
     .prepare(
       `INSERT INTO users (
         id, email, name, role, status, password, is_adult, parental_consent,
-        gdpr_accepted_at, gdpr_version, registered_at, last_login_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        gdpr_accepted_at, gdpr_version, registered_at, last_login_at,
+        can_manage_registrations, can_teach_school
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         email=excluded.email,
         name=excluded.name,
@@ -586,7 +614,9 @@ export async function upsertUser(db: D1Database, user: User): Promise<void> {
         gdpr_accepted_at=excluded.gdpr_accepted_at,
         gdpr_version=excluded.gdpr_version,
         registered_at=excluded.registered_at,
-        last_login_at=excluded.last_login_at`
+        last_login_at=excluded.last_login_at,
+        can_manage_registrations=excluded.can_manage_registrations,
+        can_teach_school=excluded.can_teach_school`
     )
     .bind(
       user.id,
@@ -600,7 +630,9 @@ export async function upsertUser(db: D1Database, user: User): Promise<void> {
       user.gdprAcceptedAt ?? null,
       user.gdprVersion ?? null,
       user.registeredAt,
-      user.lastLoginAt ?? null
+      user.lastLoginAt ?? null,
+      manageRegs,
+      teachSchool
     )
     .run();
 }

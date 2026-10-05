@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
+import { canTeachSchool } from "@/lib/capabilities";
 import {
   addActivityMember,
   ensureSchema,
@@ -10,13 +11,15 @@ import {
 } from "@/lib/db";
 import { normalizeJoinCode } from "@/lib/activity-code";
 
-/** Students (and teachers) join a field activity with the teacher’s code. */
+/** Students and school staff join a field activity with the join code. */
 export async function POST(request: Request) {
   const auth = await requireUser();
   if (auth.error) return auth.error;
 
   const role = auth.user.role;
-  if (role !== "elev" && role !== "profesor" && role !== "admin") {
+  const allowed =
+    role === "elev" || role === "admin" || canTeachSchool(auth.user);
+  if (!allowed) {
     return NextResponse.json(
       { ok: false, error: "forbidden" },
       { status: 403 }

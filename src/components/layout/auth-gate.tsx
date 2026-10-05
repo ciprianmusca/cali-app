@@ -4,15 +4,18 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useCaliStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n/use-i18n";
-import type { UserRole } from "@/lib/types";
+import type { PublicUser, UserRole } from "@/lib/types";
 
 export function AuthGate({
   children,
   roles,
+  allow,
   requireGdpr = true,
 }: {
   children: React.ReactNode;
   roles?: UserRole[];
+  /** Extra capability check (e.g. ranger with a flag). */
+  allow?: (user: PublicUser) => boolean;
   requireGdpr?: boolean;
 }) {
   const router = useRouter();
@@ -22,6 +25,11 @@ export function AuthGate({
   const currentUserId = useCaliStore((s) => s.currentUserId);
   const users = useCaliStore((s) => s.users);
   const user = users.find((u) => u.id === currentUserId) ?? null;
+
+  const permitted =
+    !!user &&
+    (!roles || roles.includes(user.role)) &&
+    (!allow || allow(user));
 
   useEffect(() => {
     if (!hydrated) return;
@@ -33,10 +41,10 @@ export function AuthGate({
       router.replace("/acasa");
       return;
     }
-    if (roles && !roles.includes(user.role)) {
+    if (!permitted) {
       router.replace("/acasa");
     }
-  }, [hydrated, user, roles, requireGdpr, router, pathname]);
+  }, [hydrated, user, permitted, requireGdpr, router, pathname]);
 
   if (!hydrated || !user) {
     return (
@@ -46,7 +54,7 @@ export function AuthGate({
     );
   }
 
-  if (roles && !roles.includes(user.role)) return null;
+  if (!permitted) return null;
   if (requireGdpr && !user.gdprAcceptedAt) return null;
 
   return <>{children}</>;

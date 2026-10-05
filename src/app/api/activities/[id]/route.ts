@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
+import { canTeachSchool } from "@/lib/capabilities";
 import {
   canAccessActivity,
   deleteFieldActivity,
@@ -74,9 +75,11 @@ export async function DELETE(
     }
 
     const role = auth.user.role;
-    const isStaff = role === "admin" || role === "ranger";
-    const isCreator = role === "profesor" && activity.createdBy === auth.user.id;
-    if (!isStaff && !isCreator) {
+    const isAdmin = role === "admin";
+    const isSchoolStaff = canTeachSchool(auth.user) && role === "ranger";
+    const isCreator =
+      canTeachSchool(auth.user) && activity.createdBy === auth.user.id;
+    if (!isAdmin && !isSchoolStaff && !isCreator) {
       return NextResponse.json(
         { ok: false, error: "forbidden" },
         { status: 403 }

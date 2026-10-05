@@ -195,6 +195,16 @@ export interface User {
   gdprVersion?: string;
   registeredAt: string;
   lastLoginAt?: string;
+  /**
+   * Ranger-only: admin can grant user-registration management
+   * (create/edit/suspend users).
+   */
+  canManageRegistrations?: boolean;
+  /**
+   * Ranger-only: admin can grant full school/lesson powers
+   * (same as profesor: activities, lesson hub, join codes).
+   */
+  canTeachSchool?: boolean;
 }
 
 /** Safe user shape for API / client state (no password). */

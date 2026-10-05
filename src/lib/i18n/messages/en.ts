@@ -390,6 +390,15 @@ export const en: { [K in keyof RoMessages]: string } = {
   "admin.createUser": "Create user",
   "admin.close": "Close",
   "admin.parentalPdf": "Parental consent — required",
+  "admin.rangerCaps": "Ranger capabilities",
+  "admin.capRegs": "Manage registrations",
+  "admin.capRegsHint":
+    "Can create, edit, suspend and reactivate accounts (except admin).",
+  "admin.capRegsShort": "Registrations",
+  "admin.capSchool": "School",
+  "admin.capSchoolHint":
+    "Can organise field activities and lessons like a teacher.",
+  "admin.capSchoolShort": "School",
   "admin.save": "Save",
   "admin.userCreated":
     "User created (inactive). Password-reset link simulated.",
@@ -568,7 +577,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "lesson.crumb": "Class report",
   "lesson.sub":
     "Map and reports for lesson prep. Teachers see all activity observations; scientific approval stays with ranger / admin.",
-  "lesson.forbidden": "This page is for teachers.",
+  "lesson.forbidden": "This page is for teachers and rangers with school access.",
   "lesson.loadError": "Could not load lesson data.",
   "lesson.print": "Print / PDF",
   "lesson.filterActivity": "Activity",

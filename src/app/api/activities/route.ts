@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
+import { canTeachSchool } from "@/lib/capabilities";
 import {
   addActivityMember,
   allocateJoinCode,
@@ -11,10 +12,6 @@ import {
 } from "@/lib/db";
 import type { FieldActivity } from "@/lib/types";
 import { PARK_CENTER } from "@/lib/constants";
-
-function canManageActivities(role: string): boolean {
-  return role === "admin" || role === "ranger" || role === "profesor";
-}
 
 export async function GET() {
   const auth = await requireUser();
@@ -38,7 +35,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const auth = await requireUser();
   if (auth.error) return auth.error;
-  if (!canManageActivities(auth.user.role)) {
+  if (!canTeachSchool(auth.user)) {
     return NextResponse.json(
       { ok: false, error: "forbidden" },
       { status: 403 }

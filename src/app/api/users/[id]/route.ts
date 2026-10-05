@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, toPublicUser } from "@/lib/auth";
+import { requireRegistrationsManager, toPublicUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
+import { rangerFlagsForRole } from "@/lib/capabilities";
 import {
   createPasswordReset,
   deleteUserKeepObservations,
@@ -17,7 +18,7 @@ export async function PATCH(
   request: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAdmin();
+  const auth = await requireRegistrationsManager();
   if (auth.error) return auth.error;
 
   try {
@@ -28,6 +29,8 @@ export async function PATCH(
       role?: UserRole;
       status?: UserStatus;
       parentalConsent?: boolean;
+      canManageRegistrations?: boolean;
+      canTeachSchool?: boolean;
       action?: "suspend" | "reactivate" | "reset_password";
     };
 
@@ -38,6 +41,14 @@ export async function PATCH(
       return NextResponse.json(
         { ok: false, error: "not_found" },
         { status: 404 }
+      );
+    }
+
+    // Rangers managing registrations cannot edit admin accounts.
+    if (existing.role === "admin" && auth.user.role !== "admin") {
+      return NextResponse.json(
+        { ok: false, error: "forbidden" },
+        { status: 403 }
       );
     }
 
@@ -95,16 +106,36 @@ export async function PATCH(
       auditAction = "reactivate_user";
     }
 
+    const nextRole = body.role ?? existing.role;
+    if (nextRole === "admin" && auth.user.role !== "admin") {
+      return NextResponse.json(
+        { ok: false, error: "forbidden" },
+        { status: 403 }
+      );
+    }
+
+    const flags = rangerFlagsForRole(nextRole, {
+      canManageRegistrations:
+        body.canManageRegistrations !== undefined
+          ? body.canManageRegistrations
+          : existing.canManageRegistrations,
+      canTeachSchool:
+        body.canTeachSchool !== undefined
+          ? body.canTeachSchool
+          : existing.canTeachSchool,
+    });
+
     const updated = {
       ...existing,
       name: body.name?.trim() || existing.name,
       email: body.email?.trim() || existing.email,
-      role: body.role ?? existing.role,
+      role: nextRole,
       status,
       parentalConsent:
         body.parentalConsent !== undefined
           ? body.parentalConsent
           : existing.parentalConsent,
+      ...flags,
     };
     await upsertUser(db, updated);
     await writeAudit(db, {
@@ -127,7 +158,7 @@ export async function DELETE(
   _request: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAdmin();
+  const auth = await requireRegistrationsManager();
   if (auth.error) return auth.error;
 
   try {
@@ -145,6 +176,12 @@ export async function DELETE(
       return NextResponse.json(
         { ok: false, error: "not_found" },
         { status: 404 }
+      );
+    }
+    if (existing.role === "admin" && auth.user.role !== "admin") {
+      return NextResponse.json(
+        { ok: false, error: "forbidden" },
+        { status: 403 }
       );
     }
     await deleteUserKeepObservations(db, id);

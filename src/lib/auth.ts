@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { User, UserRole, PublicUser } from "@/lib/types";
 import { getDB, ensureSchema, listUsersRaw, userFromRow } from "@/lib/db";
+import { canManageRegistrations } from "@/lib/capabilities";
 
 export const SESSION_COOKIE = "cali_session";
 const SESSION_DAYS = 14;
@@ -130,6 +131,20 @@ export async function requireAdmin(): Promise<
   const result = await requireUser();
   if (result.error) return result;
   if (result.user.role !== "admin") {
+    return {
+      error: Response.json({ ok: false, error: "forbidden" }, { status: 403 }),
+    };
+  }
+  return result;
+}
+
+/** Admin or ranger with canManageRegistrations. */
+export async function requireRegistrationsManager(): Promise<
+  { user: User; error?: undefined } | { user?: undefined; error: Response }
+> {
+  const result = await requireUser();
+  if (result.error) return result;
+  if (!canManageRegistrations(result.user)) {
     return {
       error: Response.json({ ok: false, error: "forbidden" }, { status: 403 }),
     };

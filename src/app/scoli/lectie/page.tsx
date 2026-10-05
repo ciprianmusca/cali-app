@@ -10,6 +10,7 @@ import { StatusBadge, ModuleBadge } from "@/components/observations/badges";
 import { useCaliStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { formatCoord, formatDate, formatDateTime } from "@/lib/format";
+import { canTeachSchool } from "@/lib/capabilities";
 import { moduleKey, speciesKey } from "@/lib/i18n/labels";
 import type { MessageKey } from "@/lib/i18n/types";
 import type { FieldActivity, Observation, ObservationModule } from "@/lib/types";
@@ -107,9 +108,8 @@ function LessonHub() {
     !!user &&
     !!selectedActivity &&
     (user.role === "admin" ||
-      user.role === "ranger" ||
-      (user.role === "profesor" &&
-        selectedActivity.createdBy === user.id));
+      (user.role === "ranger" && canTeachSchool(user)) ||
+      (canTeachSchool(user) && selectedActivity.createdBy === user.id));
 
   const filtered = useMemo(() => {
     if (activityId === "all") return observations;
@@ -217,11 +217,7 @@ function LessonHub() {
 
   if (!user) return null;
 
-  if (
-    user.role !== "profesor" &&
-    user.role !== "admin" &&
-    user.role !== "ranger"
-  ) {
+  if (!canTeachSchool(user)) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <p>{t("lesson.forbidden")}</p>

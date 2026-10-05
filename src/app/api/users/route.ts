@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, toPublicUser } from "@/lib/auth";
+import { requireRegistrationsManager, toPublicUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
+import { rangerFlagsForRole } from "@/lib/capabilities";
 import {
   ensureSchema,
   findUserByEmail,
@@ -12,9 +13,9 @@ import {
 import { hashPassword } from "@/lib/password";
 import type { User, UserRole } from "@/lib/types";
 
-/** Admin-only directory. Passwords are never returned. */
+/** Registrations managers: full user directory (no passwords). */
 export async function GET() {
-  const auth = await requireAdmin();
+  const auth = await requireRegistrationsManager();
   if (auth.error) return auth.error;
 
   try {
@@ -29,9 +30,9 @@ export async function GET() {
   }
 }
 
-/** Admin-only user create / update. Password hashed if provided. */
+/** Create / update user. Password hashed if provided. */
 export async function POST(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireRegistrationsManager();
   if (auth.error) return auth.error;
 
   try {
@@ -45,10 +46,25 @@ export async function POST(request: Request) {
       );
     }
 
+    // Only admin may create/promote to admin.
+    if (body.role === "admin" && auth.user.role !== "admin") {
+      return NextResponse.json(
+        { ok: false, error: "forbidden" },
+        { status: 403 }
+      );
+    }
+
     const db = await getDB();
     await ensureSchema(db);
 
     const existing = (await listUsers(db)).find((u) => u.id === body.id);
+    if (existing?.role === "admin" && auth.user.role !== "admin") {
+      return NextResponse.json(
+        { ok: false, error: "forbidden" },
+        { status: 403 }
+      );
+    }
+
     const emailOwner = await findUserByEmail(db, body.email);
     if (emailOwner && emailOwner.id !== body.id) {
       return NextResponse.json(
@@ -68,11 +84,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const role = body.role as UserRole;
+    const flags = rangerFlagsForRole(role, {
+      canManageRegistrations: body.canManageRegistrations,
+      canTeachSchool: body.canTeachSchool,
+    });
+
     const user: User = {
       id: body.id,
       email: body.email,
       name: body.name,
-      role: body.role as UserRole,
+      role,
       status: body.status ?? "inactiv",
       password: passwordHash,
       isAdult: body.isAdult ?? body.role !== "elev",
@@ -81,6 +103,7 @@ export async function POST(request: Request) {
       gdprVersion: body.gdprVersion,
       registeredAt: body.registeredAt ?? new Date().toISOString(),
       lastLoginAt: body.lastLoginAt,
+      ...flags,
     };
 
     await upsertUser(db, user);

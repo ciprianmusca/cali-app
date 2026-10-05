@@ -10,6 +10,7 @@ import { GlossaryTip } from "@/components/glossary/glossary-tip";
 import { useCaliStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { PARK_CENTER } from "@/lib/constants";
+import { canTeachSchool } from "@/lib/capabilities";
 import type { FieldActivity } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 
@@ -28,16 +29,12 @@ function SchoolsHome() {
   const user = useCaliStore((s) => s.currentUser());
   const activeActivityId = useCaliStore((s) => s.settings.activeActivityId);
   const setActiveActivityId = useCaliStore((s) => s.setActiveActivityId);
-  const canCreate =
-    !!user &&
-    (user.role === "admin" ||
-      user.role === "ranger" ||
-      user.role === "profesor");
+  const canCreate = canTeachSchool(user);
   const canJoin =
     !!user &&
     (user.role === "elev" ||
-      user.role === "profesor" ||
-      user.role === "admin");
+      user.role === "admin" ||
+      canTeachSchool(user));
   const [activities, setActivities] = useState<FieldActivity[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
@@ -68,8 +65,8 @@ function SchoolsHome() {
 
   const canDelete = (a: FieldActivity) =>
     user.role === "admin" ||
-    user.role === "ranger" ||
-    (user.role === "profesor" && user.id === a.createdBy);
+    (user.role === "ranger" && canTeachSchool(user)) ||
+    (canTeachSchool(user) && user.id === a.createdBy);
 
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();

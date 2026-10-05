@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
+import { canTeachSchool } from "@/lib/capabilities";
 import {
   ensureSchema,
   getDB,
@@ -10,15 +11,15 @@ import { maskObservationNames } from "@/lib/privacy";
 import { slimObservationPhotos } from "@/lib/photos";
 
 /**
- * Lesson prep hub for teachers: their activities + all linked observations
+ * Lesson prep hub: activities + linked observations
  * (any status — no ranger approval required for classroom use).
+ * Allowed for profesor, admin, and rangers with canTeachSchool.
  */
 export async function GET() {
   const auth = await requireUser();
   if (auth.error) return auth.error;
 
-  const role = auth.user.role;
-  if (role !== "profesor" && role !== "admin" && role !== "ranger") {
+  if (!canTeachSchool(auth.user)) {
     return NextResponse.json(
       { ok: false, error: "forbidden" },
       { status: 403 }

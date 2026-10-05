@@ -409,6 +409,15 @@ export const ro = {
   "admin.createUser": "Creează utilizator",
   "admin.close": "Închide",
   "admin.parentalPdf": "Acord parental — obligatoriu",
+  "admin.rangerCaps": "Capacități ranger",
+  "admin.capRegs": "Gestionează înregistrări",
+  "admin.capRegsHint":
+    "Poate crea, edita, suspenda și reactiva conturi (în afară de admin).",
+  "admin.capRegsShort": "Înregistrări",
+  "admin.capSchool": "Școală",
+  "admin.capSchoolHint":
+    "Poate organiza activități de teren și lecții ca un profesor.",
+  "admin.capSchoolShort": "Școală",
   "admin.save": "Salvare",
   "admin.userCreated":
     "Utilizator creat (inactiv). Link resetare parolă simulat.",
@@ -589,7 +598,7 @@ export const ro = {
   "lesson.crumb": "Raport pentru clasă",
   "lesson.sub":
     "Hartă și rapoarte pentru pregătirea lecției. Profesorul vede toate observațiile din activitate; aprobarea științifică rămâne la ranger / admin.",
-  "lesson.forbidden": "Această pagină e pentru profesori.",
+  "lesson.forbidden": "Această pagină e pentru profesori și rangeri cu drept de școală.",
   "lesson.loadError": "Nu am putut încărca datele pentru lecție.",
   "lesson.print": "Tipărește / PDF",
   "lesson.filterActivity": "Activitate",

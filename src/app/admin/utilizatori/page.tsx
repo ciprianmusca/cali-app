@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { canManageRegistrations } from "@/lib/capabilities";
 import { useCaliStore } from "@/lib/store";
 import { formatDateTime } from "@/lib/format";
 import type { PublicUser, UserRole, UserStatus } from "@/lib/types";
@@ -22,6 +23,7 @@ import { roleKey } from "@/lib/i18n/labels";
 
 function UsersAdmin() {
   const { t } = useI18n();
+  const me = useCaliStore((s) => s.currentUser());
   const users = useCaliStore((s) => s.users);
   const createUser = useCaliStore((s) => s.createUser);
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
@@ -33,8 +35,17 @@ function UsersAdmin() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("elev");
   const [parental, setParental] = useState(false);
+  const [canManageRegs, setCanManageRegs] = useState(false);
+  const [canTeach, setCanTeach] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const isAdmin = me?.role === "admin";
+  const creatableRoles = useMemo(
+    () =>
+      isAdmin ? ALL_USER_ROLES : ALL_USER_ROLES.filter((r) => r !== "admin"),
+    [isAdmin]
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -62,6 +73,16 @@ function UsersAdmin() {
 
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
+    const rangerFlags =
+      role === "ranger"
+        ? {
+            canManageRegistrations: canManageRegs,
+            canTeachSchool: canTeach,
+          }
+        : {
+            canManageRegistrations: false,
+            canTeachSchool: false,
+          };
     if (editing) {
       setBusyId(editing.id);
       try {
@@ -74,6 +95,7 @@ function UsersAdmin() {
             email,
             role,
             parentalConsent: role === "elev" ? parental : undefined,
+            ...rangerFlags,
           }),
         });
         if (!res.ok) {
@@ -94,6 +116,7 @@ function UsersAdmin() {
       email,
       role,
       parentalConsent: role === "elev" ? parental : undefined,
+      ...rangerFlags,
     });
     if (!res.ok) {
       setMsg(res.error ?? t("obs.error"));
@@ -104,6 +127,8 @@ function UsersAdmin() {
     setName("");
     setEmail("");
     setParental(false);
+    setCanManageRegs(false);
+    setCanTeach(false);
     await refreshUsers();
   };
 
@@ -113,6 +138,8 @@ function UsersAdmin() {
     setEmail(u.email);
     setRole(u.role);
     setParental(Boolean(u.parentalConsent));
+    setCanManageRegs(Boolean(u.canManageRegistrations));
+    setCanTeach(Boolean(u.canTeachSchool));
     setShowForm(true);
   };
 
@@ -168,53 +195,65 @@ function UsersAdmin() {
     }
   };
 
-  const UserActions = ({ u }: { u: PublicUser }) => (
-    <div className="flex flex-wrap gap-1">
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={busyId === u.id}
-        onClick={() => startEdit(u)}
-      >
-        {t("admin.edit")}
-      </Button>
-      {u.status === "activ" ? (
+  const UserActions = ({ u }: { u: PublicUser }) => {
+    const lockedAdmin = u.role === "admin" && !isAdmin;
+    return (
+      <div className="flex flex-wrap gap-1">
         <Button
           size="sm"
           variant="outline"
-          disabled={busyId === u.id}
-          onClick={() => void patchAction(u.id, "suspend")}
+          disabled={busyId === u.id || lockedAdmin}
+          onClick={() => startEdit(u)}
         >
-          {t("admin.suspend")}
+          {t("admin.edit")}
         </Button>
-      ) : (
+        {u.status === "activ" ? (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busyId === u.id || lockedAdmin}
+            onClick={() => void patchAction(u.id, "suspend")}
+          >
+            {t("admin.suspend")}
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busyId === u.id || lockedAdmin}
+            onClick={() => void patchAction(u.id, "reactivate")}
+          >
+            {t("admin.reactivate")}
+          </Button>
+        )}
         <Button
           size="sm"
           variant="outline"
-          disabled={busyId === u.id}
-          onClick={() => void patchAction(u.id, "reactivate")}
+          disabled={busyId === u.id || lockedAdmin}
+          onClick={() => void patchAction(u.id, "reset_password")}
         >
-          {t("admin.reactivate")}
+          {t("admin.resetPw")}
         </Button>
-      )}
-      <Button
-        size="sm"
-        variant="outline"
-        disabled={busyId === u.id}
-        onClick={() => void patchAction(u.id, "reset_password")}
-      >
-        {t("admin.resetPw")}
-      </Button>
-      <Button
-        size="sm"
-        variant="destructive"
-        disabled={busyId === u.id}
-        onClick={() => void deleteUser(u)}
-      >
-        {t("admin.deleteUser")}
-      </Button>
-    </div>
-  );
+        <Button
+          size="sm"
+          variant="destructive"
+          disabled={busyId === u.id || lockedAdmin}
+          onClick={() => void deleteUser(u)}
+        >
+          {t("admin.deleteUser")}
+        </Button>
+      </div>
+    );
+  };
+
+  const RangerCaps = ({ u }: { u: PublicUser }) => {
+    if (u.role !== "ranger") return null;
+    const bits: string[] = [];
+    if (u.canManageRegistrations) bits.push(t("admin.capRegsShort"));
+    if (u.canTeachSchool) bits.push(t("admin.capSchoolShort"));
+    if (!bits.length) return <span className="text-muted-foreground">—</span>;
+    return <span className="text-xs">{bits.join(" · ")}</span>;
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
@@ -227,6 +266,8 @@ function UsersAdmin() {
             setEditing(null);
             setName("");
             setEmail("");
+            setCanManageRegs(false);
+            setCanTeach(false);
             setShowForm((v) => !v);
           }}
         >
@@ -265,7 +306,7 @@ function UsersAdmin() {
               onValueChange={(v) => setRole(v as UserRole)}
               className="grid gap-2 sm:grid-cols-3"
             >
-              {ALL_USER_ROLES.map((r) => (
+              {creatableRoles.map((r) => (
                 <label key={r} className="flex items-center gap-2 text-sm">
                   <RadioGroupItem value={r} />
                   {t(roleKey(r))}
@@ -282,6 +323,39 @@ function UsersAdmin() {
               />
               {t("admin.parentalPdf")}
             </label>
+          ) : null}
+          {role === "ranger" ? (
+            <div className="space-y-2 rounded-md border border-dashed p-3">
+              <p className="text-sm font-medium">{t("admin.rangerCaps")}</p>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={canManageRegs}
+                  onChange={(e) => setCanManageRegs(e.target.checked)}
+                />
+                <span>
+                  <span className="font-medium">{t("admin.capRegs")}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {t("admin.capRegsHint")}
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={canTeach}
+                  onChange={(e) => setCanTeach(e.target.checked)}
+                />
+                <span>
+                  <span className="font-medium">{t("admin.capSchool")}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {t("admin.capSchoolHint")}
+                  </span>
+                </span>
+              </label>
+            </div>
           ) : null}
           <Button type="submit">{t("admin.save")}</Button>
         </form>
@@ -349,6 +423,7 @@ function UsersAdmin() {
               <th className="px-3 py-2">{t("admin.email")}</th>
               <th className="px-3 py-2">{t("admin.name")}</th>
               <th className="px-3 py-2">{t("admin.role")}</th>
+              <th className="px-3 py-2">{t("admin.rangerCaps")}</th>
               <th className="px-3 py-2">{t("admin.registered")}</th>
               <th className="px-3 py-2">{t("admin.lastLogin")}</th>
               <th className="px-3 py-2">{t("admin.gdpr")}</th>
@@ -362,6 +437,9 @@ function UsersAdmin() {
                 <td className="px-3 py-2">{u.email}</td>
                 <td className="px-3 py-2">{u.name}</td>
                 <td className="px-3 py-2">{t(roleKey(u.role))}</td>
+                <td className="px-3 py-2">
+                  <RangerCaps u={u} />
+                </td>
                 <td className="px-3 py-2">{formatDateTime(u.registeredAt)}</td>
                 <td className="px-3 py-2">
                   {u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "—"}
@@ -394,6 +472,11 @@ function UsersAdmin() {
                 {u.status === "activ" ? t("admin.active") : t("admin.inactive")}
               </span>
             </div>
+            {u.role === "ranger" ? (
+              <div className="mt-1 text-xs text-muted-foreground">
+                <RangerCaps u={u} />
+              </div>
+            ) : null}
             <div className="mt-1 text-xs text-muted-foreground">
               {t("admin.registered")}: {formatDateTime(u.registeredAt)}
             </div>
@@ -409,7 +492,7 @@ function UsersAdmin() {
 
 export default function AdminUsersPage() {
   return (
-    <AuthGate roles={["admin"]}>
+    <AuthGate allow={canManageRegistrations}>
       <UsersAdmin />
     </AuthGate>
   );

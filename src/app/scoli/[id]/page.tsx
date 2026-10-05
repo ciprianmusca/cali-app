@@ -7,6 +7,7 @@ import { AuthGate } from "@/components/layout/auth-gate";
 import { Button } from "@/components/ui/button";
 import { StatusBadge, ModuleBadge } from "@/components/observations/badges";
 import { useCaliStore } from "@/lib/store";
+import { canTeachSchool } from "@/lib/capabilities";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { FieldActivity, Observation } from "@/lib/types";
@@ -94,8 +95,8 @@ function ActivityDetail({ id }: { id: string }) {
     !!user &&
     !!activity &&
     (user.role === "admin" ||
-      user.role === "ranger" ||
-      (user.role === "profesor" && user.id === activity.createdBy));
+      (user.role === "ranger" && canTeachSchool(user)) ||
+      (canTeachSchool(user) && user.id === activity.createdBy));
 
   const onDelete = async () => {
     if (!canDelete || !activity) return;
@@ -164,14 +165,15 @@ function ActivityDetail({ id }: { id: string }) {
   const showCode =
     user.role === "admin" ||
     user.role === "ranger" ||
-    user.role === "profesor";
+    canTeachSchool(user);
 
   const displayLinked =
     linked.length > 0
       ? linked
       : observations.filter((o) => o.activityId === id);
 
-  const isParticipant = user.role === "elev" || user.role === "profesor";
+  const isParticipant =
+    user.role === "elev" || canTeachSchool(user);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">

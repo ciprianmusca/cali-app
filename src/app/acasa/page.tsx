@@ -15,6 +15,7 @@ import { AuthGate } from "@/components/layout/auth-gate";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge, ModuleBadge } from "@/components/observations/badges";
+import { canManageRegistrations, canTeachSchool } from "@/lib/capabilities";
 import { useCaliStore } from "@/lib/store";
 import { GDPR_VERSION } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/use-i18n";
@@ -133,7 +134,7 @@ function HomeContent() {
         <p className="mt-2 max-w-xl text-muted-foreground">{t("home.sub")}</p>
       </div>
 
-      {(user?.role === "profesor" || user?.role === "admin") && (
+      {canTeachSchool(user) && (
         <div className="animate-rise-delay-1 mt-8 grid gap-3 sm:grid-cols-2">
           <Link
             href="/scoli"
@@ -170,7 +171,7 @@ function HomeContent() {
               {pending}
             </div>
           </Link>
-          {user.role === "admin" ? (
+          {canManageRegistrations(user) ? (
             <>
               <Link
                 href="/admin/utilizatori"

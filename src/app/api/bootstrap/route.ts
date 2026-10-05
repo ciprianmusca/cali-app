@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, toPublicUser } from "@/lib/auth";
+import { canManageRegistrations } from "@/lib/capabilities";
 import {
   ensureSchema,
   getDB,
@@ -54,10 +55,9 @@ export async function GET() {
       });
     }
 
-    const users =
-      session.role === "admin"
-        ? (await listUsers(db)).map(toPublicUser)
-        : [toPublicUser(session)];
+    const users = canManageRegistrations(session)
+      ? (await listUsers(db)).map(toPublicUser)
+      : [toPublicUser(session)];
 
     let teacherActivityIds: Set<string> | undefined;
     if (session.role === "profesor") {
