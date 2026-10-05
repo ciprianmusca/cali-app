@@ -111,6 +111,16 @@ export async function PATCH(
         };
 
     let merged = { ...existing, ...safePatch, id } as Observation;
+    // Classroom debate is owned by /classroom — never change via this PATCH.
+    merged = {
+      ...merged,
+      classroomStatus: existing.classroomStatus,
+      classroomComment: existing.classroomComment,
+      classroomById: existing.classroomById,
+      classroomByName: existing.classroomByName,
+      classroomAt: existing.classroomAt,
+      classroomHistory: existing.classroomHistory,
+    };
     if (safePatch.photos) {
       const bucket = await getPhotosBucket();
       const photos = await persistObservationPhotos(

@@ -91,7 +91,20 @@ export async function POST(request: Request) {
           );
         }
 
-        const safe: Observation = { ...unique, photos };
+        const safe: Observation = {
+          ...unique,
+          photos,
+          // Classroom debate is only written via /classroom API — never wipe it on sync.
+          classroomStatus: existing?.classroomStatus ?? unique.classroomStatus,
+          classroomComment:
+            existing?.classroomComment ?? unique.classroomComment,
+          classroomById: existing?.classroomById ?? unique.classroomById,
+          classroomByName:
+            existing?.classroomByName ?? unique.classroomByName,
+          classroomAt: existing?.classroomAt ?? unique.classroomAt,
+          classroomHistory:
+            existing?.classroomHistory ?? unique.classroomHistory,
+        };
         await upsertObservation(db, safe);
         ids.push(safe.id);
         saved.push(slimObservationPhotos(safe));

@@ -27,7 +27,10 @@ export type AuditAction =
   | "create_activity"
   | "update_activity"
   | "delete_activity"
-  | "join_activity";
+  | "join_activity"
+  | "classroom_admit"
+  | "classroom_reject"
+  | "classroom_reset";
 
 export interface AuditEvent {
   id: string;
@@ -84,6 +87,22 @@ export type ObservationStatus =
   | "aprobat"
   | "respins"
   | "clarificare";
+
+/**
+ * Classroom debate track — independent of scientific ObservationStatus.
+ * Used by teachers / school-flagged rangers during lesson prep.
+ */
+export type ClassroomStatus = "nediscutat" | "admis" | "respins";
+
+export interface ClassroomDecision {
+  id: string;
+  at: string;
+  byId: string;
+  byName: string;
+  kind: ClassroomStatus;
+  comment?: string;
+  previousStatus: ClassroomStatus;
+}
 
 /** Ranger/admin validation actions (ROL-02 / ROL-03). */
 export type ValidationDecisionKind =
@@ -247,6 +266,16 @@ export interface ObservationBase {
   sentinelTreeId?: string;
   /** ROL-06: linked school field activity. */
   activityId?: string;
+  /**
+   * Classroom debate (profesor / school ranger) — independent of
+   * scientific `status` / ranger validation.
+   */
+  classroomStatus?: ClassroomStatus;
+  classroomComment?: string;
+  classroomById?: string;
+  classroomByName?: string;
+  classroomAt?: string;
+  classroomHistory?: ClassroomDecision[];
   species?: Species;
   /** Free text when species === "alta". */
   speciesOther?: string;

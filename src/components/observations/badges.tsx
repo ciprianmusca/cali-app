@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { moduleKey, statusKey } from "@/lib/i18n/labels";
 import type {
+  ClassroomStatus,
   ObservationModule,
   ObservationStatus,
   SyncStatus,
@@ -16,13 +17,36 @@ export function StatusBadge({ status }: { status: ObservationStatus }) {
     <Badge
       variant="outline"
       className={cn(
-        status === "aprobat" && "border-emerald-700/30 bg-emerald-50 text-emerald-800",
+        status === "aprobat" &&
+          "border-emerald-700/30 bg-emerald-50 text-emerald-800",
         status === "respins" && "border-red-700/30 bg-red-50 text-red-800",
-        status === "in_asteptare" && "border-amber-700/30 bg-amber-50 text-amber-900",
+        status === "in_asteptare" &&
+          "border-amber-700/30 bg-amber-50 text-amber-900",
         status === "clarificare" && "border-sky-700/30 bg-sky-50 text-sky-900"
       )}
     >
       {t(statusKey(status))}
+    </Badge>
+  );
+}
+
+export function ClassroomBadge({
+  status,
+}: {
+  status?: ClassroomStatus | null;
+}) {
+  const { t } = useI18n();
+  const s = status ?? "nediscutat";
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        s === "admis" && "border-emerald-700/30 bg-emerald-50 text-emerald-800",
+        s === "respins" && "border-red-700/30 bg-red-50 text-red-800",
+        s === "nediscutat" && "border-amber-700/30 bg-amber-50 text-amber-900"
+      )}
+    >
+      {t(`class.status.${s}`)}
     </Badge>
   );
 }
@@ -50,8 +74,7 @@ export function SyncBadge({ status }: { status?: SyncStatus }) {
     <Badge
       variant="outline"
       className={cn(
-        status === "pending" &&
-          "border-sky-700/30 bg-sky-50 text-sky-900",
+        status === "pending" && "border-sky-700/30 bg-sky-50 text-sky-900",
         status === "error" && "border-red-700/30 bg-red-50 text-red-800"
       )}
     >

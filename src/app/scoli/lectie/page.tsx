@@ -6,11 +6,17 @@ import { AuthGate } from "@/components/layout/auth-gate";
 import { ObservationsMap } from "@/components/map/observations-map";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { StatusBadge, ModuleBadge } from "@/components/observations/badges";
+import {
+  StatusBadge,
+  ModuleBadge,
+  ClassroomBadge,
+} from "@/components/observations/badges";
+import { ClassroomDecisionPanel } from "@/components/observations/classroom-decision-panel";
 import { useCaliStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { formatCoord, formatDate, formatDateTime } from "@/lib/format";
 import { canTeachSchool } from "@/lib/capabilities";
+import { classroomStatusOf } from "@/lib/classroom";
 import { moduleKey, speciesKey } from "@/lib/i18n/labels";
 import type { MessageKey } from "@/lib/i18n/types";
 import type { FieldActivity, Observation, ObservationModule } from "@/lib/types";
@@ -117,18 +123,15 @@ function LessonHub() {
   }, [observations, activityId]);
 
   const analyzed = useMemo(
-    () => filtered.filter((o) => o.status === "aprobat"),
+    () => filtered.filter((o) => classroomStatusOf(o) === "admis"),
     [filtered]
   );
   const pending = useMemo(
-    () =>
-      filtered.filter(
-        (o) => o.status === "in_asteptare" || o.status === "clarificare"
-      ),
+    () => filtered.filter((o) => classroomStatusOf(o) === "nediscutat"),
     [filtered]
   );
   const rejected = useMemo(
-    () => filtered.filter((o) => o.status === "respins"),
+    () => filtered.filter((o) => classroomStatusOf(o) === "respins"),
     [filtered]
   );
 
@@ -145,8 +148,9 @@ function LessonHub() {
     const counts = init();
     for (const o of filtered) {
       counts[o.module].total += 1;
-      if (o.status === "aprobat") counts[o.module].analyzed += 1;
-      else if (o.status === "respins") counts[o.module].rejected += 1;
+      const cs = classroomStatusOf(o);
+      if (cs === "admis") counts[o.module].analyzed += 1;
+      else if (cs === "respins") counts[o.module].rejected += 1;
       else counts[o.module].pending += 1;
     }
     return counts;
@@ -170,14 +174,26 @@ function LessonHub() {
       }
       row.total += 1;
       row.byModule[o.module] += 1;
-      if (o.status === "aprobat") row.analyzed += 1;
-      else if (o.status === "respins") row.rejected += 1;
+      const cs = classroomStatusOf(o);
+      if (cs === "admis") row.analyzed += 1;
+      else if (cs === "respins") row.rejected += 1;
       else row.pending += 1;
     }
     return Array.from(map.values()).sort((a, b) =>
       a.authorName.localeCompare(b.authorName, "ro")
     );
   }, [filtered]);
+
+  const applyClassroomUpdate = (updated: Observation) => {
+    setObservations((prev) =>
+      prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+    );
+    useCaliStore.setState((s) => ({
+      observations: s.observations.map((o) =>
+        o.id === updated.id ? { ...o, ...updated } : o
+      ),
+    }));
+  };
 
   const activityTitle = (id?: string) =>
     activities.find((a) => a.id === id)?.title ?? "—";
@@ -693,6 +709,53 @@ function LessonHub() {
               )}
             </div>
           ) : null}
+        </section>
+
+        
+        <section className="mt-10 print:hidden">
+          <h2 className="font-display text-xl text-forest">
+            {t("lesson.decideTitle")}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("lesson.pendingSub")}
+          </p>
+          {filtered.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {t("lesson.mapEmpty")}
+            </p>
+          ) : (
+            <ul className="mt-3 space-y-3">
+              {filtered.map((o) => (
+                <li
+                  key={o.id}
+                  className="rounded-lg border bg-card/80 p-4"
+                >
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <Link
+                      href={`/observatii/${o.id}`}
+                      className="font-medium text-primary underline-offset-2 hover:underline"
+                    >
+                      {o.code}
+                    </Link>
+                    <ClassroomBadge status={classroomStatusOf(o)} />
+                    <ModuleBadge module={o.module} />
+                    <span className="text-muted-foreground">{o.authorName}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t("class.parkStatus")}:
+                    </span>
+                    <StatusBadge status={o.status} />
+                  </div>
+                  <div className="mt-3">
+                    <ClassroomDecisionPanel
+                      observation={o}
+                      compact
+                      onUpdated={applyClassroomUpdate}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         {pending.length > 0 ? (

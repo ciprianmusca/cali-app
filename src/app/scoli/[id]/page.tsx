@@ -5,9 +5,15 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AuthGate } from "@/components/layout/auth-gate";
 import { Button } from "@/components/ui/button";
-import { StatusBadge, ModuleBadge } from "@/components/observations/badges";
+import {
+  StatusBadge,
+  ModuleBadge,
+  ClassroomBadge,
+} from "@/components/observations/badges";
+import { ClassroomDecisionPanel } from "@/components/observations/classroom-decision-panel";
 import { useCaliStore } from "@/lib/store";
 import { canTeachSchool } from "@/lib/capabilities";
+import { classroomStatusOf } from "@/lib/classroom";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { FieldActivity, Observation } from "@/lib/types";
@@ -97,6 +103,19 @@ function ActivityDetail({ id }: { id: string }) {
     (user.role === "admin" ||
       (user.role === "ranger" && canTeachSchool(user)) ||
       (canTeachSchool(user) && user.id === activity.createdBy));
+
+  const canDecideClass = !!user && canTeachSchool(user);
+
+  const applyClassroomUpdate = (updated: Observation) => {
+    setLinked((prev) =>
+      prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o))
+    );
+    useCaliStore.setState((s) => ({
+      observations: s.observations.map((o) =>
+        o.id === updated.id ? { ...o, ...updated } : o
+      ),
+    }));
+  };
 
   const onDelete = async () => {
     if (!canDelete || !activity) return;
@@ -245,24 +264,42 @@ function ActivityDetail({ id }: { id: string }) {
         {t("school.obsDiscussHint")}
       </p>
 
-      <div className="mt-3 divide-y rounded-lg border bg-card/80">
+      <div className="mt-3 space-y-3">
         {displayLinked.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">{t("obs.empty")}</p>
+          <p className="rounded-lg border bg-card/80 p-4 text-sm text-muted-foreground">
+            {t("obs.empty")}
+          </p>
         ) : (
           displayLinked.map((o) => (
-            <Link
-              key={o.id}
-              href={`/observatii/${o.id}`}
-              className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40"
-            >
-              <span className="font-medium">{o.code}</span>
-              <StatusBadge status={o.status} />
-              <ModuleBadge module={o.module} />
-              <span className="text-muted-foreground">{o.authorName}</span>
-              <span className="text-muted-foreground">
-                {formatDateTime(o.createdAt)}
-              </span>
-            </Link>
+            <div key={o.id} className="rounded-lg border bg-card/80 p-4">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <Link
+                  href={`/observatii/${o.id}`}
+                  className="font-medium text-primary underline-offset-2 hover:underline"
+                >
+                  {o.code}
+                </Link>
+                <ClassroomBadge status={classroomStatusOf(o)} />
+                <ModuleBadge module={o.module} />
+                <span className="text-xs text-muted-foreground">
+                  {t("class.parkStatus")}:
+                </span>
+                <StatusBadge status={o.status} />
+                <span className="text-muted-foreground">{o.authorName}</span>
+                <span className="text-muted-foreground">
+                  {formatDateTime(o.createdAt)}
+                </span>
+              </div>
+              {canDecideClass ? (
+                <div className="mt-3">
+                  <ClassroomDecisionPanel
+                    observation={o}
+                    compact
+                    onUpdated={applyClassroomUpdate}
+                  />
+                </div>
+              ) : null}
+            </div>
           ))
         )}
       </div>

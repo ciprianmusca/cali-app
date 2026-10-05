@@ -376,6 +376,31 @@ export function observationFromRow(row: ObsRow): Observation {
         : undefined,
     activityId:
       typeof payload.activityId === "string" ? payload.activityId : undefined,
+    classroomStatus:
+      payload.classroomStatus === "admis" ||
+      payload.classroomStatus === "respins" ||
+      payload.classroomStatus === "nediscutat"
+        ? (payload.classroomStatus as Observation["classroomStatus"])
+        : undefined,
+    classroomComment:
+      typeof payload.classroomComment === "string"
+        ? payload.classroomComment
+        : undefined,
+    classroomById:
+      typeof payload.classroomById === "string"
+        ? payload.classroomById
+        : undefined,
+    classroomByName:
+      typeof payload.classroomByName === "string"
+        ? payload.classroomByName
+        : undefined,
+    classroomAt:
+      typeof payload.classroomAt === "string"
+        ? payload.classroomAt
+        : undefined,
+    classroomHistory: Array.isArray(payload.classroomHistory)
+      ? (payload.classroomHistory as Observation["classroomHistory"])
+      : undefined,
     species: (row.species as Observation["species"]) ?? undefined,
     speciesOther:
       typeof payload.speciesOther === "string"
@@ -440,6 +465,12 @@ function payloadFor(obs: Observation): Record<string, unknown> {
     originalFields: obs.originalFields,
     clarificationQuestion: obs.clarificationQuestion,
     clarificationReply: obs.clarificationReply,
+    classroomStatus: obs.classroomStatus,
+    classroomComment: obs.classroomComment,
+    classroomById: obs.classroomById,
+    classroomByName: obs.classroomByName,
+    classroomAt: obs.classroomAt,
+    classroomHistory: obs.classroomHistory,
   };
   if (obs.module === "fenologie") {
     return {
