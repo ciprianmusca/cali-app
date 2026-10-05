@@ -1,5 +1,5 @@
 /* CALI-LAB service worker — offline app shell + asset cache */
-const VERSION = "cali-lab-sw-v9";
+const VERSION = "cali-lab-sw-v10";
 const SHELL = [
   "/",
   "/acasa",
@@ -54,6 +54,27 @@ function isStaticAsset(url) {
   );
 }
 
+/** Next.js App Router soft navigations — must never be cached by the SW. */
+function isNextDataRequest(request, url) {
+  if (url.searchParams.has("_rsc")) return true;
+  if (request.headers.get("RSC") === "1") return true;
+  if (request.headers.get("Next-Router-Prefetch")) return true;
+  if (request.headers.get("Next-Router-State-Tree")) return true;
+  if (request.headers.get("Next-Url")) return true;
+  return false;
+}
+
+function offlineFallback() {
+  return (
+    caches.match("/offline.html") ||
+    caches.match("/") ||
+    new Response("Offline", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    })
+  );
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -61,21 +82,23 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Never cache sync API
+  // Never touch APIs or Next.js RSC / soft-nav payloads
   if (url.pathname.startsWith("/api/")) return;
+  if (isNextDataRequest(request, url)) return;
 
   if (isStaticAsset(url)) {
     event.respondWith(cacheFirst(request));
     return;
   }
 
-  // Navigations / HTML — network first, cache fallback
+  // Full document navigations only
   if (request.mode === "navigate" || request.destination === "document") {
     event.respondWith(networkFirstNavigate(request));
     return;
   }
 
-  event.respondWith(staleWhileRevalidate(request));
+  // Other same-origin GETs (fonts already covered): network, no undefined responses
+  event.respondWith(networkOnly(request));
 });
 
 async function cacheFirst(request) {
@@ -89,14 +112,17 @@ async function cacheFirst(request) {
     }
     return res;
   } catch {
-    return cached || Response.error();
+    return cached || (await offlineFallback());
   }
 }
 
 async function networkFirstNavigate(request) {
   try {
     const res = await fetch(request);
-    if (res.ok) {
+    // Cache only known shell paths — never dynamic /scoli/[id] etc.
+    const url = new URL(request.url);
+    const path = url.pathname.replace(/\/$/, "") || "/";
+    if (res.ok && SHELL.includes(path)) {
       const cache = await caches.open(VERSION);
       cache.put(request, res.clone());
     }
@@ -110,20 +136,17 @@ async function networkFirstNavigate(request) {
       cached ||
       new Response("Offline", {
         status: 503,
-        headers: { "Content-Type": "text/plain" },
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
       })
     );
   }
 }
 
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(VERSION);
-  const cached = await cache.match(request);
-  const network = fetch(request)
-    .then((res) => {
-      if (res.ok) cache.put(request, res.clone());
-      return res;
-    })
-    .catch(() => cached);
-  return cached || network;
+async function networkOnly(request) {
+  try {
+    return await fetch(request);
+  } catch {
+    const cached = await caches.match(request);
+    return cached || (await offlineFallback());
+  }
 }
