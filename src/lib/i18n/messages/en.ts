@@ -510,7 +510,7 @@ export const en: { [K in keyof RoMessages]: string } = {
 
   "school.title": "Schools — field activities",
   "school.sub":
-    "The teacher creates an activity and shares the code. Field observations attach to the activity and are discussed in class — ranger approval is not required for lessons.",
+    "The teacher creates an activity and shares the code. Field observations link automatically to the active activity and are discussed in class — no manual selection, and no ranger approval needed for lessons.",
   "school.new": "New activity",
   "school.empty": "No activities yet. Join with a code or create one.",
   "school.date": "Date",
@@ -523,6 +523,11 @@ export const en: { [K in keyof RoMessages]: string } = {
   "school.attachPlaceholder": "Choose an observation…",
   "school.attachEmpty":
     "No observations to attach (all are already on this activity).",
+  "school.autoLinkTitle": "Automatic linking",
+  "school.autoLinkActive":
+    "This is your active activity. New and unassigned observations appear here for the teacher automatically — no manual selection.",
+  "school.autoLinkHint":
+    "Join the activity (or activate it from Schools); your unassigned and new observations are sent to class automatically.",
   "school.observations": "Attached observations",
   "school.detail": "Activity detail",
   "school.back": "Back to Schools",
@@ -543,7 +548,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "school.active": "Active activity",
   "school.setActive": "Use for new observations",
   "school.activeHint":
-    "New observations are linked to this activity automatically.",
+    "New and unassigned observations link to this activity automatically.",
   "school.clearActive": "Clear",
   "school.approve": "Validated in class",
   "school.reject": "Rejected in class",
@@ -598,7 +603,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "lesson.flow1Title": "Prep (Schools)",
   "lesson.flow1Body": "Create the activity, share the code, delete your activity if needed.",
   "lesson.flow2Title": "Field",
-  "lesson.flow2Body": "Students join with the code, make observations, and attach them.",
+  "lesson.flow2Body": "Students join with the code; observations are sent to the activity automatically.",
   "lesson.flow3Title": "Class (here)",
   "lesson.flow3Body": "Map → discuss → validate in class → reports by total / type / student.",
 

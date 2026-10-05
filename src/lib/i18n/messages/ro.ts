@@ -532,7 +532,7 @@ export const ro = {
 
   "school.title": "Școli — activități de teren",
   "school.sub":
-    "Profesorul creează activitatea și dă codul elevilor. Observațiile din teren se atașează la activitate și se discută la clasă — nu e nevoie de aprobare de ranger pentru lecție.",
+    "Profesorul creează activitatea și dă codul elevilor. Observațiile din teren se leagă automat de activitatea activă și se discută la clasă — fără selecție manuală și fără aprobare de ranger pentru lecție.",
   "school.new": "Activitate nouă",
   "school.empty": "Nicio activitate încă. Intră cu un cod sau creează una nouă.",
   "school.date": "Dată",
@@ -544,6 +544,11 @@ export const ro = {
   "school.attach": "Atașează la activitate",
   "school.attachPlaceholder": "Alege o observație…",
   "school.attachEmpty": "Nu ai observații de atașat (toate sunt deja la această activitate).",
+  "school.autoLinkTitle": "Atașare automată",
+  "school.autoLinkActive":
+    "Aceasta e activitatea ta activă. Observațiile noi și cele neatribuite apar automat aici, pentru profesor — fără selecție manuală.",
+  "school.autoLinkHint":
+    "Intră în activitate (sau activeaz-o din Școli); observațiile tale neatribuite și cele noi se trimit automat la clasă.",
   "school.observations": "Observații atașate",
   "school.detail": "Detaliu activitate",
   "school.back": "Înapoi la Școli",
@@ -564,7 +569,7 @@ export const ro = {
   "school.active": "Activitate activă",
   "school.setActive": "Folosește pentru observații noi",
   "school.activeHint":
-    "Observațiile noi se leagă automat de această activitate.",
+    "Observațiile noi și cele neatribuite se leagă automat de această activitate.",
   "school.clearActive": "Renunță",
   "school.approve": "Validat la clasă",
   "school.reject": "Respins la clasă",
@@ -619,7 +624,7 @@ export const ro = {
   "lesson.flow1Title": "Pregătire (Școli)",
   "lesson.flow1Body": "Creezi activitatea, comunici codul, poți șterge activitatea ta.",
   "lesson.flow2Title": "Teren",
-  "lesson.flow2Body": "Elevii intră cu codul, fac observații și le atașează.",
+  "lesson.flow2Body": "Elevii intră cu codul; observațiile se trimit automat la activitate.",
   "lesson.flow3Title": "Clasă (aici)",
   "lesson.flow3Body": "Hartă → discuți → validezi la clasă → rapoarte pe total / tip / elev.",
 

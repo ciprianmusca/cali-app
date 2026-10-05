@@ -27,27 +27,18 @@ function ActivityDetail({ id }: { id: string }) {
   const router = useRouter();
   const user = useCaliStore((s) => s.currentUser());
   const observations = useCaliStore((s) => s.observations);
-  const updateObservation = useCaliStore((s) => s.updateObservation);
   const validateObservation = useCaliStore((s) => s.validateObservation);
   const flushOfflineQueue = useCaliStore((s) => s.flushOfflineQueue);
   const activeActivityId = useCaliStore((s) => s.settings.activeActivityId);
   const setActiveActivityId = useCaliStore((s) => s.setActiveActivityId);
   const [activity, setActivity] = useState<FieldActivity | null>(null);
   const [linked, setLinked] = useState<Observation[]>([]);
-  const [attachId, setAttachId] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [validateComment, setValidateComment] = useState("");
   const [busyObs, setBusyObs] = useState<string | null>(null);
-
-  // All of the user's observations except those already on this activity.
-  const attachable = user
-    ? observations.filter(
-        (o) => o.authorId === user.id && o.activityId !== id
-      )
-    : [];
 
   const load = () => {
     setLoading(true);
@@ -94,26 +85,16 @@ function ActivityDetail({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const attach = () => {
-    if (!attachId || !user) return;
-    updateObservation(attachId, { activityId: id, syncStatus: "pending" });
-    const obs = useCaliStore
-      .getState()
-      .observations.find((o) => o.id === attachId);
-    if (obs) {
-      useCaliStore.setState({
-        offlineQueue: [
-          { ...obs, activityId: id, syncStatus: "pending" },
-          ...useCaliStore
-            .getState()
-            .offlineQueue.filter((o) => o.id !== attachId),
-        ],
-      });
-      void flushOfflineQueue();
-    }
-    setAttachId("");
-    setTimeout(load, 500);
-  };
+  // Elev opening an activity: auto-activate so new + free observations go here.
+  useEffect(() => {
+    if (!user || !activity) return;
+    if (user.role !== "elev") return;
+    if (activeActivityId === id) return;
+    setActiveActivityId(id);
+    const timer = window.setTimeout(load, 600);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, activity?.id, id]);
 
   const canDelete =
     !!user &&
@@ -174,6 +155,7 @@ function ActivityDetail({ id }: { id: string }) {
     }
     setValidateComment("");
     setBusyObs(null);
+    void flushOfflineQueue();
     setTimeout(load, 400);
   };
 
@@ -211,17 +193,17 @@ function ActivityDetail({ id }: { id: string }) {
     );
   }
 
-  const canAttach = user.role === "elev" || user.role === "profesor";
   const showCode =
     user.role === "admin" ||
     user.role === "ranger" ||
     user.role === "profesor";
 
-  // Prefer server list, fall back to local store for offline.
   const displayLinked =
     linked.length > 0
       ? linked
       : observations.filter((o) => o.activityId === id);
+
+  const isParticipant = user.role === "elev" || user.role === "profesor";
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -270,20 +252,6 @@ function ActivityDetail({ id }: { id: string }) {
             >
               {copied ? t("school.copied") : t("school.copyCode")}
             </Button>
-            {activeActivityId !== id ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setActiveActivityId(id)}
-              >
-                {t("school.setActive")}
-              </Button>
-            ) : (
-              <span className="text-xs text-muted-foreground">
-                {t("school.activeHint")}
-              </span>
-            )}
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
             {t("school.joinCodeHint")}
@@ -291,47 +259,14 @@ function ActivityDetail({ id }: { id: string }) {
         </div>
       ) : null}
 
-      {!showCode && activeActivityId !== id ? (
-        <div className="mt-4">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => setActiveActivityId(id)}
-          >
-            {t("school.setActive")}
-          </Button>
-        </div>
-      ) : null}
-
-      {canAttach ? (
-        <div className="mt-6 flex flex-wrap items-end gap-2 rounded-lg border bg-card/80 p-4">
-          <div className="min-w-[200px] flex-1 space-y-1">
-            <label className="text-sm" htmlFor="attach-obs">
-              {t("school.attach")}
-            </label>
-            <select
-              id="attach-obs"
-              className="flex h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              value={attachId}
-              onChange={(e) => setAttachId(e.target.value)}
-            >
-              <option value="">{t("school.attachPlaceholder")}</option>
-              {attachable.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.code} · {formatDateTime(o.createdAt)}
-                </option>
-              ))}
-            </select>
-            {attachable.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
-                {t("school.attachEmpty")}
-              </p>
-            ) : null}
-          </div>
-          <Button type="button" disabled={!attachId} onClick={attach}>
-            {t("school.attach")}
-          </Button>
+      {isParticipant ? (
+        <div className="mt-4 rounded-lg border bg-card/80 p-4 text-sm">
+          <p className="font-medium text-forest">{t("school.autoLinkTitle")}</p>
+          <p className="mt-1 text-muted-foreground">
+            {activeActivityId === id
+              ? t("school.autoLinkActive")
+              : t("school.autoLinkHint")}
+          </p>
         </div>
       ) : null}
 
@@ -360,9 +295,9 @@ function ActivityDetail({ id }: { id: string }) {
           <p className="p-4 text-sm text-muted-foreground">{t("obs.empty")}</p>
         ) : (
           displayLinked.map((o) => {
-            const pending = o.status === "in_asteptare";
+            const pendingStatus = o.status === "in_asteptare";
             const canAct =
-              canValidateHere && pending && o.authorId !== user.id;
+              canValidateHere && pendingStatus && o.authorId !== user.id;
             return (
               <div
                 key={o.id}

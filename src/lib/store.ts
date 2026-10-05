@@ -66,6 +66,8 @@ interface CaliState {
   markNotificationRead: (id: string) => void;
   pullNotifications: () => Promise<void>;
   setActiveActivityId: (id: string | undefined) => void;
+  /** Link the current user's unattached observations to an activity and sync. */
+  linkUnattachedToActivity: (activityId: string) => void;
   addObservation: (obs: Observation) => void;
   updateObservation: (id: string, patch: Partial<Observation>) => void;
   deleteObservation: (id: string) => void;
@@ -372,13 +374,51 @@ export const useCaliStore = create<CaliState>()(
       hydrated: false,
       setHydrated: (v) => set({ hydrated: v }),
 
-      setActiveActivityId: (id) =>
+      setActiveActivityId: (id) => {
         set({
           settings: {
             ...get().settings,
             activeActivityId: id,
           },
-        }),
+        });
+        // Joining / activating an activity auto-links the user's free observations.
+        if (id) {
+          get().linkUnattachedToActivity(id);
+        }
+      },
+
+      linkUnattachedToActivity: (activityId) => {
+        const user = get().currentUser();
+        if (!user || !activityId) return;
+        const toLink = get().observations.filter(
+          (o) => o.authorId === user.id && !o.activityId
+        );
+        if (!toLink.length) return;
+
+        const linked = toLink.map((o) => ({
+          ...o,
+          activityId,
+          syncStatus: "pending" as const,
+          syncError: undefined,
+        }));
+        const linkedIds = new Set(linked.map((o) => o.id));
+        set({
+          observations: get().observations.map((o) =>
+            linkedIds.has(o.id)
+              ? (linked.find((l) => l.id === o.id) ?? o)
+              : o
+          ),
+          offlineQueue: [
+            ...linked,
+            ...get().offlineQueue.filter((o) => !linkedIds.has(o.id)),
+          ],
+        });
+        if (typeof navigator !== "undefined" && navigator.onLine) {
+          setTimeout(() => {
+            void get().flushOfflineQueue();
+          }, 0);
+        }
+      },
 
       pullNotifications: async () => {
         try {
