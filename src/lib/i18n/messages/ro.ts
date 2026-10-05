@@ -541,8 +541,12 @@ export const ro = {
   "school.schoolName": "Școală (opțional)",
   "school.save": "Creează activitatea",
   "school.attach": "Atașează la activitate",
+  "school.attachPlaceholder": "Alege o observație…",
+  "school.attachEmpty": "Nu ai observații pending de atașat.",
   "school.observations": "Observații atașate",
   "school.detail": "Detaliu activitate",
+  "school.back": "Înapoi la Școli",
+  "school.loadError": "Nu am putut încărca activitatea. Încercați din nou.",
 
   "dir.elevBlocked":
     "Navigația e disponibilă doar pentru observațiile din zona activității.",

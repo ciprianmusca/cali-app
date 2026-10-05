@@ -519,8 +519,12 @@ export const en: { [K in keyof RoMessages]: string } = {
   "school.schoolName": "School (optional)",
   "school.save": "Create activity",
   "school.attach": "Attach to activity",
+  "school.attachPlaceholder": "Choose an observation…",
+  "school.attachEmpty": "No pending observations to attach.",
   "school.observations": "Attached observations",
   "school.detail": "Activity detail",
+  "school.back": "Back to Schools",
+  "school.loadError": "Could not load the activity. Please try again.",
 
   "dir.elevBlocked":
     "Navigation is only available for observations in your activity zone.",

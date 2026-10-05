@@ -19,42 +19,59 @@ import type { FieldActivity, Observation } from "@/lib/types";
 
 function ActivityDetail({ id }: { id: string }) {
   const { t } = useI18n();
-  const user = useCaliStore((s) => s.currentUser())!;
-  const myPending = useCaliStore((s) =>
-    s.observations.filter(
-      (o) =>
-        o.authorId === user.id &&
-        !o.activityId &&
-        (o.status === "in_asteptare" || o.status === "clarificare")
-    )
-  );
+  const user = useCaliStore((s) => s.currentUser());
+  const observations = useCaliStore((s) => s.observations);
   const updateObservation = useCaliStore((s) => s.updateObservation);
   const flushOfflineQueue = useCaliStore((s) => s.flushOfflineQueue);
   const [activity, setActivity] = useState<FieldActivity | null>(null);
   const [linked, setLinked] = useState<Observation[]>([]);
   const [attachId, setAttachId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  const myPending = user
+    ? observations.filter(
+        (o) =>
+          o.authorId === user.id &&
+          !o.activityId &&
+          (o.status === "in_asteptare" || o.status === "clarificare")
+      )
+    : [];
 
   const load = () => {
+    setLoading(true);
+    setLoadError(false);
     void fetch(`/api/activities/${id}`, { credentials: "include" })
-      .then(
-        (r) =>
-          r.json() as Promise<{
-            activity?: FieldActivity;
-            observations?: Observation[];
-          }>
-      )
-      .then((d) => {
-        setActivity(d.activity ?? null);
+      .then(async (r) => {
+        const d = (await r.json()) as {
+          ok?: boolean;
+          activity?: FieldActivity;
+          observations?: Observation[];
+        };
+        if (!r.ok || !d.activity) {
+          setActivity(null);
+          setLinked([]);
+          setLoadError(true);
+          return;
+        }
+        setActivity(d.activity);
         setLinked(d.observations ?? []);
-      });
+      })
+      .catch(() => {
+        setActivity(null);
+        setLinked([]);
+        setLoadError(true);
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when id changes
   }, [id]);
 
   const attach = () => {
-    if (!attachId) return;
+    if (!attachId || !user) return;
     updateObservation(attachId, { activityId: id, syncStatus: "pending" });
     const obs = useCaliStore.getState().observations.find((o) => o.id === attachId);
     if (obs) {
@@ -72,17 +89,41 @@ function ActivityDetail({ id }: { id: string }) {
     setTimeout(load, 500);
   };
 
-  if (!activity) {
+  if (!user) return null;
+
+  if (loading) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16">
-        <p>{t("school.empty")}</p>
+      <div className="mx-auto max-w-3xl px-4 py-16 text-muted-foreground">
+        {t("auth.loading")}
       </div>
     );
   }
 
+  if (!activity) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-4 px-4 py-16">
+        <p>{loadError ? t("school.loadError") : t("school.empty")}</p>
+        <Link
+          href="/scoli"
+          className="inline-flex h-8 items-center rounded-lg border border-border bg-background px-2.5 text-sm hover:bg-muted"
+        >
+          {t("school.back")}
+        </Link>
+      </div>
+    );
+  }
+
+  const canAttach = user.role === "elev" || user.role === "profesor";
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <p className="text-sm text-muted-foreground">{t("school.detail")}</p>
+      <p className="text-sm text-muted-foreground">
+        <Link href="/scoli" className="underline-offset-2 hover:underline">
+          {t("school.back")}
+        </Link>
+        {" · "}
+        {t("school.detail")}
+      </p>
       <h1 className="font-display text-3xl text-forest">{activity.title}</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         {formatDate(activity.date)} · {activity.zoneName} (±{activity.zoneRadiusM}{" "}
@@ -90,13 +131,16 @@ function ActivityDetail({ id }: { id: string }) {
         {activity.schoolName ? ` · ${activity.schoolName}` : ""}
       </p>
 
-      {user.role === "elev" || user.role === "profesor" ? (
+      {canAttach ? (
         <div className="mt-6 flex flex-wrap items-end gap-2 rounded-lg border bg-card/80 p-4">
           <div className="min-w-[200px] flex-1 space-y-1">
             <label className="text-sm">{t("school.attach")}</label>
-            <Select value={attachId} onValueChange={(v) => setAttachId(v ?? "")}>
+            <Select
+              value={attachId || undefined}
+              onValueChange={(v) => setAttachId(v ?? "")}
+            >
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue placeholder={t("school.attachPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {myPending.map((o) => (
@@ -106,6 +150,11 @@ function ActivityDetail({ id }: { id: string }) {
                 ))}
               </SelectContent>
             </Select>
+            {myPending.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                {t("school.attachEmpty")}
+              </p>
+            ) : null}
           </div>
           <Button disabled={!attachId} onClick={attach}>
             {t("school.attach")}
