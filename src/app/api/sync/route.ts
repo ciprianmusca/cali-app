@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { canValidate, requireUser } from "@/lib/auth";
 import {
+  canTeacherValidateObservation,
   ensureSchema,
   ensureUniqueObservationCode,
   getDB,
@@ -21,7 +22,8 @@ function hasUploadablePhotos(photos: string[] | undefined): boolean {
 /**
  * Upload offline observations into D1 + R2. Requires authenticated session.
  * Photos (data-URI) are written to R2; D1 stores only r2: keys.
- * Users may only upsert their own observations unless ranger/admin.
+ * Users may only upsert their own observations unless ranger/admin,
+ * or a teacher validating observations on their own school activity.
  * Codes that collide with another id are remapped to the next free code.
  */
 export async function POST(request: Request) {
@@ -55,21 +57,27 @@ export async function POST(request: Request) {
 
       const isOwner = obs.authorId === session.id;
       const isStaff = canValidate(session.role);
-      if (!isOwner && !isStaff) {
+      const isTeacherValidator = await canTeacherValidateObservation(
+        db,
+        session,
+        obs
+      );
+      if (!isOwner && !isStaff && !isTeacherValidator) {
         errors.push({ id: obs.id, error: "forbidden" });
         continue;
       }
 
       try {
         const existing = await getObservationById(db, obs.id);
-        const base: Observation = isStaff
-          ? obs
-          : {
-              ...obs,
-              authorId: session.id,
-              authorRole: session.role,
-              authorName: session.name,
-            };
+        const base: Observation =
+          isStaff || isTeacherValidator
+            ? obs
+            : {
+                ...obs,
+                authorId: session.id,
+                authorRole: session.role,
+                authorName: session.name,
+              };
 
         const unique = await ensureUniqueObservationCode(db, base);
 

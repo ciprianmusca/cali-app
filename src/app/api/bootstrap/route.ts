@@ -3,6 +3,7 @@ import { getSessionUser, toPublicUser } from "@/lib/auth";
 import {
   ensureSchema,
   getDB,
+  listFieldActivities,
   listObservations,
   listUsers,
   migrateObservationRows,
@@ -15,7 +16,8 @@ import { prepareObservationsForApi } from "@/lib/visibility";
 
 /**
  * Canonical data from D1.
- * Visibility (ROL-05): visitor=approved; field=approved+own; staff=all.
+ * Visibility (ROL-05): visitor=approved; field=approved+own; staff=all;
+ * profesor=approved+own+observations on their activities.
  * Never returns passwords or base64 photos.
  */
 export async function GET() {
@@ -57,11 +59,23 @@ export async function GET() {
         ? (await listUsers(db)).map(toPublicUser)
         : [toPublicUser(session)];
 
+    let teacherActivityIds: Set<string> | undefined;
+    if (session.role === "profesor") {
+      const acts = await listFieldActivities(db);
+      teacherActivityIds = new Set(
+        acts.filter((a) => a.createdBy === session.id).map((a) => a.id)
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       user: toPublicUser(session),
       users,
-      observations: prepareObservationsForApi(allObservations, viewer),
+      observations: prepareObservationsForApi(
+        allObservations,
+        viewer,
+        teacherActivityIds
+      ),
       serverTime: new Date().toISOString(),
     });
   } catch (e) {

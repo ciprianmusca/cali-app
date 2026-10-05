@@ -9,22 +9,35 @@ export type Viewer = Pick<User, "id" | "role"> | null;
  * - visitor (null): approved only
  * - turist / rezident / elev: approved + own (any status)
  * - ranger / admin: all
+ * - profesor: approved + own + observations on activities they created
+ *   (extra activity ids passed by the caller when known)
  */
 export function canViewObservation(
   obs: Observation,
-  viewer: Viewer
+  viewer: Viewer,
+  teacherActivityIds?: ReadonlySet<string>
 ): boolean {
   if (!viewer) return obs.status === "aprobat";
   if (viewer.role === "admin" || viewer.role === "ranger") return true;
+  if (
+    viewer.role === "profesor" &&
+    obs.activityId &&
+    teacherActivityIds?.has(obs.activityId)
+  ) {
+    return true;
+  }
   // Field users: approved + own (any status, incl. clarificare / pending).
   return obs.status === "aprobat" || obs.authorId === viewer.id;
 }
 
 export function filterObservationsForViewer(
   list: Observation[],
-  viewer: Viewer
+  viewer: Viewer,
+  teacherActivityIds?: ReadonlySet<string>
 ): Observation[] {
-  return list.filter((o) => canViewObservation(o, viewer));
+  return list.filter((o) =>
+    canViewObservation(o, viewer, teacherActivityIds)
+  );
 }
 
 export function isStaffRole(role?: UserRole | null): boolean {
@@ -34,10 +47,11 @@ export function isStaffRole(role?: UserRole | null): boolean {
 /** Filter → mask names → slim photo refs for API responses. */
 export function prepareObservationsForApi(
   list: Observation[],
-  viewer: Viewer
+  viewer: Viewer,
+  teacherActivityIds?: ReadonlySet<string>
 ): Observation[] {
   const role = viewer?.role ?? null;
-  return filterObservationsForViewer(list, viewer).map((o) =>
-    slimObservationPhotos(maskObservationNames(o, role))
+  return filterObservationsForViewer(list, viewer, teacherActivityIds).map(
+    (o) => slimObservationPhotos(maskObservationNames(o, role))
   );
 }

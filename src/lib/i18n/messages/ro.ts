@@ -531,9 +531,10 @@ export const ro = {
   "profile.badPassword": "Parola curentă este greșită.",
 
   "school.title": "Școli — activități de teren",
-  "school.sub": "Profesorii creează activități; elevii atașează observații.",
+  "school.sub":
+    "Profesorul creează activitatea și dă codul elevilor; observațiile din teren apar aici pentru discuție și validare.",
   "school.new": "Activitate nouă",
-  "school.empty": "Nicio activitate încă.",
+  "school.empty": "Nicio activitate încă. Intră cu un cod sau creează una nouă.",
   "school.date": "Dată",
   "school.zone": "Zonă",
   "school.radius": "Rază (m)",
@@ -542,7 +543,7 @@ export const ro = {
   "school.save": "Creează activitatea",
   "school.attach": "Atașează la activitate",
   "school.attachPlaceholder": "Alege o observație…",
-  "school.attachEmpty": "Nu ai observații pending de atașat.",
+  "school.attachEmpty": "Nu ai observații de atașat (toate sunt deja la această activitate).",
   "school.observations": "Observații atașate",
   "school.detail": "Detaliu activitate",
   "school.back": "Înapoi la Școli",
@@ -551,6 +552,29 @@ export const ro = {
   "school.deleteConfirm":
     "Ștergeți această activitate? Observațiile atașate rămân, dar nu mai sunt legate de activitate.",
   "school.deleteError": "Nu am putut șterge activitatea. Încercați din nou.",
+  "school.joinCode": "Cod activitate",
+  "school.joinCodeHint":
+    "Comunicați acest cod elevilor. Fără el nu pot intra în activitate.",
+  "school.joinTitle": "Intră în activitate",
+  "school.joinSub": "Introdu codul primit de la profesor.",
+  "school.joinPlaceholder": "ex. K7M2PQ",
+  "school.joinSubmit": "Intră",
+  "school.joinError": "Cod invalid sau activitate inexistentă.",
+  "school.joinOk": "Te-ai alăturat activității.",
+  "school.active": "Activitate activă",
+  "school.setActive": "Folosește pentru observații noi",
+  "school.activeHint":
+    "Observațiile noi se leagă automat de această activitate.",
+  "school.clearActive": "Renunță",
+  "school.approve": "Validează",
+  "school.reject": "Invalidează",
+  "school.validateComment": "Comentariu (opțional la validare, obligatoriu la invalidare)",
+  "school.validateOk": "Decizia a fost salvată.",
+  "school.validateError": "Nu am putut salva decizia.",
+  "school.createdCode": "Activitate creată. Cod pentru elevi:",
+  "school.copyCode": "Copiază codul",
+  "school.copied": "Copiat",
+  "school.memberOnly": "Intră cu codul de la profesor pentru a vedea activitățile.",
 
   "dir.elevBlocked":
     "Navigația e disponibilă doar pentru observațiile din zona activității.",

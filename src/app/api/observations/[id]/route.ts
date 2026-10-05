@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { canValidate, getSessionUser, requireUser } from "@/lib/auth";
 import {
+  canTeacherValidateObservation,
   deleteObservation,
   ensureSchema,
   getDB,
+  getFieldActivity,
+  listFieldActivities,
   listObservations,
   upsertObservation,
 } from "@/lib/db";
@@ -42,7 +45,16 @@ export async function GET(
     const viewer = session
       ? { id: session.id, role: session.role }
       : null;
-    if (!canViewObservation(existing, viewer)) {
+
+    let teacherActivityIds: Set<string> | undefined;
+    if (session?.role === "profesor") {
+      const acts = await listFieldActivities(db);
+      teacherActivityIds = new Set(
+        acts.filter((a) => a.createdBy === session.id).map((a) => a.id)
+      );
+    }
+
+    if (!canViewObservation(existing, viewer, teacherActivityIds)) {
       return NextResponse.json(
         { ok: false, error: "forbidden" },
         { status: 403 }
@@ -82,21 +94,28 @@ export async function PATCH(
 
     const isOwner = existing.authorId === auth.user.id;
     const isStaff = canValidate(auth.user.role);
-    if (!isOwner && !isStaff) {
+    const isTeacher = await canTeacherValidateObservation(
+      db,
+      auth.user,
+      existing
+    );
+    if (!isOwner && !isStaff && !isTeacher) {
       return NextResponse.json(
         { ok: false, error: "forbidden" },
         { status: 403 }
       );
     }
 
-    const safePatch = isStaff
-      ? patch
-      : {
-          details: patch.details,
-          photos: patch.photos,
-          location: patch.location,
-          species: patch.species,
-        };
+    const safePatch =
+      isStaff || isTeacher
+        ? patch
+        : {
+            details: patch.details,
+            photos: patch.photos,
+            location: patch.location,
+            species: patch.species,
+            activityId: patch.activityId,
+          };
 
     let merged = { ...existing, ...safePatch, id } as Observation;
     if (safePatch.photos) {
@@ -107,6 +126,22 @@ export async function PATCH(
         safePatch.photos
       );
       merged = { ...merged, photos };
+    }
+
+    // Owners may only attach to activities they can access (member/creator).
+    if (
+      !isStaff &&
+      !isTeacher &&
+      safePatch.activityId &&
+      safePatch.activityId !== existing.activityId
+    ) {
+      const activity = await getFieldActivity(db, safePatch.activityId);
+      if (!activity) {
+        return NextResponse.json(
+          { ok: false, error: "activity_not_found" },
+          { status: 400 }
+        );
+      }
     }
 
     await upsertObservation(db, merged);

@@ -509,9 +509,10 @@ export const en: { [K in keyof RoMessages]: string } = {
   "profile.badPassword": "Current password is incorrect.",
 
   "school.title": "Schools — field activities",
-  "school.sub": "Teachers create activities; students attach observations.",
+  "school.sub":
+    "The teacher creates an activity and shares the code; field observations show up here for class discussion and validation.",
   "school.new": "New activity",
-  "school.empty": "No activities yet.",
+  "school.empty": "No activities yet. Join with a code or create one.",
   "school.date": "Date",
   "school.zone": "Zone",
   "school.radius": "Radius (m)",
@@ -520,7 +521,8 @@ export const en: { [K in keyof RoMessages]: string } = {
   "school.save": "Create activity",
   "school.attach": "Attach to activity",
   "school.attachPlaceholder": "Choose an observation…",
-  "school.attachEmpty": "No pending observations to attach.",
+  "school.attachEmpty":
+    "No observations to attach (all are already on this activity).",
   "school.observations": "Attached observations",
   "school.detail": "Activity detail",
   "school.back": "Back to Schools",
@@ -529,6 +531,30 @@ export const en: { [K in keyof RoMessages]: string } = {
   "school.deleteConfirm":
     "Delete this activity? Attached observations are kept, but unlinked from the activity.",
   "school.deleteError": "Could not delete the activity. Please try again.",
+  "school.joinCode": "Activity code",
+  "school.joinCodeHint":
+    "Share this code with students. They need it to join the activity.",
+  "school.joinTitle": "Join an activity",
+  "school.joinSub": "Enter the code from your teacher.",
+  "school.joinPlaceholder": "e.g. K7M2PQ",
+  "school.joinSubmit": "Join",
+  "school.joinError": "Invalid code or activity not found.",
+  "school.joinOk": "You joined the activity.",
+  "school.active": "Active activity",
+  "school.setActive": "Use for new observations",
+  "school.activeHint":
+    "New observations are linked to this activity automatically.",
+  "school.clearActive": "Clear",
+  "school.approve": "Approve",
+  "school.reject": "Reject",
+  "school.validateComment":
+    "Comment (optional when approving, required when rejecting)",
+  "school.validateOk": "Decision saved.",
+  "school.validateError": "Could not save the decision.",
+  "school.createdCode": "Activity created. Student code:",
+  "school.copyCode": "Copy code",
+  "school.copied": "Copied",
+  "school.memberOnly": "Join with your teacher’s code to see activities.",
 
   "dir.elevBlocked":
     "Navigation is only available for observations in your activity zone.",

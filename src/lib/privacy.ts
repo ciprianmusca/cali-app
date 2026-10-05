@@ -14,7 +14,7 @@ export const PUBLIC_ROLE_LABEL: Record<UserRole, string> = {
 export const DELETED_USER_LABEL = "Utilizator șters";
 
 export function canSeeFullNames(role?: UserRole | null): boolean {
-  return role === "admin" || role === "ranger";
+  return role === "admin" || role === "ranger" || role === "profesor";
 }
 
 export function publicRoleLabel(role: UserRole): string {

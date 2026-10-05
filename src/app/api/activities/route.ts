@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
 import {
+  addActivityMember,
+  allocateJoinCode,
   ensureSchema,
   getDB,
-  listFieldActivities,
+  listFieldActivitiesForUser,
   upsertFieldActivity,
 } from "@/lib/db";
 import type { FieldActivity } from "@/lib/types";
@@ -21,7 +23,11 @@ export async function GET() {
   try {
     const db = await getDB();
     await ensureSchema(db);
-    const activities = await listFieldActivities(db);
+    const activities = await listFieldActivitiesForUser(
+      db,
+      auth.user.id,
+      auth.user.role
+    );
     return NextResponse.json({ ok: true, activities });
   } catch (e) {
     const message = e instanceof Error ? e.message : "list_failed";
@@ -49,6 +55,7 @@ export async function POST(request: Request) {
     }
     const db = await getDB();
     await ensureSchema(db);
+    const joinCode = await allocateJoinCode(db);
     const activity: FieldActivity = {
       id: body.id ?? `act-${crypto.randomUUID().slice(0, 10)}`,
       title: body.title.trim(),
@@ -59,11 +66,17 @@ export async function POST(request: Request) {
       zoneRadiusM: body.zoneRadiusM ?? 500,
       treeIds: body.treeIds ?? [],
       schoolName: body.schoolName?.trim() || undefined,
+      joinCode,
       createdBy: auth.user.id,
       createdByName: auth.user.name,
       createdAt: body.createdAt ?? new Date().toISOString(),
     };
     await upsertFieldActivity(db, activity);
+    await addActivityMember(db, activity, {
+      id: auth.user.id,
+      name: auth.user.name,
+      role: auth.user.role,
+    });
     await writeAudit(db, {
       actorId: auth.user.id,
       actorName: auth.user.name,
@@ -71,7 +84,7 @@ export async function POST(request: Request) {
       action: "create_activity",
       objectType: "activity",
       objectId: activity.id,
-      detail: activity.title,
+      detail: `${activity.title} · cod ${activity.joinCode}`,
     });
     return NextResponse.json({ ok: true, activity });
   } catch (e) {

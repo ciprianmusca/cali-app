@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AuthGate } from "@/components/layout/auth-gate";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { StatusBadge, ModuleBadge } from "@/components/observations/badges";
 import { useCaliStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n/use-i18n";
@@ -27,20 +28,24 @@ function ActivityDetail({ id }: { id: string }) {
   const user = useCaliStore((s) => s.currentUser());
   const observations = useCaliStore((s) => s.observations);
   const updateObservation = useCaliStore((s) => s.updateObservation);
+  const validateObservation = useCaliStore((s) => s.validateObservation);
   const flushOfflineQueue = useCaliStore((s) => s.flushOfflineQueue);
+  const activeActivityId = useCaliStore((s) => s.settings.activeActivityId);
+  const setActiveActivityId = useCaliStore((s) => s.setActiveActivityId);
   const [activity, setActivity] = useState<FieldActivity | null>(null);
   const [linked, setLinked] = useState<Observation[]>([]);
   const [attachId, setAttachId] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [validateComment, setValidateComment] = useState("");
+  const [busyObs, setBusyObs] = useState<string | null>(null);
 
-  const myPending = user
+  // All of the user's observations except those already on this activity.
+  const attachable = user
     ? observations.filter(
-        (o) =>
-          o.authorId === user.id &&
-          !o.activityId &&
-          (o.status === "in_asteptare" || o.status === "clarificare")
+        (o) => o.authorId === user.id && o.activityId !== id
       )
     : [];
 
@@ -64,6 +69,17 @@ function ActivityDetail({ id }: { id: string }) {
         }
         setActivity(d.activity);
         setLinked(d.observations ?? []);
+        // Merge server-linked observations into local store for validation UI.
+        if (d.observations?.length) {
+          useCaliStore.setState((s) => {
+            const byId = new Map(s.observations.map((o) => [o.id, o]));
+            for (const o of d.observations!) {
+              const prev = byId.get(o.id);
+              byId.set(o.id, prev ? { ...prev, ...o } : o);
+            }
+            return { observations: Array.from(byId.values()) };
+          });
+        }
       })
       .catch(() => {
         setActivity(null);
@@ -106,6 +122,13 @@ function ActivityDetail({ id }: { id: string }) {
       user.role === "ranger" ||
       (user.role === "profesor" && user.id === activity.createdBy));
 
+  const canValidateHere =
+    !!user &&
+    !!activity &&
+    (user.role === "admin" ||
+      user.role === "ranger" ||
+      (user.role === "profesor" && user.id === activity.createdBy));
+
   const onDelete = async () => {
     if (!canDelete || !activity) return;
     if (!window.confirm(t("school.deleteConfirm"))) return;
@@ -120,6 +143,10 @@ function ActivityDetail({ id }: { id: string }) {
           observations: s.observations.map((o) =>
             o.activityId === id ? { ...o, activityId: undefined } : o
           ),
+          settings:
+            s.settings.activeActivityId === id
+              ? { ...s.settings, activeActivityId: undefined }
+              : s.settings,
         }));
         router.replace("/scoli");
         return;
@@ -129,6 +156,34 @@ function ActivityDetail({ id }: { id: string }) {
       window.alert(t("school.deleteError"));
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const onValidate = (obsId: string, decision: "aprobat" | "respins") => {
+    if (!canValidateHere) return;
+    const comment =
+      decision === "respins"
+        ? validateComment.trim() || t("school.reject")
+        : validateComment.trim();
+    setBusyObs(obsId);
+    const res = validateObservation(obsId, decision, comment);
+    if (!res.ok) {
+      window.alert(res.error ?? t("school.validateError"));
+      setBusyObs(null);
+      return;
+    }
+    setValidateComment("");
+    setBusyObs(null);
+    setTimeout(load, 400);
+  };
+
+  const copyCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
     }
   };
 
@@ -157,6 +212,16 @@ function ActivityDetail({ id }: { id: string }) {
   }
 
   const canAttach = user.role === "elev" || user.role === "profesor";
+  const showCode =
+    user.role === "admin" ||
+    user.role === "ranger" ||
+    user.role === "profesor";
+
+  // Prefer server list, fall back to local store for offline.
+  const displayLinked =
+    linked.length > 0
+      ? linked
+      : observations.filter((o) => o.activityId === id);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -190,6 +255,55 @@ function ActivityDetail({ id }: { id: string }) {
         ) : null}
       </div>
 
+      {showCode && activity.joinCode ? (
+        <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
+          <p className="text-sm font-medium">{t("school.joinCode")}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <code className="rounded bg-background px-3 py-1 font-mono text-lg tracking-widest">
+              {activity.joinCode}
+            </code>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void copyCode(activity.joinCode)}
+            >
+              {copied ? t("school.copied") : t("school.copyCode")}
+            </Button>
+            {activeActivityId !== id ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setActiveActivityId(id)}
+              >
+                {t("school.setActive")}
+              </Button>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                {t("school.activeHint")}
+              </span>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t("school.joinCodeHint")}
+          </p>
+        </div>
+      ) : null}
+
+      {!showCode && activeActivityId !== id ? (
+        <div className="mt-4">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setActiveActivityId(id)}
+          >
+            {t("school.setActive")}
+          </Button>
+        </div>
+      ) : null}
+
       {canAttach ? (
         <div className="mt-6 flex flex-wrap items-end gap-2 rounded-lg border bg-card/80 p-4">
           <div className="min-w-[200px] flex-1 space-y-1">
@@ -203,13 +317,13 @@ function ActivityDetail({ id }: { id: string }) {
               onChange={(e) => setAttachId(e.target.value)}
             >
               <option value="">{t("school.attachPlaceholder")}</option>
-              {myPending.map((o) => (
+              {attachable.map((o) => (
                 <option key={o.id} value={o.id}>
                   {o.code} · {formatDateTime(o.createdAt)}
                 </option>
               ))}
             </select>
-            {myPending.length === 0 ? (
+            {attachable.length === 0 ? (
               <p className="text-xs text-muted-foreground">
                 {t("school.attachEmpty")}
               </p>
@@ -222,24 +336,69 @@ function ActivityDetail({ id }: { id: string }) {
       ) : null}
 
       <h2 className="mt-8 font-display text-xl">{t("school.observations")}</h2>
+
+      {canValidateHere ? (
+        <div className="mt-3 space-y-1">
+          <label className="text-sm" htmlFor="val-comment">
+            {t("school.validateComment")}
+          </label>
+          <Input
+            id="val-comment"
+            value={validateComment}
+            onChange={(e) => setValidateComment(e.target.value)}
+          />
+        </div>
+      ) : null}
+
       <div className="mt-3 divide-y rounded-lg border bg-card/80">
-        {linked.length === 0 ? (
+        {displayLinked.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">{t("obs.empty")}</p>
         ) : (
-          linked.map((o) => (
-            <Link
-              key={o.id}
-              href={`/observatii/${o.id}`}
-              className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40"
-            >
-              <span className="font-medium">{o.code}</span>
-              <StatusBadge status={o.status} />
-              <ModuleBadge module={o.module} />
-              <span className="text-muted-foreground">
-                {formatDateTime(o.createdAt)}
-              </span>
-            </Link>
-          ))
+          displayLinked.map((o) => {
+            const pending = o.status === "in_asteptare";
+            const canAct =
+              canValidateHere && pending && o.authorId !== user.id;
+            return (
+              <div
+                key={o.id}
+                className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm"
+              >
+                <Link
+                  href={`/observatii/${o.id}`}
+                  className="flex min-w-0 flex-1 flex-wrap items-center gap-2 hover:bg-muted/40"
+                >
+                  <span className="font-medium">{o.code}</span>
+                  <StatusBadge status={o.status} />
+                  <ModuleBadge module={o.module} />
+                  <span className="text-muted-foreground">{o.authorName}</span>
+                  <span className="text-muted-foreground">
+                    {formatDateTime(o.createdAt)}
+                  </span>
+                </Link>
+                {canAct ? (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={busyObs === o.id}
+                      onClick={() => onValidate(o.id, "aprobat")}
+                    >
+                      {t("school.approve")}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      disabled={busyObs === o.id}
+                      onClick={() => onValidate(o.id, "respins")}
+                    >
+                      {t("school.reject")}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })
         )}
       </div>
     </div>

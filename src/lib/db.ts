@@ -18,6 +18,10 @@ import type {
 } from "@/lib/types";
 import { DEMO_ACCOUNTS, GDPR_VERSION } from "@/lib/constants";
 import {
+  generateActivityJoinCode,
+  normalizeJoinCode,
+} from "@/lib/activity-code";
+import {
   generateCode,
   maxCodeSequential,
   moduleCodePrefix,
@@ -151,11 +155,25 @@ export async function ensureSchema(db: D1Database): Promise<void> {
         zone_radius_m REAL NOT NULL,
         tree_ids_json TEXT NOT NULL DEFAULT '[]',
         school_name TEXT,
+        join_code TEXT,
         created_by TEXT NOT NULL,
         created_by_name TEXT NOT NULL,
         created_at TEXT NOT NULL
       )
     `),
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS activity_members (
+        activity_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        user_role TEXT NOT NULL,
+        joined_at TEXT NOT NULL,
+        PRIMARY KEY (activity_id, user_id)
+      )
+    `),
+    db.prepare(
+      `CREATE INDEX IF NOT EXISTS idx_activity_members_user ON activity_members(user_id)`
+    ),
     db.prepare(`
       CREATE TABLE IF NOT EXISTS notifications (
         id TEXT PRIMARY KEY,
@@ -172,6 +190,31 @@ export async function ensureSchema(db: D1Database): Promise<void> {
       `CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, created_at DESC)`
     ),
   ]);
+  await migrateFieldActivitiesSchema(db);
+}
+
+/** Add join_code to older D1 installs and backfill missing codes. */
+async function migrateFieldActivitiesSchema(db: D1Database): Promise<void> {
+  try {
+    await db
+      .prepare(`ALTER TABLE field_activities ADD COLUMN join_code TEXT`)
+      .run();
+  } catch {
+    /* column already exists */
+  }
+
+  const { results } = await db
+    .prepare(
+      `SELECT id FROM field_activities WHERE join_code IS NULL OR join_code = ''`
+    )
+    .all<{ id: string }>();
+  for (const row of results ?? []) {
+    const code = await allocateJoinCode(db);
+    await db
+      .prepare(`UPDATE field_activities SET join_code = ? WHERE id = ?`)
+      .bind(code, row.id)
+      .run();
+  }
 }
 
 export type UserRow = {
@@ -794,11 +837,59 @@ export async function markPasswordResetUsed(
     .run();
 }
 
+export async function allocateJoinCode(db: D1Database): Promise<string> {
+  for (let attempt = 0; attempt < 24; attempt++) {
+    const code = generateActivityJoinCode(attempt < 16 ? 6 : 8);
+    const hit = await db
+      .prepare(
+        `SELECT id FROM field_activities WHERE upper(join_code) = ? LIMIT 1`
+      )
+      .bind(code)
+      .first<{ id: string }>();
+    if (!hit) return code;
+  }
+  return generateActivityJoinCode(10);
+}
+
+function mapFieldActivityRow(r: {
+  id: string;
+  title: string;
+  date: string;
+  zone_name: string;
+  zone_lat: number;
+  zone_lng: number;
+  zone_radius_m: number;
+  tree_ids_json: string;
+  school_name: string | null;
+  join_code: string | null;
+  created_by: string;
+  created_by_name: string;
+  created_at: string;
+}): FieldActivity {
+  return {
+    id: r.id,
+    title: r.title,
+    date: r.date,
+    zoneName: r.zone_name,
+    zoneLat: r.zone_lat,
+    zoneLng: r.zone_lng,
+    zoneRadiusM: r.zone_radius_m,
+    treeIds: JSON.parse(r.tree_ids_json || "[]") as string[],
+    schoolName: r.school_name ?? undefined,
+    joinCode: r.join_code ?? "",
+    createdBy: r.created_by,
+    createdByName: r.created_by_name,
+    createdAt: r.created_at,
+  };
+}
+
 export async function listFieldActivities(
   db: D1Database
 ): Promise<FieldActivity[]> {
   const { results } = await db
-    .prepare("SELECT * FROM field_activities ORDER BY date DESC, created_at DESC")
+    .prepare(
+      "SELECT * FROM field_activities ORDER BY date DESC, created_at DESC"
+    )
     .all<{
       id: string;
       title: string;
@@ -809,44 +900,167 @@ export async function listFieldActivities(
       zone_radius_m: number;
       tree_ids_json: string;
       school_name: string | null;
+      join_code: string | null;
       created_by: string;
       created_by_name: string;
       created_at: string;
     }>();
-  return (results ?? []).map((r) => ({
-    id: r.id,
-    title: r.title,
-    date: r.date,
-    zoneName: r.zone_name,
-    zoneLat: r.zone_lat,
-    zoneLng: r.zone_lng,
-    zoneRadiusM: r.zone_radius_m,
-    treeIds: JSON.parse(r.tree_ids_json || "[]") as string[],
-    schoolName: r.school_name ?? undefined,
-    createdBy: r.created_by,
-    createdByName: r.created_by_name,
-    createdAt: r.created_at,
-  }));
+  return (results ?? []).map(mapFieldActivityRow);
+}
+
+export async function listMemberActivityIds(
+  db: D1Database,
+  userId: string
+): Promise<Set<string>> {
+  const { results } = await db
+    .prepare(`SELECT activity_id FROM activity_members WHERE user_id = ?`)
+    .bind(userId)
+    .all<{ activity_id: string }>();
+  return new Set((results ?? []).map((r) => r.activity_id));
+}
+
+export async function listFieldActivitiesForUser(
+  db: D1Database,
+  userId: string,
+  role: UserRole
+): Promise<FieldActivity[]> {
+  const all = await listFieldActivities(db);
+  if (role === "admin" || role === "ranger") return all;
+  const memberIds = await listMemberActivityIds(db, userId);
+  if (role === "profesor") {
+    return all.filter(
+      (a) => a.createdBy === userId || memberIds.has(a.id)
+    );
+  }
+  return all.filter((a) => memberIds.has(a.id));
 }
 
 export async function getFieldActivity(
   db: D1Database,
   id: string
 ): Promise<FieldActivity | null> {
-  const list = await listFieldActivities(db);
-  return list.find((a) => a.id === id) ?? null;
+  const row = await db
+    .prepare(`SELECT * FROM field_activities WHERE id = ? LIMIT 1`)
+    .bind(id)
+    .first<{
+      id: string;
+      title: string;
+      date: string;
+      zone_name: string;
+      zone_lat: number;
+      zone_lng: number;
+      zone_radius_m: number;
+      tree_ids_json: string;
+      school_name: string | null;
+      join_code: string | null;
+      created_by: string;
+      created_by_name: string;
+      created_at: string;
+    }>();
+  return row ? mapFieldActivityRow(row) : null;
+}
+
+export async function getFieldActivityByJoinCode(
+  db: D1Database,
+  rawCode: string
+): Promise<FieldActivity | null> {
+  const code = normalizeJoinCode(rawCode);
+  if (!code) return null;
+  const row = await db
+    .prepare(
+      `SELECT * FROM field_activities WHERE upper(join_code) = ? LIMIT 1`
+    )
+    .bind(code)
+    .first<{
+      id: string;
+      title: string;
+      date: string;
+      zone_name: string;
+      zone_lat: number;
+      zone_lng: number;
+      zone_radius_m: number;
+      tree_ids_json: string;
+      school_name: string | null;
+      join_code: string | null;
+      created_by: string;
+      created_by_name: string;
+      created_at: string;
+    }>();
+  return row ? mapFieldActivityRow(row) : null;
+}
+
+export async function isActivityMember(
+  db: D1Database,
+  activityId: string,
+  userId: string
+): Promise<boolean> {
+  const hit = await db
+    .prepare(
+      `SELECT user_id FROM activity_members WHERE activity_id = ? AND user_id = ? LIMIT 1`
+    )
+    .bind(activityId, userId)
+    .first<{ user_id: string }>();
+  return Boolean(hit);
+}
+
+export async function addActivityMember(
+  db: D1Database,
+  activity: FieldActivity,
+  user: { id: string; name: string; role: UserRole }
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO activity_members (
+        activity_id, user_id, user_name, user_role, joined_at
+      ) VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(activity_id, user_id) DO UPDATE SET
+        user_name=excluded.user_name,
+        user_role=excluded.user_role`
+    )
+    .bind(
+      activity.id,
+      user.id,
+      user.name,
+      user.role,
+      new Date().toISOString()
+    )
+    .run();
+}
+
+export async function canAccessActivity(
+  db: D1Database,
+  activity: FieldActivity,
+  user: { id: string; role: UserRole }
+): Promise<boolean> {
+  if (user.role === "admin" || user.role === "ranger") return true;
+  if (activity.createdBy === user.id) return true;
+  return isActivityMember(db, activity.id, user.id);
+}
+
+/** Profesor may validate observations linked to an activity they created. */
+export async function canTeacherValidateObservation(
+  db: D1Database,
+  user: { id: string; role: UserRole },
+  obs: Observation
+): Promise<boolean> {
+  if (user.role !== "profesor" || !obs.activityId) return false;
+  if (obs.authorId === user.id) return false;
+  const activity = await getFieldActivity(db, obs.activityId);
+  return Boolean(activity && activity.createdBy === user.id);
 }
 
 export async function upsertFieldActivity(
   db: D1Database,
   activity: FieldActivity
 ): Promise<void> {
+  const joinCode =
+    activity.joinCode?.trim() || (await allocateJoinCode(db));
   await db
     .prepare(
       `INSERT INTO field_activities (
         id, title, date, zone_name, zone_lat, zone_lng, zone_radius_m,
-        tree_ids_json, school_name, created_by, created_by_name, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        tree_ids_json, school_name, join_code, created_by, created_by_name, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         title=excluded.title,
         date=excluded.date,
@@ -855,7 +1069,8 @@ export async function upsertFieldActivity(
         zone_lng=excluded.zone_lng,
         zone_radius_m=excluded.zone_radius_m,
         tree_ids_json=excluded.tree_ids_json,
-        school_name=excluded.school_name`
+        school_name=excluded.school_name,
+        join_code=COALESCE(excluded.join_code, field_activities.join_code)`
     )
     .bind(
       activity.id,
@@ -867,6 +1082,7 @@ export async function upsertFieldActivity(
       activity.zoneRadiusM,
       JSON.stringify(activity.treeIds),
       activity.schoolName ?? null,
+      joinCode,
       activity.createdBy,
       activity.createdByName,
       activity.createdAt
@@ -874,7 +1090,7 @@ export async function upsertFieldActivity(
     .run();
 }
 
-/** Delete activity and unlink attached observations (keep observations). */
+/** Delete activity, memberships, and unlink attached observations (keep observations). */
 export async function deleteFieldActivity(
   db: D1Database,
   id: string
@@ -887,6 +1103,10 @@ export async function deleteFieldActivity(
     await upsertObservation(db, { ...obs, activityId: undefined });
   }
 
+  await db
+    .prepare("DELETE FROM activity_members WHERE activity_id = ?")
+    .bind(id)
+    .run();
   await db.prepare("DELETE FROM field_activities WHERE id = ?").bind(id).run();
   return { deleted: true, unlinked: linked.length };
 }

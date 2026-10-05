@@ -26,7 +26,8 @@ export type AuditAction =
   | "account_delete_request"
   | "create_activity"
   | "update_activity"
-  | "delete_activity";
+  | "delete_activity"
+  | "join_activity";
 
 export interface AuditEvent {
   id: string;
@@ -51,6 +52,8 @@ export interface FieldActivity {
   zoneRadiusM: number;
   treeIds: string[];
   schoolName?: string;
+  /** Short code students use to join (e.g. K7M2PQ). */
+  joinCode: string;
   createdBy: string;
   createdByName: string;
   createdAt: string;
@@ -301,4 +304,6 @@ export interface AppSettings {
   passwordResetMinutesAdmin: number;
   smtpEncryption: "tls" | "ssl";
   gpsAccuracyWarningMeters: number;
+  /** Activity the student/teacher is currently working in (join code flow). */
+  activeActivityId?: string;
 }

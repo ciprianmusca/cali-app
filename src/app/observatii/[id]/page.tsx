@@ -174,7 +174,15 @@ function ObservationDetail({ id }: { id: string }) {
   const isStaff = Boolean(
     user && (user.role === "ranger" || user.role === "admin")
   );
-  const canValidate = isStaff && obs.status === "in_asteptare";
+  const isTeacherOfActivity = Boolean(
+    user &&
+      user.role === "profesor" &&
+      activity &&
+      activity.createdBy === user.id &&
+      obs.activityId === activity.id
+  );
+  const canModerate = isStaff || isTeacherOfActivity;
+  const canValidate = canModerate && obs.status === "in_asteptare";
   const canReopen =
     isStaff && (obs.status === "aprobat" || obs.status === "respins");
   const canDelete =
@@ -754,7 +762,7 @@ function ObservationDetail({ id }: { id: string }) {
       {canValidate ? (
         <section className="mt-10 space-y-4 rounded-xl border border-primary/20 bg-card p-5">
           <h2 className="font-display text-xl text-forest">{t("obs.validation")}</h2>
-          {user && obs.authorId === user.id && user.role === "ranger" ? (
+          {user && obs.authorId === user.id && canModerate ? (
             <Alert>
               <AlertTitle>{t("obs.selfValidateBlocked")}</AlertTitle>
               <AlertDescription>{t("obs.selfValidateMsg")}</AlertDescription>

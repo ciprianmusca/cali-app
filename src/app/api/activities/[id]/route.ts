@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
 import {
+  canAccessActivity,
   deleteFieldActivity,
   ensureSchema,
   getDB,
   getFieldActivity,
+  isActivityMember,
   listObservations,
 } from "@/lib/db";
 
@@ -27,10 +29,25 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    const allowed = await canAccessActivity(db, activity, auth.user);
+    if (!allowed) {
+      return NextResponse.json(
+        { ok: false, error: "forbidden" },
+        { status: 403 }
+      );
+    }
+
     const observations = (await listObservations(db)).filter(
       (o) => o.activityId === id
     );
-    return NextResponse.json({ ok: true, activity, observations });
+    const member = await isActivityMember(db, id, auth.user.id);
+    return NextResponse.json({
+      ok: true,
+      activity,
+      observations,
+      isMember: member || activity.createdBy === auth.user.id,
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "get_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
