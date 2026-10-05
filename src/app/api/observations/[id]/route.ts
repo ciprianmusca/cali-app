@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { canValidate, getSessionUser, requireUser } from "@/lib/auth";
 import {
-  canTeacherValidateObservation,
   deleteObservation,
   ensureSchema,
   getDB,
@@ -94,28 +93,22 @@ export async function PATCH(
 
     const isOwner = existing.authorId === auth.user.id;
     const isStaff = canValidate(auth.user.role);
-    const isTeacher = await canTeacherValidateObservation(
-      db,
-      auth.user,
-      existing
-    );
-    if (!isOwner && !isStaff && !isTeacher) {
+    if (!isOwner && !isStaff) {
       return NextResponse.json(
         { ok: false, error: "forbidden" },
         { status: 403 }
       );
     }
 
-    const safePatch =
-      isStaff || isTeacher
-        ? patch
-        : {
-            details: patch.details,
-            photos: patch.photos,
-            location: patch.location,
-            species: patch.species,
-            activityId: patch.activityId,
-          };
+    const safePatch = isStaff
+      ? patch
+      : {
+          details: patch.details,
+          photos: patch.photos,
+          location: patch.location,
+          species: patch.species,
+          activityId: patch.activityId,
+        };
 
     let merged = { ...existing, ...safePatch, id } as Observation;
     if (safePatch.photos) {
@@ -128,10 +121,9 @@ export async function PATCH(
       merged = { ...merged, photos };
     }
 
-    // Owners may only attach to activities they can access (member/creator).
+    // Owners may only set activityId on an existing activity.
     if (
       !isStaff &&
-      !isTeacher &&
       safePatch.activityId &&
       safePatch.activityId !== existing.activityId
     ) {

@@ -571,10 +571,12 @@ export const ro = {
   "school.activeHint":
     "Observațiile noi și cele neatribuite se leagă automat de această activitate.",
   "school.clearActive": "Renunță",
+  "school.obsDiscussHint":
+    "Discutați observațiile la clasă. Aprobarea științifică o fac doar rangerii sau adminii.",
   "school.approve": "Validat la clasă",
   "school.reject": "Respins la clasă",
   "school.validateComment":
-    "Comentariu (opțional la validare, obligatoriu la respingere). Nu înlocuiește validarea științifică a rangerilor.",
+    "Comentariu (opțional la validare, obligatoriu la respingere).",
   "school.validateOk": "Decizia a fost salvată.",
   "school.validateError": "Nu am putut salva decizia.",
   "school.createdCode": "Activitate creată. Cod pentru elevi:",
@@ -586,7 +588,7 @@ export const ro = {
   "lesson.title": "Pregătire lecție — centralizator",
   "lesson.crumb": "Raport pentru clasă",
   "lesson.sub":
-    "Organizează discuția: hartă cu locațiile, apoi rapoarte pe total, pe tip de observație și pe elev. Rangerii nu trebuie să aprobe aceste observații pentru lecție.",
+    "Hartă și rapoarte pentru pregătirea lecției. Profesorul vede toate observațiile din activitate; aprobarea științifică rămâne la ranger / admin.",
   "lesson.forbidden": "Această pagină e pentru profesori.",
   "lesson.loadError": "Nu am putut încărca datele pentru lecție.",
   "lesson.print": "Tipărește / PDF",
@@ -595,9 +597,9 @@ export const ro = {
   "lesson.openActivity": "Deschide activitatea",
   "lesson.total": "Total atașate",
   "lesson.students": "Elevi cu observații",
-  "lesson.pending": "De discutat",
-  "lesson.analyzed": "Analizate la clasă",
-  "lesson.rejected": "Respinse la clasă",
+  "lesson.pending": "În așteptare",
+  "lesson.analyzed": "Aprobate (ranger)",
+  "lesson.rejected": "Respinse",
   "lesson.mapTitle": "Hartă — locațiile observațiilor",
   "lesson.mapSub": "Toate observațiile atașate la activitatea selectată (orice statut).",
   "lesson.mapEmpty": "Nicio observație pentru filtrul ales.",
@@ -608,9 +610,9 @@ export const ro = {
   "lesson.tabType": "Pe tip",
   "lesson.tabStudent": "Pe elev",
   "lesson.reportEmpty":
-    "Încă nu există observații analizate. Deschideți activitatea și marcați-le ca validate la clasă.",
+    "Încă nu există observații aprobate de ranger. Puteți totuși discuta cele din listă și din hartă.",
   "lesson.pendingTitle": "De discutat la clasă",
-  "lesson.pendingSub": "Observații atașate, încă fără decizie de clasă.",
+  "lesson.pendingSub": "Observații atașate, încă neaprobate de ranger.",
   "lesson.colCode": "Cod",
   "lesson.colStudent": "Elev",
   "lesson.colModule": "Modul",
@@ -626,7 +628,7 @@ export const ro = {
   "lesson.flow2Title": "Teren",
   "lesson.flow2Body": "Elevii intră cu codul; observațiile se trimit automat la activitate.",
   "lesson.flow3Title": "Clasă (aici)",
-  "lesson.flow3Body": "Hartă → discuți → validezi la clasă → rapoarte pe total / tip / elev.",
+  "lesson.flow3Body": "Hartă → discuți la clasă → rapoarte pe total / tip / elev.",
 
   "nav.lesson": "Lecție",
 

@@ -550,10 +550,12 @@ export const en: { [K in keyof RoMessages]: string } = {
   "school.activeHint":
     "New and unassigned observations link to this activity automatically.",
   "school.clearActive": "Clear",
+  "school.obsDiscussHint":
+    "Discuss observations in class. Scientific approval is done only by rangers or admins.",
   "school.approve": "Validated in class",
   "school.reject": "Rejected in class",
   "school.validateComment":
-    "Comment (optional when approving, required when rejecting). This does not replace scientific ranger validation.",
+    "Comment (optional when approving, required when rejecting).",
   "school.validateOk": "Decision saved.",
   "school.validateError": "Could not save the decision.",
   "school.createdCode": "Activity created. Student code:",
@@ -565,7 +567,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "lesson.title": "Lesson prep — hub",
   "lesson.crumb": "Class report",
   "lesson.sub":
-    "Organize discussion: map of locations, then reports by total, observation type, and student. Rangers do not need to approve these for classroom use.",
+    "Map and reports for lesson prep. Teachers see all activity observations; scientific approval stays with ranger / admin.",
   "lesson.forbidden": "This page is for teachers.",
   "lesson.loadError": "Could not load lesson data.",
   "lesson.print": "Print / PDF",
@@ -574,9 +576,9 @@ export const en: { [K in keyof RoMessages]: string } = {
   "lesson.openActivity": "Open activity",
   "lesson.total": "Total attached",
   "lesson.students": "Students with observations",
-  "lesson.pending": "To discuss",
-  "lesson.analyzed": "Analyzed in class",
-  "lesson.rejected": "Rejected in class",
+  "lesson.pending": "Pending",
+  "lesson.analyzed": "Approved (ranger)",
+  "lesson.rejected": "Rejected",
   "lesson.mapTitle": "Map — observation locations",
   "lesson.mapSub": "All observations attached to the selected activity (any status).",
   "lesson.mapEmpty": "No observations for this filter.",
@@ -587,9 +589,9 @@ export const en: { [K in keyof RoMessages]: string } = {
   "lesson.tabType": "By type",
   "lesson.tabStudent": "By student",
   "lesson.reportEmpty":
-    "No analyzed observations yet. Open an activity and mark them as validated in class.",
+    "No ranger-approved observations yet. You can still discuss the list and map.",
   "lesson.pendingTitle": "To discuss in class",
-  "lesson.pendingSub": "Attached observations still without a class decision.",
+  "lesson.pendingSub": "Attached observations not yet ranger-approved.",
   "lesson.colCode": "Code",
   "lesson.colStudent": "Student",
   "lesson.colModule": "Module",
@@ -605,7 +607,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "lesson.flow2Title": "Field",
   "lesson.flow2Body": "Students join with the code; observations are sent to the activity automatically.",
   "lesson.flow3Title": "Class (here)",
-  "lesson.flow3Body": "Map → discuss → validate in class → reports by total / type / student.",
+  "lesson.flow3Body": "Map → discuss in class → reports by total / type / student.",
 
   "nav.lesson": "Lesson",
 

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AuthGate } from "@/components/layout/auth-gate";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { StatusBadge, ModuleBadge } from "@/components/observations/badges";
 import { useCaliStore } from "@/lib/store";
 import { useI18n } from "@/lib/i18n/use-i18n";
@@ -27,8 +26,6 @@ function ActivityDetail({ id }: { id: string }) {
   const router = useRouter();
   const user = useCaliStore((s) => s.currentUser());
   const observations = useCaliStore((s) => s.observations);
-  const validateObservation = useCaliStore((s) => s.validateObservation);
-  const flushOfflineQueue = useCaliStore((s) => s.flushOfflineQueue);
   const activeActivityId = useCaliStore((s) => s.settings.activeActivityId);
   const setActiveActivityId = useCaliStore((s) => s.setActiveActivityId);
   const [activity, setActivity] = useState<FieldActivity | null>(null);
@@ -37,8 +34,6 @@ function ActivityDetail({ id }: { id: string }) {
   const [loadError, setLoadError] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [validateComment, setValidateComment] = useState("");
-  const [busyObs, setBusyObs] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -60,7 +55,6 @@ function ActivityDetail({ id }: { id: string }) {
         }
         setActivity(d.activity);
         setLinked(d.observations ?? []);
-        // Merge server-linked observations into local store for validation UI.
         if (d.observations?.length) {
           useCaliStore.setState((s) => {
             const byId = new Map(s.observations.map((o) => [o.id, o]));
@@ -103,13 +97,6 @@ function ActivityDetail({ id }: { id: string }) {
       user.role === "ranger" ||
       (user.role === "profesor" && user.id === activity.createdBy));
 
-  const canValidateHere =
-    !!user &&
-    !!activity &&
-    (user.role === "admin" ||
-      user.role === "ranger" ||
-      (user.role === "profesor" && user.id === activity.createdBy));
-
   const onDelete = async () => {
     if (!canDelete || !activity) return;
     if (!window.confirm(t("school.deleteConfirm"))) return;
@@ -138,25 +125,6 @@ function ActivityDetail({ id }: { id: string }) {
     } finally {
       setDeleting(false);
     }
-  };
-
-  const onValidate = (obsId: string, decision: "aprobat" | "respins") => {
-    if (!canValidateHere) return;
-    const comment =
-      decision === "respins"
-        ? validateComment.trim() || t("school.reject")
-        : validateComment.trim();
-    setBusyObs(obsId);
-    const res = validateObservation(obsId, decision, comment);
-    if (!res.ok) {
-      window.alert(res.error ?? t("school.validateError"));
-      setBusyObs(null);
-      return;
-    }
-    setValidateComment("");
-    setBusyObs(null);
-    void flushOfflineQueue();
-    setTimeout(load, 400);
   };
 
   const copyCode = async (code: string) => {
@@ -271,74 +239,29 @@ function ActivityDetail({ id }: { id: string }) {
       ) : null}
 
       <h2 className="mt-8 font-display text-xl">{t("school.observations")}</h2>
-      {canValidateHere ? (
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("lesson.sub")}
-        </p>
-      ) : null}
-
-      {canValidateHere ? (
-        <div className="mt-3 space-y-1">
-          <label className="text-sm" htmlFor="val-comment">
-            {t("school.validateComment")}
-          </label>
-          <Input
-            id="val-comment"
-            value={validateComment}
-            onChange={(e) => setValidateComment(e.target.value)}
-          />
-        </div>
-      ) : null}
+      <p className="mt-1 text-sm text-muted-foreground">
+        {t("school.obsDiscussHint")}
+      </p>
 
       <div className="mt-3 divide-y rounded-lg border bg-card/80">
         {displayLinked.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">{t("obs.empty")}</p>
         ) : (
-          displayLinked.map((o) => {
-            const pendingStatus = o.status === "in_asteptare";
-            const canAct =
-              canValidateHere && pendingStatus && o.authorId !== user.id;
-            return (
-              <div
-                key={o.id}
-                className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm"
-              >
-                <Link
-                  href={`/observatii/${o.id}`}
-                  className="flex min-w-0 flex-1 flex-wrap items-center gap-2 hover:bg-muted/40"
-                >
-                  <span className="font-medium">{o.code}</span>
-                  <StatusBadge status={o.status} />
-                  <ModuleBadge module={o.module} />
-                  <span className="text-muted-foreground">{o.authorName}</span>
-                  <span className="text-muted-foreground">
-                    {formatDateTime(o.createdAt)}
-                  </span>
-                </Link>
-                {canAct ? (
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={busyObs === o.id}
-                      onClick={() => onValidate(o.id, "aprobat")}
-                    >
-                      {t("school.approve")}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="destructive"
-                      disabled={busyObs === o.id}
-                      onClick={() => onValidate(o.id, "respins")}
-                    >
-                      {t("school.reject")}
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })
+          displayLinked.map((o) => (
+            <Link
+              key={o.id}
+              href={`/observatii/${o.id}`}
+              className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40"
+            >
+              <span className="font-medium">{o.code}</span>
+              <StatusBadge status={o.status} />
+              <ModuleBadge module={o.module} />
+              <span className="text-muted-foreground">{o.authorName}</span>
+              <span className="text-muted-foreground">
+                {formatDateTime(o.createdAt)}
+              </span>
+            </Link>
+          ))
         )}
       </div>
     </div>

@@ -795,13 +795,12 @@ export const useCaliStore = create<CaliState>()(
         const userId = get().currentUserId;
         const role = get().currentUser()?.role;
         const isStaff = role === "admin" || role === "ranger";
-        const isTeacher = role === "profesor";
-        // Field users: only own rows. Staff/teachers: also validations/edits on others.
+        // Field users: only own rows. Staff: also validations/edits on others.
         // Never flush a different field-account's leftover offline creates.
         const ownedQueue = queue.filter((o) => {
           if (!userId) return false;
           if (!o.authorId || o.authorId === userId) return true;
-          return isStaff || isTeacher;
+          return isStaff;
         });
         if (!ownedQueue.length) {
           set({ syncing: false });
@@ -964,19 +963,12 @@ export const useCaliStore = create<CaliState>()(
 
       validateObservation: (id, decision, comment, options) => {
         const user = get().currentUser();
-        if (
-          !user ||
-          (user.role !== "ranger" &&
-            user.role !== "admin" &&
-            user.role !== "profesor")
-        )
+        if (!user || (user.role !== "ranger" && user.role !== "admin"))
           return { ok: false, error: tKey("error.onlyRangers") };
         const obs = get().observations.find((o) => o.id === id);
         if (!obs) return { ok: false, error: tKey("error.obsMissing") };
-        if (obs.authorId === user.id && user.role !== "admin")
+        if (obs.authorId === user.id && user.role === "ranger")
           return { ok: false, error: tKey("error.selfValidate") };
-        if (user.role === "profesor" && !obs.activityId)
-          return { ok: false, error: tKey("error.onlyRangers") };
 
         const trimmed = comment.trim();
         const isReopen = decision === "reopen";

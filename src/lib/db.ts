@@ -1037,18 +1037,6 @@ export async function canAccessActivity(
   return isActivityMember(db, activity.id, user.id);
 }
 
-/** Profesor may validate observations linked to an activity they created. */
-export async function canTeacherValidateObservation(
-  db: D1Database,
-  user: { id: string; role: UserRole },
-  obs: Observation
-): Promise<boolean> {
-  if (user.role !== "profesor" || !obs.activityId) return false;
-  if (obs.authorId === user.id) return false;
-  const activity = await getFieldActivity(db, obs.activityId);
-  return Boolean(activity && activity.createdBy === user.id);
-}
-
 export async function upsertFieldActivity(
   db: D1Database,
   activity: FieldActivity
