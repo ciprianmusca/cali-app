@@ -248,17 +248,16 @@ function ActivityDetail({ id }: { id: string }) {
 
 export default function ActivityPage() {
   const params = useParams<{ id: string }>();
-  const id = typeof params?.id === "string" ? params.id : Array.isArray(params?.id) ? params.id[0] : "";
+  const id =
+    typeof params?.id === "string"
+      ? params.id
+      : Array.isArray(params?.id)
+        ? params.id[0]
+        : "";
 
   return (
     <AuthGate>
-      {id ? (
-        <ActivityDetail id={id} />
-      ) : (
-        <div className="mx-auto max-w-3xl px-4 py-16 text-muted-foreground">
-          …
-        </div>
-      )}
+      {id ? <ActivityDetail id={id} /> : null}
     </AuthGate>
   );
 }

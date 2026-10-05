@@ -215,11 +215,11 @@ function SchoolsHome() {
                 <Button
                   type="button"
                   size="sm"
-                  variant="outline"
+                  variant="destructive"
                   disabled={busyId === a.id}
                   onClick={() => void onDelete(a)}
                 >
-                  {t("school.delete")}
+                  {busyId === a.id ? t("auth.loading") : t("school.delete")}
                 </Button>
               ) : null}
             </div>
