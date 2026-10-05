@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, toPublicUser } from "@/lib/auth";
-import { canManageRegistrations } from "@/lib/capabilities";
+import {
+  canManageUsers,
+  canValidateObservations,
+} from "@/lib/capabilities";
 import {
   ensureSchema,
   getDB,
@@ -41,9 +44,6 @@ export async function GET() {
 
     const session = await getSessionUser();
     const allObservations = await listObservations(db);
-    const viewer = session
-      ? { id: session.id, role: session.role }
-      : null;
 
     if (!session) {
       return NextResponse.json({
@@ -55,7 +55,7 @@ export async function GET() {
       });
     }
 
-    const users = canManageRegistrations(session)
+    const users = canManageUsers(session)
       ? (await listUsers(db)).map(toPublicUser)
       : [toPublicUser(session)];
 
@@ -66,6 +66,12 @@ export async function GET() {
         acts.filter((a) => a.createdBy === session.id).map((a) => a.id)
       );
     }
+
+    const viewer = {
+      id: session.id,
+      role: session.role,
+      canValidateObservations: canValidateObservations(session),
+    };
 
     return NextResponse.json({
       ok: true,

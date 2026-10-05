@@ -30,7 +30,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useCaliStore } from "@/lib/store";
-import { canManageRegistrations, canTeachSchool } from "@/lib/capabilities";
+import { canManageUsers, canTeachSchool, canValidateObservations } from "@/lib/capabilities";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { roleKey } from "@/lib/i18n/labels";
 import { LanguageSwitcher } from "@/lib/i18n/language-switcher";
@@ -72,7 +72,7 @@ export function AppHeader() {
               },
             ]
           : []),
-        ...(user.role === "ranger" || user.role === "admin"
+        ...(canValidateObservations(user)
           ? [
               {
                 href: "/validare",
@@ -84,7 +84,7 @@ export function AppHeader() {
           : []),
         ...(user.role === "admin"
           ? [{ href: "/admin", label: t("nav.admin"), icon: Settings }]
-          : canManageRegistrations(user)
+          : canManageUsers(user)
             ? [
                 {
                   href: "/admin/utilizatori",

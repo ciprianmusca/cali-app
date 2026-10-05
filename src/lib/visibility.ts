@@ -1,14 +1,20 @@
 import type { Observation, User, UserRole } from "@/lib/types";
 import { maskObservationNames } from "@/lib/privacy";
 import { slimObservationPhotos } from "@/lib/photos";
+import { canValidateObservations } from "@/lib/capabilities";
 
-export type Viewer = Pick<User, "id" | "role"> | null;
+export type Viewer =
+  | (Pick<User, "id" | "role"> & {
+      canValidateObservations?: boolean;
+    })
+  | null;
 
 /**
  * Single server-side visibility rule (ROL-05 / SEC-04):
  * - visitor (null): approved only
  * - turist / rezident / elev: approved + own (any status)
- * - ranger / admin: all
+ * - admin / ranger with validation flag: all
+ * - ranger without validation flag: approved + own (field)
  * - profesor: approved + own + observations on school activities
  *   (any status — classroom work does not require ranger approval).
  *   When `teacherActivityIds` is provided (server), only those activities;
@@ -21,13 +27,13 @@ export function canViewObservation(
   teacherActivityIds?: ReadonlySet<string>
 ): boolean {
   if (!viewer) return obs.status === "aprobat";
-  if (viewer.role === "admin" || viewer.role === "ranger") return true;
+  if (viewer.role === "admin" || canValidateObservations(viewer)) return true;
   if (viewer.role === "profesor" && obs.activityId) {
     if (!teacherActivityIds || teacherActivityIds.has(obs.activityId)) {
       return true;
     }
   }
-  // Field users: approved + own (any status, incl. clarificare / pending).
+  // Field users (and rangers without validation flag): approved + own.
   return obs.status === "aprobat" || obs.authorId === viewer.id;
 }
 

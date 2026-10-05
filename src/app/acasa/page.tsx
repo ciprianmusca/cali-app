@@ -15,7 +15,7 @@ import { AuthGate } from "@/components/layout/auth-gate";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge, ModuleBadge } from "@/components/observations/badges";
-import { canManageRegistrations, canTeachSchool } from "@/lib/capabilities";
+import { canManageUsers, canTeachSchool, canValidateObservations } from "@/lib/capabilities";
 import { useCaliStore } from "@/lib/store";
 import { GDPR_VERSION } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/use-i18n";
@@ -157,7 +157,7 @@ function HomeContent() {
         </div>
       )}
 
-      {(user?.role === "ranger" || user?.role === "admin") && (
+      {canValidateObservations(user) && (
         <div className="animate-rise-delay-1 mt-8 grid gap-3 sm:grid-cols-3">
           <Link
             href="/validare"
@@ -171,7 +171,7 @@ function HomeContent() {
               {pending}
             </div>
           </Link>
-          {canManageRegistrations(user) ? (
+          {canManageUsers(user) ? (
             <>
               <Link
                 href="/admin/utilizatori"
@@ -200,6 +200,26 @@ function HomeContent() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {!canValidateObservations(user) && canManageUsers(user) && (
+        <div className="animate-rise-delay-1 mt-8 grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/admin/utilizatori"
+            className="rounded-lg border bg-card/80 px-4 py-4"
+          >
+            <div className="flex items-center gap-2">
+              <Users className="size-4" />
+              {t("admin.manageUsers")}
+            </div>
+          </Link>
+          <div className="rounded-lg border bg-card/80 px-4 py-4">
+            <div>{t("home.myObs")}</div>
+            <div className="mt-2 font-display text-3xl text-forest">
+              {myObs.length}
+            </div>
+          </div>
         </div>
       )}
 

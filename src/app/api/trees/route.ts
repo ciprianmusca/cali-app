@@ -27,7 +27,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const auth = await requireUser();
   if (auth.error) return auth.error;
-  if (!canValidate(auth.user.role)) {
+  if (!canValidate(auth.user)) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   }
 

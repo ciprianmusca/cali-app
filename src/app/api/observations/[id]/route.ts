@@ -92,7 +92,7 @@ export async function PATCH(
     }
 
     const isOwner = existing.authorId === auth.user.id;
-    const isStaff = canValidate(auth.user.role);
+    const isStaff = canValidate(auth.user);
     if (!isOwner && !isStaff) {
       return NextResponse.json(
         { ok: false, error: "forbidden" },

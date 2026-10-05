@@ -94,7 +94,8 @@ interface CaliState {
     email: string;
     role: UserRole;
     parentalConsent?: boolean;
-    canManageRegistrations?: boolean;
+    canManageUsers?: boolean;
+    canValidateObservations?: boolean;
     canTeachSchool?: boolean;
   }) => Promise<{ ok: boolean; error?: string }>;
   nextCode: (module: Observation["module"]) => string;
@@ -129,7 +130,8 @@ const seedUsers: PublicUser[] = [
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-05-10T08:00:00.000Z",
     lastLoginAt: "2026-09-25T07:30:00.000Z",
-    canManageRegistrations: false,
+    canManageUsers: false,
+    canValidateObservations: true,
     canTeachSchool: false,
   },
   {
@@ -503,7 +505,9 @@ export const useCaliStore = create<CaliState>()(
           });
           const sessionRole = data.user?.role ?? null;
           const isStaff =
-            sessionRole === "admin" || sessionRole === "ranger";
+            sessionRole === "admin" ||
+            (sessionRole === "ranger" &&
+              data.user?.canValidateObservations === true);
           // Staff must flush validations on others' rows; field users only own rows.
           const activeQueue = nextQueue.filter((o) => {
             if (!sessionUserId) return false;
@@ -797,8 +801,13 @@ export const useCaliStore = create<CaliState>()(
         }
 
         const userId = get().currentUserId;
-        const role = get().currentUser()?.role;
-        const isStaff = role === "admin" || role === "ranger";
+        const current = get().currentUser();
+        const isStaff = Boolean(
+          current &&
+            (current.role === "admin" ||
+              (current.role === "ranger" &&
+                current.canValidateObservations === true))
+        );
         // Field users: only own rows. Staff: also validations/edits on others.
         // Never flush a different field-account's leftover offline creates.
         const ownedQueue = queue.filter((o) => {
@@ -1234,7 +1243,8 @@ export const useCaliStore = create<CaliState>()(
         email,
         role,
         parentalConsent,
-        canManageRegistrations,
+        canManageUsers,
+        canValidateObservations,
         canTeachSchool,
       }) => {
         if (get().users.some((u) => u.email.toLowerCase() === email.toLowerCase()))
@@ -1253,8 +1263,9 @@ export const useCaliStore = create<CaliState>()(
           isAdult: role !== "elev",
           parentalConsent: role === "elev" ? true : undefined,
           registeredAt: new Date().toISOString(),
-          canManageRegistrations:
-            role === "ranger" ? Boolean(canManageRegistrations) : false,
+          canManageUsers: role === "ranger" ? Boolean(canManageUsers) : false,
+          canValidateObservations:
+            role === "ranger" ? Boolean(canValidateObservations) : false,
           canTeachSchool: role === "ranger" ? Boolean(canTeachSchool) : false,
         };
         try {

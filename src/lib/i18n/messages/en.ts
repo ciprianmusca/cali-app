@@ -391,10 +391,14 @@ export const en: { [K in keyof RoMessages]: string } = {
   "admin.close": "Close",
   "admin.parentalPdf": "Parental consent — required",
   "admin.rangerCaps": "Extra rights (opt-in only)",
-  "admin.capRegs": "Manage registrations",
-  "admin.capRegsHint":
-    "Off by default. If checked, the ranger can create/edit/suspend accounts (not admin).",
-  "admin.capRegsShort": "Registrations",
+  "admin.capUsers": "Users",
+  "admin.capUsersHint":
+    "Off by default. If checked, the ranger can manage accounts (not admin).",
+  "admin.capUsersShort": "Users",
+  "admin.capObs": "Records (observations)",
+  "admin.capObsHint":
+    "Off by default. If checked, the ranger can validate field observations.",
+  "admin.capObsShort": "Observations",
   "admin.capSchool": "School",
   "admin.capSchoolHint":
     "Off by default. If checked, the ranger can organise activities and lessons like a teacher.",

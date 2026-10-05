@@ -67,7 +67,8 @@ export async function ensureSchema(db: D1Database): Promise<void> {
         gdpr_version TEXT,
         registered_at TEXT NOT NULL,
         last_login_at TEXT,
-        can_manage_registrations INTEGER NOT NULL DEFAULT 0,
+        can_manage_users INTEGER NOT NULL DEFAULT 0,
+        can_validate_observations INTEGER NOT NULL DEFAULT 0,
         can_teach_school INTEGER NOT NULL DEFAULT 0
       )
     `),
@@ -220,10 +221,12 @@ async function migrateFieldActivitiesSchema(db: D1Database): Promise<void> {
   }
 }
 
-/** Ranger capability flags (registrations + school/lessons). */
+/** Ranger capability flags: users, observation validation, school. */
 async function migrateUsersCapabilitiesSchema(db: D1Database): Promise<void> {
   for (const sql of [
     `ALTER TABLE users ADD COLUMN can_manage_registrations INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN can_manage_users INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN can_validate_observations INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN can_teach_school INTEGER NOT NULL DEFAULT 0`,
   ]) {
     try {
@@ -231,6 +234,34 @@ async function migrateUsersCapabilitiesSchema(db: D1Database): Promise<void> {
     } catch {
       /* column already exists */
     }
+  }
+  // Copy legacy "registrations" flag into can_manage_users once.
+  try {
+    await db
+      .prepare(
+        `UPDATE users SET can_manage_users = 1
+         WHERE can_manage_registrations = 1 AND can_manage_users = 0`
+      )
+      .run();
+  } catch {
+    /* ignore */
+  }
+  // Demo ranger: keep observation validation so the demo Validare flow works,
+  // but only when no capability has been granted yet (fresh install / migration).
+  try {
+    await db
+      .prepare(
+        `UPDATE users SET can_validate_observations = 1
+         WHERE lower(email) = lower(?)
+           AND role = 'ranger'
+           AND can_manage_users = 0
+           AND can_validate_observations = 0
+           AND can_teach_school = 0`
+      )
+      .bind("ranger@cali-lab.ro")
+      .run();
+  } catch {
+    /* ignore */
   }
 }
 
@@ -248,6 +279,8 @@ export type UserRow = {
   registered_at: string;
   last_login_at: string | null;
   can_manage_registrations?: number | null;
+  can_manage_users?: number | null;
+  can_validate_observations?: number | null;
   can_teach_school?: number | null;
 };
 
@@ -289,8 +322,11 @@ export function userFromRow(row: UserRow): User {
     gdprVersion: row.gdpr_version ?? undefined,
     registeredAt: row.registered_at,
     lastLoginAt: row.last_login_at ?? undefined,
-    canManageRegistrations: isRanger
-      ? row.can_manage_registrations === 1
+    canManageUsers: isRanger
+      ? row.can_manage_users === 1 || row.can_manage_registrations === 1
+      : false,
+    canValidateObservations: isRanger
+      ? row.can_validate_observations === 1
       : false,
     canTeachSchool: isRanger ? row.can_teach_school === 1 : false,
   };
@@ -593,16 +629,18 @@ export async function getObservationById(
 }
 
 export async function upsertUser(db: D1Database, user: User): Promise<void> {
-  const manageRegs =
-    user.role === "ranger" && user.canManageRegistrations ? 1 : 0;
+  const manageUsers = user.role === "ranger" && user.canManageUsers ? 1 : 0;
+  const validateObs =
+    user.role === "ranger" && user.canValidateObservations ? 1 : 0;
   const teachSchool = user.role === "ranger" && user.canTeachSchool ? 1 : 0;
   await db
     .prepare(
       `INSERT INTO users (
         id, email, name, role, status, password, is_adult, parental_consent,
         gdpr_accepted_at, gdpr_version, registered_at, last_login_at,
-        can_manage_registrations, can_teach_school
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        can_manage_registrations, can_manage_users, can_validate_observations,
+        can_teach_school
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         email=excluded.email,
         name=excluded.name,
@@ -616,6 +654,8 @@ export async function upsertUser(db: D1Database, user: User): Promise<void> {
         registered_at=excluded.registered_at,
         last_login_at=excluded.last_login_at,
         can_manage_registrations=excluded.can_manage_registrations,
+        can_manage_users=excluded.can_manage_users,
+        can_validate_observations=excluded.can_validate_observations,
         can_teach_school=excluded.can_teach_school`
     )
     .bind(
@@ -631,7 +671,9 @@ export async function upsertUser(db: D1Database, user: User): Promise<void> {
       user.gdprVersion ?? null,
       user.registeredAt,
       user.lastLoginAt ?? null,
-      manageRegs,
+      manageUsers, // legacy column kept in sync
+      manageUsers,
+      validateObs,
       teachSchool
     )
     .run();
@@ -1235,7 +1277,8 @@ const SEED_USERS: User[] = [
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-05-10T08:00:00.000Z",
     lastLoginAt: "2026-09-25T07:30:00.000Z",
-    canManageRegistrations: false,
+    canManageUsers: false,
+    canValidateObservations: true,
     canTeachSchool: false,
   },
   {

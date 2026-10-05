@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRegistrationsManager, toPublicUser } from "@/lib/auth";
+import { requireUsersManager, toPublicUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
 import { rangerFlagsForRole } from "@/lib/capabilities";
 import {
@@ -18,7 +18,7 @@ export async function PATCH(
   request: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireRegistrationsManager();
+  const auth = await requireUsersManager();
   if (auth.error) return auth.error;
 
   try {
@@ -29,7 +29,8 @@ export async function PATCH(
       role?: UserRole;
       status?: UserStatus;
       parentalConsent?: boolean;
-      canManageRegistrations?: boolean;
+      canManageUsers?: boolean;
+      canValidateObservations?: boolean;
       canTeachSchool?: boolean;
       action?: "suspend" | "reactivate" | "reset_password";
     };
@@ -44,7 +45,7 @@ export async function PATCH(
       );
     }
 
-    // Rangers managing registrations cannot edit admin accounts.
+    // Rangers managing users cannot edit admin accounts.
     if (existing.role === "admin" && auth.user.role !== "admin") {
       return NextResponse.json(
         { ok: false, error: "forbidden" },
@@ -115,10 +116,14 @@ export async function PATCH(
     }
 
     const flags = rangerFlagsForRole(nextRole, {
-      canManageRegistrations:
-        body.canManageRegistrations !== undefined
-          ? body.canManageRegistrations
-          : existing.canManageRegistrations,
+      canManageUsers:
+        body.canManageUsers !== undefined
+          ? body.canManageUsers
+          : existing.canManageUsers,
+      canValidateObservations:
+        body.canValidateObservations !== undefined
+          ? body.canValidateObservations
+          : existing.canValidateObservations,
       canTeachSchool:
         body.canTeachSchool !== undefined
           ? body.canTeachSchool
@@ -158,7 +163,7 @@ export async function DELETE(
   _request: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireRegistrationsManager();
+  const auth = await requireUsersManager();
   if (auth.error) return auth.error;
 
   try {

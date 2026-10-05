@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRegistrationsManager, toPublicUser } from "@/lib/auth";
+import { requireUsersManager, toPublicUser } from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
 import { rangerFlagsForRole } from "@/lib/capabilities";
 import {
@@ -13,9 +13,9 @@ import {
 import { hashPassword } from "@/lib/password";
 import type { User, UserRole } from "@/lib/types";
 
-/** Registrations managers: full user directory (no passwords). */
+/** Users managers: full user directory (no passwords). */
 export async function GET() {
-  const auth = await requireRegistrationsManager();
+  const auth = await requireUsersManager();
   if (auth.error) return auth.error;
 
   try {
@@ -32,7 +32,7 @@ export async function GET() {
 
 /** Create / update user. Password hashed if provided. */
 export async function POST(request: Request) {
-  const auth = await requireRegistrationsManager();
+  const auth = await requireUsersManager();
   if (auth.error) return auth.error;
 
   try {
@@ -86,7 +86,8 @@ export async function POST(request: Request) {
 
     const role = body.role as UserRole;
     const flags = rangerFlagsForRole(role, {
-      canManageRegistrations: body.canManageRegistrations,
+      canManageUsers: body.canManageUsers,
+      canValidateObservations: body.canValidateObservations,
       canTeachSchool: body.canTeachSchool,
     });
 

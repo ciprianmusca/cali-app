@@ -196,12 +196,16 @@ export interface User {
   registeredAt: string;
   lastLoginAt?: string;
   /**
-   * Ranger-only: admin can grant user-registration management
-   * (create/edit/suspend users).
+   * Ranger-only (admin opt-in): manage user accounts.
    */
-  canManageRegistrations?: boolean;
+  canManageUsers?: boolean;
   /**
-   * Ranger-only: admin can grant full school/lesson powers
+   * Ranger-only (admin opt-in): validate field observations
+   * (Validare queue, staff visibility of pending rows).
+   */
+  canValidateObservations?: boolean;
+  /**
+   * Ranger-only (admin opt-in): full school/lesson powers
    * (same as profesor: activities, lesson hub, join codes).
    */
   canTeachSchool?: boolean;

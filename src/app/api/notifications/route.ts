@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "create" && body.notification) {
-      if (!canValidate(auth.user.role) && auth.user.role !== "admin") {
+      if (!canValidate(auth.user)) {
         return NextResponse.json(
           { ok: false, error: "forbidden" },
           { status: 403 }

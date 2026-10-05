@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AuthGate } from "@/components/layout/auth-gate";
+import { canValidateObservations } from "@/lib/capabilities";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -313,7 +314,10 @@ function ValidationQueue() {
 
 export default function ValidarePage() {
   return (
-    <AuthGate roles={["ranger", "admin"]}>
+    <AuthGate
+      roles={["ranger", "admin"]}
+      allow={canValidateObservations}
+    >
       <ValidationQueue />
     </AuthGate>
   );

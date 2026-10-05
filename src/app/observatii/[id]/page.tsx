@@ -22,6 +22,7 @@ import { SpeciesSelect } from "@/components/observations/species-select";
 import { DirectionsButton } from "@/components/observations/directions-button";
 import { GlossaryTip } from "@/components/glossary/glossary-tip";
 import { ObservationsMap } from "@/components/map/observations-map";
+import { canValidateObservations } from "@/lib/capabilities";
 import { useCaliStore } from "@/lib/store";
 import type {
   DisturbanceType,
@@ -171,10 +172,8 @@ function ObservationDetail({ id }: { id: string }) {
     );
   }
 
-  const isStaff = Boolean(
-    user && (user.role === "ranger" || user.role === "admin")
-  );
-  // Scientific approval: ranger/admin only — never profesor or field roles.
+  const isStaff = Boolean(user && canValidateObservations(user));
+  // Scientific approval: only with observation-validation capability.
   const canValidate =
     isStaff &&
     user?.role !== "profesor" &&

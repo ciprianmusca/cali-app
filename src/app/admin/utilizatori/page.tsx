@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { canManageRegistrations } from "@/lib/capabilities";
+import { canManageUsers } from "@/lib/capabilities";
 import { useCaliStore } from "@/lib/store";
 import { formatDateTime } from "@/lib/format";
 import type { PublicUser, UserRole, UserStatus } from "@/lib/types";
@@ -35,7 +35,8 @@ function UsersAdmin() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("elev");
   const [parental, setParental] = useState(false);
-  const [canManageRegs, setCanManageRegs] = useState(false);
+  const [canManageUsersFlag, setCanManageUsersFlag] = useState(false);
+  const [canValidateObs, setCanValidateObs] = useState(false);
   const [canTeach, setCanTeach] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -76,11 +77,13 @@ function UsersAdmin() {
     const rangerFlags =
       role === "ranger"
         ? {
-            canManageRegistrations: canManageRegs,
+            canManageUsers: canManageUsersFlag,
+            canValidateObservations: canValidateObs,
             canTeachSchool: canTeach,
           }
         : {
-            canManageRegistrations: false,
+            canManageUsers: false,
+            canValidateObservations: false,
             canTeachSchool: false,
           };
     if (editing) {
@@ -127,7 +130,8 @@ function UsersAdmin() {
     setName("");
     setEmail("");
     setParental(false);
-    setCanManageRegs(false);
+    setCanManageUsersFlag(false);
+    setCanValidateObs(false);
     setCanTeach(false);
     await refreshUsers();
   };
@@ -138,7 +142,8 @@ function UsersAdmin() {
     setEmail(u.email);
     setRole(u.role);
     setParental(Boolean(u.parentalConsent));
-    setCanManageRegs(Boolean(u.canManageRegistrations));
+    setCanManageUsersFlag(Boolean(u.canManageUsers));
+    setCanValidateObs(Boolean(u.canValidateObservations));
     setCanTeach(Boolean(u.canTeachSchool));
     setShowForm(true);
   };
@@ -249,7 +254,8 @@ function UsersAdmin() {
   const RangerCaps = ({ u }: { u: PublicUser }) => {
     if (u.role !== "ranger") return null;
     const bits: string[] = [];
-    if (u.canManageRegistrations) bits.push(t("admin.capRegsShort"));
+    if (u.canManageUsers) bits.push(t("admin.capUsersShort"));
+    if (u.canValidateObservations) bits.push(t("admin.capObsShort"));
     if (u.canTeachSchool) bits.push(t("admin.capSchoolShort"));
     if (!bits.length) return <span className="text-muted-foreground">—</span>;
     return <span className="text-xs">{bits.join(" · ")}</span>;
@@ -266,7 +272,8 @@ function UsersAdmin() {
             setEditing(null);
             setName("");
             setEmail("");
-            setCanManageRegs(false);
+            setCanManageUsersFlag(false);
+            setCanValidateObs(false);
             setCanTeach(false);
             setShowForm((v) => !v);
           }}
@@ -331,13 +338,27 @@ function UsersAdmin() {
                 <input
                   type="checkbox"
                   className="mt-1"
-                  checked={canManageRegs}
-                  onChange={(e) => setCanManageRegs(e.target.checked)}
+                  checked={canManageUsersFlag}
+                  onChange={(e) => setCanManageUsersFlag(e.target.checked)}
                 />
                 <span>
-                  <span className="font-medium">{t("admin.capRegs")}</span>
+                  <span className="font-medium">{t("admin.capUsers")}</span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {t("admin.capRegsHint")}
+                    {t("admin.capUsersHint")}
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={canValidateObs}
+                  onChange={(e) => setCanValidateObs(e.target.checked)}
+                />
+                <span>
+                  <span className="font-medium">{t("admin.capObs")}</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {t("admin.capObsHint")}
                   </span>
                 </span>
               </label>
@@ -494,7 +515,7 @@ export default function AdminUsersPage() {
   return (
     <AuthGate
       roles={["admin", "ranger"]}
-      allow={canManageRegistrations}
+      allow={canManageUsers}
     >
       <UsersAdmin />
     </AuthGate>

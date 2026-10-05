@@ -410,10 +410,14 @@ export const ro = {
   "admin.close": "Închide",
   "admin.parentalPdf": "Acord parental — obligatoriu",
   "admin.rangerCaps": "Drepturi suplimentare (doar la bifă)",
-  "admin.capRegs": "Gestionează înregistrări",
-  "admin.capRegsHint":
-    "Implicit dezactivat. Dacă bifezi, rangerul poate crea/edita/suspenda conturi (nu admin).",
-  "admin.capRegsShort": "Înregistrări",
+  "admin.capUsers": "Utilizatori",
+  "admin.capUsersHint":
+    "Implicit dezactivat. Dacă bifezi, rangerul poate gestiona conturile (nu admin).",
+  "admin.capUsersShort": "Utilizatori",
+  "admin.capObs": "Înregistrări (observații)",
+  "admin.capObsHint":
+    "Implicit dezactivat. Dacă bifezi, rangerul poate valida observațiile din teren.",
+  "admin.capObsShort": "Observații",
   "admin.capSchool": "Școală",
   "admin.capSchoolHint":
     "Implicit dezactivat. Dacă bifezi, rangerul organizează activități și lecții ca un profesor.",

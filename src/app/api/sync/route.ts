@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       if (!obs?.id || !obs.code || !obs.module || !obs.location) continue;
 
       const isOwner = obs.authorId === session.id;
-      const isStaff = canValidate(session.role);
+      const isStaff = canValidate(session);
       if (!isOwner && !isStaff) {
         errors.push({ id: obs.id, error: "forbidden" });
         continue;

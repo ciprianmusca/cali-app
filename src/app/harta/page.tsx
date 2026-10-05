@@ -33,7 +33,7 @@ export default function HartaPage() {
     statusOverride ??
     (!user
       ? "aprobat"
-      : user.role === "ranger" || user.role === "admin"
+      : user.role === "admin" || user.canValidateObservations === true
         ? "in_asteptare"
         : "all");
 
@@ -43,7 +43,13 @@ export default function HartaPage() {
     status === "all" ? t("obs.all") : t(statusKey(status));
 
   const filtered = useMemo(() => {
-    const viewer = user ? { id: user.id, role: user.role } : null;
+    const viewer = user
+      ? {
+          id: user.id,
+          role: user.role,
+          canValidateObservations: user.canValidateObservations,
+        }
+      : null;
     let list = filterObservationsForViewer(observations, viewer);
     if (module !== "all") list = list.filter((o) => o.module === module);
     if (status !== "all") list = list.filter((o) => o.status === status);
