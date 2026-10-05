@@ -7,23 +7,23 @@ export type CapUser = {
   canTeachSchool?: boolean;
 };
 
-/** Admin, or ranger with the registrations flag. */
+/** Admin, or ranger with the registrations flag (strict opt-in). */
 export function canManageRegistrations(
   user: CapUser | null | undefined
 ): boolean {
   if (!user) return false;
   if (user.role === "admin") return true;
-  return user.role === "ranger" && Boolean(user.canManageRegistrations);
+  return user.role === "ranger" && user.canManageRegistrations === true;
 }
 
 /**
  * Full school/lesson powers (create activities, lesson hub, join as teacher).
- * Admin and profesor always; ranger only when the school flag is set.
+ * Admin and profesor always; ranger only when the school flag is set (opt-in).
  */
 export function canTeachSchool(user: CapUser | null | undefined): boolean {
   if (!user) return false;
   if (user.role === "admin" || user.role === "profesor") return true;
-  return user.role === "ranger" && Boolean(user.canTeachSchool);
+  return user.role === "ranger" && user.canTeachSchool === true;
 }
 
 /** Clear ranger-only flags when the role is not ranger. */

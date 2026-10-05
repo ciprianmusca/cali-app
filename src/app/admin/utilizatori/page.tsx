@@ -492,7 +492,10 @@ function UsersAdmin() {
 
 export default function AdminUsersPage() {
   return (
-    <AuthGate allow={canManageRegistrations}>
+    <AuthGate
+      roles={["admin", "ranger"]}
+      allow={canManageRegistrations}
+    >
       <UsersAdmin />
     </AuthGate>
   );

@@ -129,6 +129,8 @@ const seedUsers: PublicUser[] = [
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-05-10T08:00:00.000Z",
     lastLoginAt: "2026-09-25T07:30:00.000Z",
+    canManageRegistrations: false,
+    canTeachSchool: false,
   },
   {
     id: "u-turist",

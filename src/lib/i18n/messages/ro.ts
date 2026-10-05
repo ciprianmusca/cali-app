@@ -409,14 +409,14 @@ export const ro = {
   "admin.createUser": "Creează utilizator",
   "admin.close": "Închide",
   "admin.parentalPdf": "Acord parental — obligatoriu",
-  "admin.rangerCaps": "Capacități ranger",
+  "admin.rangerCaps": "Drepturi suplimentare (doar la bifă)",
   "admin.capRegs": "Gestionează înregistrări",
   "admin.capRegsHint":
-    "Poate crea, edita, suspenda și reactiva conturi (în afară de admin).",
+    "Implicit dezactivat. Dacă bifezi, rangerul poate crea/edita/suspenda conturi (nu admin).",
   "admin.capRegsShort": "Înregistrări",
   "admin.capSchool": "Școală",
   "admin.capSchoolHint":
-    "Poate organiza activități de teren și lecții ca un profesor.",
+    "Implicit dezactivat. Dacă bifezi, rangerul organizează activități și lecții ca un profesor.",
   "admin.capSchoolShort": "Școală",
   "admin.save": "Salvare",
   "admin.userCreated":
