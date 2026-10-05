@@ -16,13 +16,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ModuleBadge, StatusBadge } from "@/components/observations/badges";
+import { ModuleBadge, StatusBadge, ClassroomBadge } from "@/components/observations/badges";
+import { ClassroomDecisionPanel } from "@/components/observations/classroom-decision-panel";
 import { ObservationThumb } from "@/components/observations/observation-thumb";
 import { SpeciesSelect } from "@/components/observations/species-select";
 import { DirectionsButton } from "@/components/observations/directions-button";
 import { GlossaryTip } from "@/components/glossary/glossary-tip";
 import { ObservationsMap } from "@/components/map/observations-map";
-import { canValidateObservations } from "@/lib/capabilities";
+import {
+  canTeachSchool,
+  canValidateObservations,
+} from "@/lib/capabilities";
+import { classroomStatusOf } from "@/lib/classroom";
 import { useCaliStore } from "@/lib/store";
 import type {
   DisturbanceType,
@@ -197,6 +202,16 @@ function ObservationDetail({ id }: { id: string }) {
   const canCreateTree = isStaff && Boolean(obs.species);
   const isOwn = Boolean(user && obs.authorId === user.id);
   const showNames = canSeeFullNames(user?.role);
+  const canDecideClass =
+    Boolean(user) && canTeachSchool(user) && Boolean(obs.activityId);
+
+  const onClassroomUpdated = (updated: Observation) => {
+    useCaliStore.setState((s) => ({
+      observations: s.observations.map((o) =>
+        o.id === updated.id ? { ...o, ...updated } : o
+      ),
+    }));
+  };
 
   const createSentinel = async () => {
     if (!obs.species) return;
@@ -333,6 +348,9 @@ function ObservationDetail({ id }: { id: string }) {
     <div className="mx-auto max-w-3xl px-4 py-10">
       <div className="flex flex-wrap items-center gap-2">
         <ModuleBadge module={obs.module} />
+        {obs.activityId ? (
+          <ClassroomBadge status={classroomStatusOf(obs)} />
+        ) : null}
         <StatusBadge status={obs.status} />
         {obs.isSentinelTree ? (
           <span className="inline-flex items-center gap-1 text-sm text-amber-800">
@@ -378,6 +396,21 @@ function ObservationDetail({ id }: { id: string }) {
           </button>
         ) : null}
       </div>
+
+      {canDecideClass ? (
+        <section className="mt-6">
+          <ClassroomDecisionPanel
+            observation={obs}
+            onUpdated={onClassroomUpdated}
+          />
+        </section>
+      ) : obs.activityId ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          {t("class.track")}:{" "}
+          <ClassroomBadge status={classroomStatusOf(obs)} />
+          <span className="ml-2 text-xs">({t("class.trackHint")})</span>
+        </p>
+      ) : null}
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {obs.photos.map((src, i) => (
