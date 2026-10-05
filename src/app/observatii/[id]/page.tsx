@@ -174,9 +174,15 @@ function ObservationDetail({ id }: { id: string }) {
   const isStaff = Boolean(
     user && (user.role === "ranger" || user.role === "admin")
   );
-  const canValidate = isStaff && obs.status === "in_asteptare";
+  // Scientific approval: ranger/admin only — never profesor or field roles.
+  const canValidate =
+    isStaff &&
+    user?.role !== "profesor" &&
+    obs.status === "in_asteptare";
   const canReopen =
-    isStaff && (obs.status === "aprobat" || obs.status === "respins");
+    isStaff &&
+    user?.role !== "profesor" &&
+    (obs.status === "aprobat" || obs.status === "respins");
   const canDelete =
     Boolean(user) &&
     (obs.status === "in_asteptare" || obs.status === "clarificare") &&

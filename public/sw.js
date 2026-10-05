@@ -1,5 +1,5 @@
 /* CALI-LAB service worker — offline app shell + asset cache */
-const VERSION = "cali-lab-sw-v10";
+const VERSION = "cali-lab-sw-v11";
 const SHELL = [
   "/",
   "/acasa",
@@ -7,6 +7,8 @@ const SHELL = [
   "/inregistrare",
   "/observatii",
   "/harta",
+  "/scoli",
+  "/scoli/lectie",
   "/politica-date",
   "/manifest.webmanifest",
   "/offline.html",
@@ -87,7 +89,9 @@ self.addEventListener("fetch", (event) => {
   if (isNextDataRequest(request, url)) return;
 
   if (isStaticAsset(url)) {
-    event.respondWith(cacheFirst(request));
+    // Hashed Next assets: prefer network so deploys aren't stuck behind SW cache.
+    // Fall back to cache when offline.
+    event.respondWith(networkFirstStatic(request));
     return;
   }
 
@@ -100,6 +104,20 @@ self.addEventListener("fetch", (event) => {
   // Other same-origin GETs (fonts already covered): network, no undefined responses
   event.respondWith(networkOnly(request));
 });
+
+async function networkFirstStatic(request) {
+  try {
+    const res = await fetch(request);
+    if (res.ok) {
+      const cache = await caches.open(VERSION);
+      cache.put(request, res.clone());
+    }
+    return res;
+  } catch {
+    const cached = await caches.match(request);
+    return cached || (await offlineFallback());
+  }
+}
 
 async function cacheFirst(request) {
   const cached = await caches.match(request);
