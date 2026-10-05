@@ -547,6 +547,10 @@ export const ro = {
   "school.detail": "Detaliu activitate",
   "school.back": "Înapoi la Școli",
   "school.loadError": "Nu am putut încărca activitatea. Încercați din nou.",
+  "school.delete": "Șterge",
+  "school.deleteConfirm":
+    "Ștergeți această activitate? Observațiile atașate rămân, dar nu mai sunt legate de activitate.",
+  "school.deleteError": "Nu am putut șterge activitatea. Încercați din nou.",
 
   "dir.elevBlocked":
     "Navigația e disponibilă doar pentru observațiile din zona activității.",

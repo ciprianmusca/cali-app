@@ -525,6 +525,10 @@ export const en: { [K in keyof RoMessages]: string } = {
   "school.detail": "Activity detail",
   "school.back": "Back to Schools",
   "school.loadError": "Could not load the activity. Please try again.",
+  "school.delete": "Delete",
+  "school.deleteConfirm":
+    "Delete this activity? Attached observations are kept, but unlinked from the activity.",
+  "school.deleteError": "Could not delete the activity. Please try again.",
 
   "dir.elevBlocked":
     "Navigation is only available for observations in your activity zone.",

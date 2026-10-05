@@ -25,7 +25,8 @@ export type AuditAction =
   | "password_change"
   | "account_delete_request"
   | "create_activity"
-  | "update_activity";
+  | "update_activity"
+  | "delete_activity";
 
 export interface AuditEvent {
   id: string;

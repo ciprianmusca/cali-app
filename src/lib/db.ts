@@ -874,6 +874,23 @@ export async function upsertFieldActivity(
     .run();
 }
 
+/** Delete activity and unlink attached observations (keep observations). */
+export async function deleteFieldActivity(
+  db: D1Database,
+  id: string
+): Promise<{ deleted: boolean; unlinked: number }> {
+  const activity = await getFieldActivity(db, id);
+  if (!activity) return { deleted: false, unlinked: 0 };
+
+  const linked = (await listObservations(db)).filter((o) => o.activityId === id);
+  for (const obs of linked) {
+    await upsertObservation(db, { ...obs, activityId: undefined });
+  }
+
+  await db.prepare("DELETE FROM field_activities WHERE id = ?").bind(id).run();
+  return { deleted: true, unlinked: linked.length };
+}
+
 export async function insertNotification(
   db: D1Database,
   n: AppNotification

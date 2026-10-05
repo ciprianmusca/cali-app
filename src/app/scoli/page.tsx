@@ -13,13 +13,24 @@ import { PARK_CENTER } from "@/lib/constants";
 import type { FieldActivity } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 
+function safeFormatDate(iso: string): string {
+  try {
+    const d = new Date(iso.includes("T") ? iso : `${iso}T12:00:00`);
+    if (Number.isNaN(d.getTime())) return iso;
+    return formatDate(d.toISOString());
+  } catch {
+    return iso;
+  }
+}
+
 function SchoolsHome() {
   const { t } = useI18n();
-  const user = useCaliStore((s) => s.currentUser())!;
+  const user = useCaliStore((s) => s.currentUser());
   const canCreate =
-    user.role === "admin" ||
-    user.role === "ranger" ||
-    user.role === "profesor";
+    !!user &&
+    (user.role === "admin" ||
+      user.role === "ranger" ||
+      user.role === "profesor");
   const [activities, setActivities] = useState<FieldActivity[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
@@ -28,6 +39,7 @@ function SchoolsHome() {
   const [radius, setRadius] = useState("500");
   const [trees, setTrees] = useState("");
   const [schoolName, setSchoolName] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = () => {
     void fetch("/api/activities", { credentials: "include" })
@@ -38,6 +50,13 @@ function SchoolsHome() {
   useEffect(() => {
     load();
   }, []);
+
+  if (!user) return null;
+
+  const canDelete = (a: FieldActivity) =>
+    user.role === "admin" ||
+    user.role === "ranger" ||
+    (user.role === "profesor" && user.id === a.createdBy);
 
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -64,7 +83,35 @@ function SchoolsHome() {
       setTitle("");
       setDate("");
       setZoneName("");
+      setSchoolName("");
+      setTrees("");
       load();
+    }
+  };
+
+  const onDelete = async (a: FieldActivity) => {
+    if (!canDelete(a)) return;
+    if (!window.confirm(t("school.deleteConfirm"))) return;
+    setBusyId(a.id);
+    try {
+      const res = await fetch(`/api/activities/${encodeURIComponent(a.id)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        useCaliStore.setState((s) => ({
+          observations: s.observations.map((o) =>
+            o.activityId === a.id ? { ...o, activityId: undefined } : o
+          ),
+        }));
+        load();
+      } else {
+        window.alert(t("school.deleteError"));
+      }
+    } catch {
+      window.alert(t("school.deleteError"));
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -79,7 +126,7 @@ function SchoolsHome() {
           <p className="mt-1 text-sm text-muted-foreground">{t("school.sub")}</p>
         </div>
         {canCreate ? (
-          <Button onClick={() => setShowForm((v) => !v)}>
+          <Button type="button" onClick={() => setShowForm((v) => !v)}>
             {showForm ? t("admin.close") : t("school.new")}
           </Button>
         ) : null}
@@ -153,17 +200,29 @@ function SchoolsHome() {
           <p className="p-6 text-sm text-muted-foreground">{t("school.empty")}</p>
         ) : (
           activities.map((a) => (
-            <Link
+            <div
               key={a.id}
-              href={`/scoli/${a.id}`}
-              className="block px-4 py-4 hover:bg-muted/40"
+              className="flex flex-wrap items-center justify-between gap-3 px-4 py-4"
             >
-              <div className="font-medium">{a.title}</div>
-              <div className="text-sm text-muted-foreground">
-                {formatDate(a.date)} · {a.zoneName}
-                {a.schoolName ? ` · ${a.schoolName}` : ""}
-              </div>
-            </Link>
+              <Link href={`/scoli/${a.id}`} className="min-w-0 flex-1 hover:opacity-90">
+                <div className="font-medium">{a.title}</div>
+                <div className="text-sm text-muted-foreground">
+                  {safeFormatDate(a.date)} · {a.zoneName}
+                  {a.schoolName ? ` · ${a.schoolName}` : ""}
+                </div>
+              </Link>
+              {canDelete(a) ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busyId === a.id}
+                  onClick={() => void onDelete(a)}
+                >
+                  {t("school.delete")}
+                </Button>
+              ) : null}
+            </div>
           ))
         )}
       </div>
