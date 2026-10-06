@@ -1,0 +1,2 @@
+RewriteEngine On
+RewriteRule ^(.*)$ https://cali-lab.app/$1 [R=301,L]
