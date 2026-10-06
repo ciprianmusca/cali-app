@@ -37,6 +37,11 @@ interface CaliState {
   users: PublicUser[];
   observations: Observation[];
   currentUserId: string | null;
+  /**
+   * Last authenticated user id — persisted so field work continues after a
+   * PWA reload while offline. Cleared on logout; online bootstrap overrides.
+   */
+  lastSessionUserId: string | null;
   offlineQueue: Observation[];
   syncing: boolean;
   lastSyncAt: string | null;
@@ -65,7 +70,10 @@ interface CaliState {
   notifications: AppNotification[];
   markNotificationRead: (id: string) => void;
   pullNotifications: () => Promise<void>;
-  setActiveActivityId: (id: string | undefined) => void;
+  setActiveActivityId: (
+    id: string | undefined,
+    title?: string | null
+  ) => void;
   /** Link the current user's unattached observations to an activity and sync. */
   linkUnattachedToActivity: (activityId: string) => void;
   addObservation: (obs: Observation) => void;
@@ -365,6 +373,7 @@ export const useCaliStore = create<CaliState>()(
       users: seedUsers,
       observations: seedObservations(),
       currentUserId: null,
+      lastSessionUserId: null,
       offlineQueue: [],
       notifications: [],
       syncing: false,
@@ -376,15 +385,19 @@ export const useCaliStore = create<CaliState>()(
         smtpEncryption: "tls",
         gpsAccuracyWarningMeters: 30,
         activeActivityId: undefined,
+        activeActivityTitle: undefined,
       },
       hydrated: false,
       setHydrated: (v) => set({ hydrated: v }),
 
-      setActiveActivityId: (id) => {
+      setActiveActivityId: (id, title) => {
         set({
           settings: {
             ...get().settings,
             activeActivityId: id,
+            activeActivityTitle: id
+              ? title?.trim() || get().settings.activeActivityTitle
+              : undefined,
           },
         });
         // Joining / activating an activity auto-links the user's free observations.
@@ -563,6 +576,7 @@ export const useCaliStore = create<CaliState>()(
             observations: merged,
             offlineQueue: cleanedQueue,
             currentUserId: nextUserId,
+            lastSessionUserId: nextUserId ?? get().lastSessionUserId,
             lastSyncAt: new Date().toISOString(),
             lastSyncError: null,
             syncing: false,
@@ -592,7 +606,8 @@ export const useCaliStore = create<CaliState>()(
           currentUserId: null,
           syncing: false,
           lastSyncError: "session_expired",
-          // offlineQueue intentionally preserved
+          // lastSessionUserId + offlineQueue kept — field users can still
+          // capture offline; upload resumes after a fresh online login.
         });
       },
 
@@ -620,6 +635,7 @@ export const useCaliStore = create<CaliState>()(
           }
           set({
             currentUserId: data.user.id,
+            lastSessionUserId: data.user.id,
             users: [
               data.user,
               ...get().users.filter((u) => u.id !== data.user!.id),
@@ -648,7 +664,12 @@ export const useCaliStore = create<CaliState>()(
         } catch {
           /* ignore */
         }
-        set({ currentUserId: null, syncing: false, lastSyncError: null });
+        set({
+          currentUserId: null,
+          lastSessionUserId: null,
+          syncing: false,
+          lastSyncError: null,
+        });
       },
 
       register: async ({
@@ -706,6 +727,7 @@ export const useCaliStore = create<CaliState>()(
           }
           set({
             currentUserId: data.user.id,
+            lastSessionUserId: data.user.id,
             users: [data.user, ...get().users.filter((u) => u.id !== data.user!.id)],
           });
           void get()
@@ -1306,7 +1328,8 @@ export const useCaliStore = create<CaliState>()(
         users: s.users,
         // Never persist base64 photos in localStorage (SEC-05 → IndexedDB).
         observations: s.observations.map(stripBase64Photos),
-        // currentUserId is NOT persisted — auth comes from /api/bootstrap.
+        // Soft session hint for offline field work (not a security token).
+        lastSessionUserId: s.lastSessionUserId,
         offlineQueue: s.offlineQueue.map(stripBase64Photos),
         notifications: s.notifications,
         lastSyncAt: s.lastSyncAt,
@@ -1338,12 +1361,13 @@ export const useCaliStore = create<CaliState>()(
             }
           }
         }
-        // Never restore ephemeral flags or a stale local session.
+        // Never restore ephemeral flags; session is restored offline in StoreHydration.
         return {
           ...current,
           users,
           observations: rawObs.map(stripBase64Photos),
           currentUserId: null,
+          lastSessionUserId: p.lastSessionUserId ?? null,
           offlineQueue: rawQueue.map(stripBase64Photos),
           lastSyncAt: p.lastSyncAt ?? current.lastSyncAt,
           settings: p.settings ?? current.settings,

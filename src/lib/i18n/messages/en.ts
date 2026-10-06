@@ -562,6 +562,12 @@ export const en: { [K in keyof RoMessages]: string } = {
   "school.setActive": "Use for new observations",
   "school.activeHint":
     "New and unassigned observations link to this activity automatically.",
+  "school.offlineJoinHint":
+    "Join the activity while you have signal. After that you can record offline — observations stay on the phone and upload automatically when you are back online.",
+  "school.offlineNoActivity":
+    "You are not linked to an activity. Join with your teacher’s code (while online) from",
+  "school.offlineCaptureHint":
+    "Without signal, observations stay on this device and upload automatically when you are back online.",
   "school.clearActive": "Clear",
   "school.obsDiscussHint":
     "Discuss observations in class (admit / reject). Scientific approval is a separate flow for rangers with observation rights or admins.",

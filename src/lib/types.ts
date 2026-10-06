@@ -349,4 +349,6 @@ export interface AppSettings {
   gpsAccuracyWarningMeters: number;
   /** Activity the student/teacher is currently working in (join code flow). */
   activeActivityId?: string;
+  /** Cached title for offline UI (join/list when online). */
+  activeActivityTitle?: string;
 }

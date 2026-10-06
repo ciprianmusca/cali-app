@@ -583,6 +583,12 @@ export const ro = {
   "school.setActive": "Folosește pentru observații noi",
   "school.activeHint":
     "Observațiile noi și cele neatribuite se leagă automat de această activitate.",
+  "school.offlineJoinHint":
+    "Intră în activitate cât ai semnal. Apoi poți face observații și fără semnal — se salvează pe telefon și se încarcă automat când revii online.",
+  "school.offlineNoActivity":
+    "Nu ești legat de o activitate. Intră cu codul profesorului (cu semnal) din",
+  "school.offlineCaptureHint":
+    "Fără semnal, observațiile rămân pe dispozitiv și se încarcă automat când revii online.",
   "school.clearActive": "Renunță",
   "school.obsDiscussHint":
     "Discutați observațiile la clasă (admis / respins). Aprobarea științifică o fac doar rangerii cu drept de înregistrări sau adminii — e un flux separat.",

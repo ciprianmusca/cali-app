@@ -10,6 +10,7 @@ import { GeoCapture } from "@/components/observations/geo-capture";
 import { PhotoCapture } from "@/components/observations/photo-capture";
 import { SpeciesSelect } from "@/components/observations/species-select";
 import { ObservationSummary } from "@/components/observations/observation-summary";
+import { ActiveActivityHint } from "@/components/observations/active-activity-hint";
 import { useCaliStore } from "@/lib/store";
 import { enqueueObservationSave } from "@/lib/save-observation";
 import { CROWN_CONDITIONS, PHENOLOGY_STAGES } from "@/lib/constants";
@@ -127,6 +128,9 @@ function FenologieForm() {
     <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="font-display text-3xl text-forest">{t("phen.title")}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{t("phen.sub")}</p>
+      <div className="mt-4">
+        <ActiveActivityHint />
+      </div>
 
       <form ref={formRef} onSubmit={onSubmit} className="mt-8 space-y-6">
         <div data-field="photos">

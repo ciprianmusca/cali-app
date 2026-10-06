@@ -87,15 +87,17 @@ function ActivityDetail({ id }: { id: string }) {
   }, [id]);
 
   // Elev opening an activity: auto-activate so new + free observations go here.
+  // Also refresh cached title for offline form cues.
   useEffect(() => {
     if (!user || !activity) return;
     if (user.role !== "elev") return;
-    if (activeActivityId === id) return;
-    setActiveActivityId(id);
+    const already = activeActivityId === id;
+    setActiveActivityId(id, activity.title);
+    if (already) return;
     const timer = window.setTimeout(load, 600);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, activity?.id, id]);
+  }, [user?.id, activity?.id, activity?.title, id]);
 
   const canDelete =
     !!user &&
@@ -256,6 +258,11 @@ function ActivityDetail({ id }: { id: string }) {
               ? t("school.autoLinkActive")
               : t("school.autoLinkHint")}
           </p>
+          {user.role === "elev" && activeActivityId === id ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {t("school.offlineCaptureHint")}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

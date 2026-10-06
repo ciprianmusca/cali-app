@@ -12,6 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import { GeoCapture } from "@/components/observations/geo-capture";
 import { PhotoCapture } from "@/components/observations/photo-capture";
 import { ObservationSummary } from "@/components/observations/observation-summary";
+import { ActiveActivityHint } from "@/components/observations/active-activity-hint";
 import { useCaliStore } from "@/lib/store";
 import { enqueueObservationSave } from "@/lib/save-observation";
 import { validateGpsNotAfterCreated } from "@/lib/migrate-observation";
@@ -193,6 +194,9 @@ function SolForm() {
     <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="font-display text-3xl text-forest">{t("soil.title")}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{t("soil.sub")}</p>
+      <div className="mt-4">
+        <ActiveActivityHint />
+      </div>
       <p className="mt-3 rounded-md border border-primary/30 bg-accent/40 px-3 py-2 text-sm font-medium text-forest">
         {t("soil.plotHint")}
       </p>

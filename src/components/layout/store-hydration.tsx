@@ -4,6 +4,12 @@ import { useEffect } from "react";
 import { useCaliStore } from "@/lib/store";
 import { useLocaleStore } from "@/lib/i18n/store";
 
+/**
+ * Hydrate localStorage, then:
+ * - online: bootstrap from server (authoritative session) + flush queue
+ * - offline: restore lastSessionUserId so elevi can keep capturing after a
+ *   PWA reload in the field (activityId + offlineQueue already persisted)
+ */
 export function StoreHydration() {
   useEffect(() => {
     void (async () => {
@@ -13,7 +19,7 @@ export function StoreHydration() {
       useLocaleStore.getState().setHydrated(true);
       document.documentElement.lang = locale;
 
-      // Auth is never taken from localStorage — clear until bootstrap answers.
+      // Start without a live session until we know online/offline outcome.
       useCaliStore.setState({
         currentUserId: null,
         syncing: false,
@@ -24,6 +30,15 @@ export function StoreHydration() {
         const res = await useCaliStore.getState().pullFromServer();
         if (res.ok && useCaliStore.getState().currentUserId) {
           void useCaliStore.getState().flushOfflineQueue();
+        }
+      } else {
+        // Offline field mode: reuse cached PublicUser from last online session.
+        const { lastSessionUserId, users } = useCaliStore.getState();
+        if (
+          lastSessionUserId &&
+          users.some((u) => u.id === lastSessionUserId && u.status === "activ")
+        ) {
+          useCaliStore.setState({ currentUserId: lastSessionUserId });
         }
       }
 

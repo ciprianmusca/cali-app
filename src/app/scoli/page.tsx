@@ -98,7 +98,7 @@ function SchoolsHome() {
       setTrees("");
       if (data.activity?.joinCode) {
         setCreatedCode(data.activity.joinCode);
-        setActiveActivityId(data.activity.id);
+        setActiveActivityId(data.activity.id, data.activity.title);
       }
       load();
     }
@@ -126,7 +126,7 @@ function SchoolsHome() {
       }
       setJoinMsg(t("school.joinOk"));
       setJoinCode("");
-      setActiveActivityId(data.activity.id);
+      setActiveActivityId(data.activity.id, data.activity.title);
       load();
     } catch {
       setJoinErr(t("school.joinError"));
@@ -232,6 +232,11 @@ function SchoolsHome() {
           <div>
             <h2 className="font-medium">{t("school.joinTitle")}</h2>
             <p className="text-sm text-muted-foreground">{t("school.joinSub")}</p>
+            {user?.role === "elev" ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("school.offlineJoinHint")}
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-wrap items-end gap-2">
             <div className="min-w-[160px] flex-1 space-y-1">
@@ -270,7 +275,9 @@ function SchoolsHome() {
               · {t("school.joinCode")} {active.joinCode}
             </span>
             <p className="text-xs text-muted-foreground">
-              {t("school.activeHint")}
+              {user?.role === "elev"
+                ? t("school.offlineJoinHint")
+                : t("school.activeHint")}
             </p>
           </div>
           <Button
@@ -375,7 +382,7 @@ function SchoolsHome() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => setActiveActivityId(a.id)}
+                    onClick={() => setActiveActivityId(a.id, a.title)}
                   >
                     {t("school.setActive")}
                   </Button>
