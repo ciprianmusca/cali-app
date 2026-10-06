@@ -11,13 +11,17 @@ import { DEMO_ACCOUNTS } from "@/lib/constants";
 import { useI18n } from "@/lib/i18n/use-i18n";
 import { roleKey } from "@/lib/i18n/labels";
 
+/** Conturi demo rămân în DB; lista UI doar dacă DEMO_MODE=true. */
+const SHOW_DEMO_ACCOUNTS =
+  process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
 function LoginForm() {
   const { t } = useI18n();
   const router = useRouter();
   const params = useSearchParams();
   const login = useCaliStore((s) => s.login);
-  const [email, setEmail] = useState("turist@cali-lab.ro");
-  const [password, setPassword] = useState("Turist123!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
@@ -87,25 +91,27 @@ function LoginForm() {
         </Button>
       </form>
 
-      <div className="mt-8 rounded-lg border bg-card/70 p-4 text-sm">
-        <p className="font-medium">{t("auth.demoAccounts")}</p>
-        <ul className="mt-2 space-y-1 text-muted-foreground">
-          {DEMO_ACCOUNTS.map((a) => (
-            <li key={a.email}>
-              <button
-                type="button"
-                className="text-left hover:text-foreground"
-                onClick={() => {
-                  setEmail(a.email);
-                  setPassword(a.password);
-                }}
-              >
-                {t(roleKey(a.role))}: {a.email} / {a.password}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {SHOW_DEMO_ACCOUNTS ? (
+        <div className="mt-8 rounded-lg border bg-card/70 p-4 text-sm">
+          <p className="font-medium">{t("auth.demoAccounts")}</p>
+          <ul className="mt-2 space-y-1 text-muted-foreground">
+            {DEMO_ACCOUNTS.map((a) => (
+              <li key={a.email}>
+                <button
+                  type="button"
+                  className="text-left hover:text-foreground"
+                  onClick={() => {
+                    setEmail(a.email);
+                    setPassword(a.password);
+                  }}
+                >
+                  {t(roleKey(a.role))}: {a.email} / {a.password}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <p className="mt-6 text-center text-sm">
         {t("auth.noAccount")}{" "}

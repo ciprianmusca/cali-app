@@ -35,6 +35,8 @@ npm run dev
 | Turist | turist@cali-lab.ro | Turist123! |
 | Elev | elev@cali-lab.ro | Elev1234! |
 
+Conturile există în D1 și pot fi folosite la login. **Lista și câmpurile precompletate nu apar pe pagina de autentificare** (decât dacă `NEXT_PUBLIC_DEMO_MODE=true`).
+
 Conturile demo sunt **active** doar după acord GDPR (versiunea politicii e salvată pe utilizator). Resetarea parolei folosește `passwordResetMinutesUser` / `passwordResetMinutesAdmin`; fără SMTP, linkul apare în UI (demo).
 
 Autentificarea rulează pe server (sesiune JWT în cookie `httpOnly`). Parolele sunt stocate cu **bcrypt** în D1; API-urile nu returnează niciodată câmpul `password`. Lista de utilizatori (`GET /api/users`) e doar pentru admin.
