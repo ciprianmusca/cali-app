@@ -110,9 +110,10 @@ Proiectul e pregătit cu `@opennextjs/cloudflare`. Domeniile din `wrangler.jsonc
 |----------|-----|
 | **cali-lab.app** | domeniu principal |
 | **www.cali-lab.app** | alias |
-| **cali.ipsv.ro** | păstrat temporar (redirect / dual-run) |
 
-**Condiție:** zona DNS `cali-lab.app` (și `ipsv.ro` dacă păstrezi vechiul) pe **același** cont Cloudflare ca Worker-ul `cali-lab`.
+`workers.dev` și `cali.ipsv.ro` nu mai sunt expuse pe Worker.
+
+**Condiție:** zona DNS `cali-lab.app` pe **același** cont Cloudflare ca Worker-ul `cali-lab`.
 
 ### Atașare domeniu (după ce zona e Active)
 
@@ -123,9 +124,9 @@ Proiectul e pregătit cu `@opennextjs/cloudflare`. Domeniile din `wrangler.jsonc
 
 **Atenție:** nu lăsa un CNAME manual pe apex/www care conflictă — Custom Domain gestionează DNS-ul.
 
-### Redirect opțional de pe vechiul domeniu
+### Redirect de pe vechiul domeniu (opțional)
 
-Când ești gata să treci complet pe `cali-lab.app`, în Cloudflare (zona `ipsv.ro`) poți adăuga o **Redirect Rule**: `cali.ipsv.ro/*` → `https://cali-lab.app/$1` (301). Apoi scoți `cali.ipsv.ro` din `routes` în `wrangler.jsonc`.
+În Cloudflare (zona `ipsv.ro`): **Redirect Rule** `cali.ipsv.ro/*` → `https://cali-lab.app/$1` (301), ca vechile linkuri să ajungă pe domeniul nou.
 
 ### GitHub + Cloudflare (fără deploy local)
 
@@ -173,7 +174,7 @@ La autentificare GitHub: [Personal Access Token](https://github.com/settings/tok
 | GitHub repo | `ciprianmusca/cali-app` |
 
 5. **Save and Deploy** — build în cloud.
-6. Verifică **Settings → Domains & Routes**: `cali-lab.app`, `www.cali-lab.app` (și opțional `cali.ipsv.ro`).
+6. Verifică **Settings → Domains & Routes**: `cali-lab.app`, `www.cali-lab.app`. Dacă vezi încă `cali.ipsv.ro` sau `*.workers.dev`, șterge-le din dashboard (sau lasă deploy-ul să le scoată).
 
 La fiecare push pe GitHub `main`, Cloudflare redeploy-uiește automat.
 
