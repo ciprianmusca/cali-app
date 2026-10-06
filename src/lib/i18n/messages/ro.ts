@@ -367,6 +367,8 @@ export const ro = {
   "map.export": "Export GeoJSON",
   "map.points": "puncte afișate · încadrare automată pe date",
   "map.loading": "Se încarcă…",
+  "map.clusterHint":
+    "Punctele apropiate apar grupat. Click pe grup → zoom; pe aceeași coordonată GPS se desfășoară în stea, legate de poziție.",
 
   // Validation
   "val.title": "Validare",

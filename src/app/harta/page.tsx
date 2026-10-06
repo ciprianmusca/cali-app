@@ -169,6 +169,7 @@ export default function HartaPage() {
       <p className="mt-2 text-xs text-muted-foreground">
         {filtered.length} {t("map.points")}
       </p>
+      <p className="mt-1 text-xs text-muted-foreground">{t("map.clusterHint")}</p>
     </div>
   );
 }

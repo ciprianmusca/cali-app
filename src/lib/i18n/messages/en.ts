@@ -350,6 +350,8 @@ export const en: { [K in keyof RoMessages]: string } = {
   "map.export": "Export GeoJSON",
   "map.points": "points shown · auto-fit to data",
   "map.loading": "Loading…",
+  "map.clusterHint":
+    "Nearby points are clustered. Click a cluster to zoom; at the same GPS coordinate they fan out in a star, linked to that position.",
 
   "val.title": "Validation",
   "val.queue": "Work queue: {count} pending observations",

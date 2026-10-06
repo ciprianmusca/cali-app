@@ -156,3 +156,30 @@
   z-index: 0;
   border-radius: var(--radius);
 }
+
+/* Observation map: custom pins + cluster spiderfy */
+.cali-obs-marker,
+.cali-cluster-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+
+.cali-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(45, 106, 79, 0.92);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.cali-map .leaflet-cluster-spider-leg {
+  stroke: #3f3f46;
+  stroke-opacity: 0.75;
+  stroke-width: 1.5;
+}
