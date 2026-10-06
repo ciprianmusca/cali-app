@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ro">
+  <head>
+    <meta charset="utf-8" />
+    <title>CALI-LAB — redirecționare</title>
+    <!-- Redirect HTTP 301 preferabil pe server; meta + JS ca fallback -->
+    <meta
+      http-equiv="refresh"
+      content="0;url=https://cali-lab.app/"
+    />
+    <link rel="canonical" href="https://cali-lab.app/" />
+    <script>
+      (function () {
+        var target = "https://cali-lab.app";
+        var path = window.location.pathname || "/";
+        var search = window.location.search || "";
+        var hash = window.location.hash || "";
+        // păstrează calea (ex. /observatii → https://cali-lab.app/observatii)
+        if (path === "/" || path === "/index.html") {
+          window.location.replace(target + "/" + search + hash);
+        } else {
+          window.location.replace(target + path + search + hash);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <p>
+      CALI-LAB s-a mutat la
+      <a href="https://cali-lab.app/">https://cali-lab.app</a>.
+    </p>
+  </body>
+</html>
