@@ -42,6 +42,14 @@
   },
   "routes": [
     {
+      "pattern": "cali-lab.app",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.cali-lab.app",
+      "custom_domain": true
+    },
+    {
       "pattern": "cali.ipsv.ro",
       "custom_domain": true
     }

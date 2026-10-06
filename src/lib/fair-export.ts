@@ -311,7 +311,7 @@ export function buildDatapackage(
     sources: [
       {
         title: "CALI-LAB",
-        path: "https://cali.ipsv.ro",
+        path: "https://cali-lab.app",
       },
       {
         title:
@@ -370,7 +370,7 @@ export function buildReadme(
     `# ${APP_FULL_NAME} FAIR export`,
     "",
     `- **Licence:** CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)`,
-    `- **Source:** CALI-LAB (https://cali.ipsv.ro); ISV Suceava & APNC; Grant Agreement G-07-2025-2`,
+    `- **Source:** CALI-LAB (https://cali-lab.app); ISV Suceava & APNC; Grant Agreement G-07-2025-2`,
     `- **Version:** ${GDPR_VERSION}`,
     `- **Exported at:** ${exportedAt}`,
     `- **Coordinate system:** EPSG:4326 (WGS 84)`,

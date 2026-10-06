@@ -102,11 +102,30 @@ CALI-LAB e PWA:
 
 Pe telefon: deschide o dată online → Adaugă pe ecranul principal.
 
-## Deploy pe Cloudflare → https://cali.ipsv.ro
+## Deploy pe Cloudflare → https://cali-lab.app
 
-Proiectul e pregătit cu `@opennextjs/cloudflare`. Subdomeniul **cali.ipsv.ro** este în `wrangler.jsonc`.
+Proiectul e pregătit cu `@opennextjs/cloudflare`. Domeniile din `wrangler.jsonc`:
 
-**Condiție:** zona DNS `ipsv.ro` trebuie să fie pe același cont Cloudflare.
+| Hostname | Rol |
+|----------|-----|
+| **cali-lab.app** | domeniu principal |
+| **www.cali-lab.app** | alias |
+| **cali.ipsv.ro** | păstrat temporar (redirect / dual-run) |
+
+**Condiție:** zona DNS `cali-lab.app` (și `ipsv.ro` dacă păstrezi vechiul) pe **același** cont Cloudflare ca Worker-ul `cali-lab`.
+
+### Atașare domeniu (după ce zona e Active)
+
+1. Cloudflare → **Workers & Pages** → Worker **cali-lab** → **Settings** → **Domains & Routes**
+2. **Add** → **Custom Domain** → `cali-lab.app` (și `www.cali-lab.app` dacă nu e deja din deploy)
+3. Sau doar `npm run deploy` / push pe `main` — Wrangler creează DNS + certificat automat pentru pattern-urile cu `custom_domain: true`
+4. Verifică: https://cali-lab.app (SSL poate dura câteva minute)
+
+**Atenție:** nu lăsa un CNAME manual pe apex/www care conflictă — Custom Domain gestionează DNS-ul.
+
+### Redirect opțional de pe vechiul domeniu
+
+Când ești gata să treci complet pe `cali-lab.app`, în Cloudflare (zona `ipsv.ro`) poți adăuga o **Redirect Rule**: `cali.ipsv.ro/*` → `https://cali-lab.app/$1` (301). Apoi scoți `cali.ipsv.ro` din `routes` în `wrangler.jsonc`.
 
 ### GitHub + Cloudflare (fără deploy local)
 
@@ -154,7 +173,7 @@ La autentificare GitHub: [Personal Access Token](https://github.com/settings/tok
 | GitHub repo | `ciprianmusca/cali-app` |
 
 5. **Save and Deploy** — build în cloud.
-6. Verifică `cali.ipsv.ro` (deja în `wrangler.jsonc`) la **Settings → Domains & Routes**.
+6. Verifică **Settings → Domains & Routes**: `cali-lab.app`, `www.cali-lab.app` (și opțional `cali.ipsv.ro`).
 
 La fiecare push pe GitHub `main`, Cloudflare redeploy-uiește automat.
 
