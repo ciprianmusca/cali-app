@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import {
+  createSessionToken,
+  setSessionCookie,
+  toPublicUser,
+} from "@/lib/auth";
+import {
   ensureSchema,
   findUserByEmail,
   getDB,
   seedIfEmpty,
   upsertUser,
   createPasswordReset,
+  markPasswordResetUsed,
 } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import type { User } from "@/lib/types";
@@ -13,6 +19,7 @@ import { isValidPassword } from "@/lib/format";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { allowDevMailLinks, sendAccountActivationEmail } from "@/lib/mail";
 import { randomTokenHex, sha256Hex } from "@/lib/token";
+import { writeAudit } from "@/lib/audit";
 
 const ACTIVATION_HOURS = 48;
 
@@ -82,7 +89,6 @@ export async function POST(request: Request) {
     }
 
     const now = new Date().toISOString();
-    // Account stays inactive until the activation email link is opened.
     const user: User = {
       id: `u-${crypto.randomUUID().slice(0, 8)}`,
       email,
@@ -100,8 +106,9 @@ export async function POST(request: Request) {
 
     const raw = randomTokenHex(32);
     const tokenHash = await sha256Hex(raw);
+    const tokenId = `act-${crypto.randomUUID().slice(0, 10)}`;
     await createPasswordReset(db, {
-      id: `act-${crypto.randomUUID().slice(0, 10)}`,
+      id: tokenId,
       userId: user.id,
       tokenHash,
       purpose: "activate",
@@ -120,10 +127,38 @@ export async function POST(request: Request) {
       expiresHours: ACTIVATION_HOURS,
     });
 
+    // When outbound mail works: keep inactive until the email link is opened.
+    if (mail.sent) {
+      return NextResponse.json({
+        ok: true,
+        needsActivation: true,
+        mailSent: true,
+      });
+    }
+
+    // Mail not configured / failed: do not leave the user stuck without a link.
+    // Activate immediately and start a session (no token exposed in the UI).
+    const active: User = { ...user, status: "activ" };
+    await upsertUser(db, active);
+    await markPasswordResetUsed(db, tokenId);
+    await writeAudit(db, {
+      actorId: active.id,
+      actorName: active.name,
+      actorRole: active.role,
+      action: "update_user",
+      objectType: "user",
+      objectId: active.id,
+      detail: "auto_activate_mail_unavailable",
+    });
+    const session = await createSessionToken(active);
+    await setSessionCookie(session);
+
     return NextResponse.json({
       ok: true,
-      needsActivation: true,
-      mailSent: mail.sent,
+      needsActivation: false,
+      mailSent: false,
+      user: toPublicUser(active),
+      // Localhost only — never on cali-lab.app.
       demoActivateUrl: allowDevMailLinks(request.url)
         ? mail.demoResetUrl
         : undefined,

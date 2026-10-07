@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ import { GDPR_VERSION } from "@/lib/constants";
 
 export default function RegisterPage() {
   const { t } = useI18n();
+  const router = useRouter();
   const register = useCaliStore((s) => s.register);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -70,6 +72,10 @@ export default function RegisterPage() {
       setError(res.error ?? t("obs.error"));
       return;
     }
+    if (res.loggedIn) {
+      router.replace("/acasa");
+      return;
+    }
     setDone({
       mailSent: res.mailSent,
     });
@@ -82,11 +88,6 @@ export default function RegisterPage() {
           {t("auth.registerTitle")}
         </h1>
         <p className="mt-4 text-sm text-forest">{t("auth.activateSent")}</p>
-        {!done.mailSent ? (
-          <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">
-            {t("auth.mailNotConfigured")}
-          </p>
-        ) : null}
         <p className="mt-6 text-sm">
           <Link href="/autentificare" className="text-primary underline">
             {t("nav.login")}
