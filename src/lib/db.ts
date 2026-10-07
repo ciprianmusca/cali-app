@@ -256,6 +256,59 @@ async function migrateDemoSandboxSchema(db: D1Database): Promise<void> {
   } catch {
     /* ignore */
   }
+  // Demo ranger: active in sandbox, can validate, cannot manage users.
+  try {
+    await db
+      .prepare(
+        `UPDATE users SET
+           name = ?,
+           status = 'activ',
+           is_demo = 1,
+           can_validate_observations = 1,
+           can_manage_users = 0,
+           can_manage_registrations = 0,
+           can_teach_school = 0
+         WHERE lower(email) = lower(?)`
+      )
+      .bind("Georgiana Popa", "ranger@cali-lab.ro")
+      .run();
+  } catch {
+    /* ignore */
+  }
+  // Keep historical rows consistent with the renamed ranger.
+  try {
+    await db
+      .prepare(
+        `UPDATE observations SET author_name = ?
+         WHERE author_id = 'u-ranger' OR lower(author_name) = lower(?)`
+      )
+      .bind("Georgiana Popa", "Mitache Petronela")
+      .run();
+  } catch {
+    /* ignore */
+  }
+  try {
+    await db
+      .prepare(
+        `UPDATE observations SET validator_name = ?
+         WHERE validator_id = 'u-ranger' OR lower(validator_name) = lower(?)`
+      )
+      .bind("Georgiana Popa", "Mitache Petronela")
+      .run();
+  } catch {
+    /* ignore */
+  }
+  // Sandbox accounts never hold the users-management flag.
+  try {
+    await db
+      .prepare(
+        `UPDATE users SET can_manage_users = 0, can_manage_registrations = 0
+         WHERE is_demo = 1`
+      )
+      .run();
+  } catch {
+    /* ignore */
+  }
   // Observations authored by demo users inherit the sandbox flag.
   try {
     await db
@@ -463,14 +516,18 @@ export function userFromRow(row: UserRow): User {
     gdprVersion: row.gdpr_version ?? undefined,
     registeredAt: row.registered_at,
     lastLoginAt: row.last_login_at ?? undefined,
-    canManageUsers: isRanger
-      ? row.can_manage_users === 1 || row.can_manage_registrations === 1
-      : false,
+    isDemo: row.is_demo === 1,
+    // Sandbox testers never manage accounts, even if a flag was set historically.
+    canManageUsers:
+      row.is_demo === 1
+        ? false
+        : isRanger
+          ? row.can_manage_users === 1 || row.can_manage_registrations === 1
+          : false,
     canValidateObservations: isRanger
       ? row.can_validate_observations === 1
       : false,
     canTeachSchool: isRanger ? row.can_teach_school === 1 : false,
-    isDemo: row.is_demo === 1,
   };
 }
 
@@ -1449,7 +1506,7 @@ const SEED_USERS: User[] = [
   {
     id: "u-ranger",
     email: "ranger@cali-lab.ro",
-    name: "Mitache Petronela",
+    name: "Georgiana Popa",
     role: "ranger",
     status: "activ",
     password: "Ranger123!",

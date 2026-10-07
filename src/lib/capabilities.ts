@@ -8,11 +8,14 @@ export type CapUser = {
   canManageRegistrations?: boolean;
   canValidateObservations?: boolean;
   canTeachSchool?: boolean;
+  /** Sandbox testers never manage user accounts. */
+  isDemo?: boolean;
 };
 
-/** Admin, or ranger with the users flag (opt-in). */
+/** Admin, or ranger with the users flag (opt-in). Never for sandbox demo users. */
 export function canManageUsers(user: CapUser | null | undefined): boolean {
   if (!user) return false;
+  if (user.isDemo) return false;
   if (user.role === "admin") return true;
   if (user.role !== "ranger") return false;
   return (

@@ -141,13 +141,13 @@ export async function requireAdmin(): Promise<
   return result;
 }
 
-/** Admin or ranger with canManageUsers. */
+/** Admin or ranger with canManageUsers. Sandbox demo users are always denied. */
 export async function requireUsersManager(): Promise<
   { user: User; error?: undefined } | { user?: undefined; error: Response }
 > {
   const result = await requireUser();
   if (result.error) return result;
-  if (!canManageUsers(result.user)) {
+  if (result.user.isDemo || !canManageUsers(result.user)) {
     return {
       error: Response.json({ ok: false, error: "forbidden" }, { status: 403 }),
     };
