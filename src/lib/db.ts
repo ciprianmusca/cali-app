@@ -144,7 +144,8 @@ export async function ensureSchema(db: D1Database): Promise<void> {
         token_hash TEXT NOT NULL,
         expires_at TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        used_at TEXT
+        used_at TEXT,
+        purpose TEXT NOT NULL DEFAULT 'reset'
       )
     `),
     db.prepare(`
@@ -197,6 +198,20 @@ export async function ensureSchema(db: D1Database): Promise<void> {
   await migrateUsersCapabilitiesSchema(db);
   await migrateDemoSandboxSchema(db);
   await migrateOfficialDataToSandboxOnce(db);
+  await migrateEmailTokenPurposeSchema(db);
+}
+
+/** purpose=reset|activate on password_resets (account activation emails). */
+async function migrateEmailTokenPurposeSchema(db: D1Database): Promise<void> {
+  try {
+    await db
+      .prepare(
+        `ALTER TABLE password_resets ADD COLUMN purpose TEXT NOT NULL DEFAULT 'reset'`
+      )
+      .run();
+  } catch {
+    /* column exists */
+  }
 }
 
 /** Isolate „Testează aplicația” accounts + observations from the official lane. */
@@ -1095,11 +1110,12 @@ export async function createPasswordReset(
   db: D1Database,
   token: PasswordResetToken
 ): Promise<void> {
+  const purpose = token.purpose ?? "reset";
   await db
     .prepare(
       `INSERT INTO password_resets (
-        id, user_id, token_hash, expires_at, created_at, used_at
-      ) VALUES (?, ?, ?, ?, ?, ?)`
+        id, user_id, token_hash, expires_at, created_at, used_at, purpose
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       token.id,
@@ -1107,18 +1123,24 @@ export async function createPasswordReset(
       token.tokenHash,
       token.expiresAt,
       token.createdAt,
-      token.usedAt ?? null
+      token.usedAt ?? null,
+      purpose
     )
     .run();
 }
 
 export async function findPasswordResetByHash(
   db: D1Database,
-  tokenHash: string
+  tokenHash: string,
+  purpose?: "reset" | "activate"
 ): Promise<PasswordResetToken | null> {
   const row = await db
-    .prepare("SELECT * FROM password_resets WHERE token_hash = ?")
-    .bind(tokenHash)
+    .prepare(
+      purpose
+        ? "SELECT * FROM password_resets WHERE token_hash = ? AND purpose = ?"
+        : "SELECT * FROM password_resets WHERE token_hash = ?"
+    )
+    .bind(...(purpose ? [tokenHash, purpose] : [tokenHash]))
     .first<{
       id: string;
       user_id: string;
@@ -1126,6 +1148,7 @@ export async function findPasswordResetByHash(
       expires_at: string;
       created_at: string;
       used_at: string | null;
+      purpose?: string | null;
     }>();
   if (!row) return null;
   return {
@@ -1135,6 +1158,10 @@ export async function findPasswordResetByHash(
     expiresAt: row.expires_at,
     createdAt: row.created_at,
     usedAt: row.used_at ?? undefined,
+    purpose:
+      row.purpose === "activate" || row.purpose === "reset"
+        ? row.purpose
+        : "reset",
   };
 }
 

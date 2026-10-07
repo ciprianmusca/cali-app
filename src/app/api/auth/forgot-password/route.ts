@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       id: `pr-${crypto.randomUUID().slice(0, 10)}`,
       userId: user.id,
       tokenHash,
+      purpose: "reset",
       expiresAt: new Date(Date.now() + minutes * 60_000).toISOString(),
       createdAt: new Date().toISOString(),
     });
@@ -49,8 +50,11 @@ export async function POST(request: Request) {
       expiresMinutes: minutes,
     });
 
+    // Token is always in D1. Mail is sent when RESEND_API_KEY is configured;
+    // otherwise return the link for local debugging only.
     return NextResponse.json({
       ok: true,
+      mailSent: mail.sent,
       demoResetUrl: mail.demoResetUrl,
       expiresMinutes: minutes,
     });

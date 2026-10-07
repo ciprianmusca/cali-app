@@ -62,6 +62,7 @@ export async function PATCH(
         id: `pr-${crypto.randomUUID().slice(0, 10)}`,
         userId: existing.id,
         tokenHash,
+        purpose: "reset",
         expiresAt,
         createdAt: new Date().toISOString(),
       });
@@ -83,6 +84,7 @@ export async function PATCH(
       });
       return NextResponse.json({
         ok: true,
+        mailSent: mail.sent,
         demoResetUrl: mail.demoResetUrl,
       });
     }

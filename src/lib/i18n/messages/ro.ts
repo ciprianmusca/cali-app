@@ -509,7 +509,18 @@ export const ro = {
   "auth.resetSub": "Introduceți emailul. Veți primi un link de resetare.",
   "auth.resetSend": "Trimite link",
   "auth.resetSent": "Dacă există un cont, am trimis instrucțiunile.",
-  "auth.resetDemoLink": "Link demo (fără SMTP):",
+  "auth.resetDemoLink": "Link local (mail neconfigurat):",
+  "auth.activateTitle": "Activare cont",
+  "auth.activateWorking": "Se activează contul…",
+  "auth.activateInvalid":
+    "Link de activare invalid sau expirat. Creați din nou contul sau contactați administratorul.",
+  "auth.activateSent":
+    "Contul a fost creat. Verificați emailul și deschideți linkul de activare înainte de autentificare.",
+  "auth.activateDemoLink": "Link local de activare (mail neconfigurat):",
+  "auth.mailNotConfigured":
+    "Trimiterea emailului nu este configurată pe server (lipsește RESEND_API_KEY). Folosiți linkul de mai jos sau cereți administratorului să configureze mailul.",
+  "auth.resetMailFailed":
+    "Cererea a fost salvată, dar emailul nu a putut fi trimis. Verificați configurația mailului.",
   "auth.newPassword": "Parolă nouă",
   "auth.resetSubmit": "Setează parola",
   "auth.resetDone": "Parola a fost actualizată. Puteți intra în cont.",

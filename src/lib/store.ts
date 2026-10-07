@@ -65,7 +65,13 @@ interface CaliState {
     gdprAccepted: boolean;
     gdprVersion: string;
     turnstileToken: string;
-  }) => Promise<{ ok: boolean; error?: string }>;
+  }) => Promise<{
+    ok: boolean;
+    error?: string;
+    needsActivation?: boolean;
+    mailSent?: boolean;
+    demoActivateUrl?: string;
+  }>;
   acceptGdpr: () => void;
   notifications: AppNotification[];
   markNotificationRead: (id: string) => void;
@@ -714,9 +720,11 @@ export const useCaliStore = create<CaliState>()(
           const data = (await res.json().catch(() => ({}))) as {
             ok?: boolean;
             error?: string;
-            user?: PublicUser;
+            needsActivation?: boolean;
+            mailSent?: boolean;
+            demoActivateUrl?: string;
           };
-          if (!res.ok || !data.ok || !data.user) {
+          if (!res.ok || !data.ok) {
             if (data.error === "email_exists") {
               return { ok: false, error: tKey("error.emailExists") };
             }
@@ -731,18 +739,13 @@ export const useCaliStore = create<CaliState>()(
             }
             return { ok: false, error: tKey("obs.error") };
           }
-          set({
-            currentUserId: data.user.id,
-            lastSessionUserId: data.user.id,
-            users: [data.user, ...get().users.filter((u) => u.id !== data.user!.id)],
-          });
-          void get()
-            .pullFromServer()
-            .then((r) => {
-              if (r.ok) void get().flushOfflineQueue();
-            })
-            .catch(() => undefined);
-          return { ok: true };
+          // No session until the activation email link is opened.
+          return {
+            ok: true,
+            needsActivation: true,
+            mailSent: data.mailSent,
+            demoActivateUrl: data.demoActivateUrl,
+          };
         } catch {
           return { ok: false, error: tKey("obs.error") };
         }

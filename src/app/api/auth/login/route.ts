@@ -43,14 +43,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Suspended (inactive after GDPR) cannot log in. Pending GDPR may log in.
+    // Inactive accounts (awaiting email activation or suspended) cannot log in.
     if (user.status !== "activ") {
-      if (user.gdprAcceptedAt) {
-        return NextResponse.json(
-          { ok: false, error: "inactive_account" },
-          { status: 403 }
-        );
-      }
+      return NextResponse.json(
+        { ok: false, error: "inactive_account" },
+        { status: 403 }
+      );
     }
 
     const valid = await verifyPassword(password, user.password);

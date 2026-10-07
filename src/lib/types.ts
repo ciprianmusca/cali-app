@@ -73,6 +73,8 @@ export interface AppNotification {
   readAt?: string;
 }
 
+export type EmailTokenPurpose = "reset" | "activate";
+
 export interface PasswordResetToken {
   id: string;
   userId: string;
@@ -80,6 +82,8 @@ export interface PasswordResetToken {
   expiresAt: string;
   createdAt: string;
   usedAt?: string;
+  /** reset = password reset; activate = account activation email. */
+  purpose?: EmailTokenPurpose;
 }
 export type ObservationModule = "fenologie" | "perturbari" | "sol";
 export type ObservationStatus =

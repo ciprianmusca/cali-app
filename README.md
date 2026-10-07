@@ -41,9 +41,22 @@ Conturile există în D1. **Lista publică** (fără admin) e pe **[/testeaza](/
 
 Pe `/autentificare`, lista demo și câmpurile precompletate apar doar dacă `NEXT_PUBLIC_DEMO_MODE=true`.
 
-Conturile demo sunt **active** doar după acord GDPR (versiunea politicii e salvată pe utilizator). Resetarea parolei folosește `passwordResetMinutesUser` / `passwordResetMinutesAdmin`; fără SMTP, linkul apare în UI (demo).
+Conturile demo sunt **active** doar după acord GDPR (versiunea politicii e salvată pe utilizator).
 
-Autentificarea rulează pe server (sesiune JWT în cookie `httpOnly`). Parolele sunt stocate cu **bcrypt** în D1; API-urile nu returnează niciodată câmpul `password`. Lista de utilizatori (`GET /api/users`) e doar pentru admin.
+**Email (activare cont + resetare parolă):** pe Workers nu există SMTP raw. Configurați [Resend](https://resend.com) ca secrete Cloudflare:
+
+```bash
+npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put MAIL_FROM          # ex. noreply@cali-lab.app (domeniu verificat în Resend)
+# opțional:
+npx wrangler secret put MAIL_FROM_NAME     # implicit CALI-LAB
+```
+
+Local (`.dev.vars`): `RESEND_API_KEY=re_…` și `MAIL_FROM=…`. Tokenurile de activare/reset se salvează **mereu în D1** (`password_resets`); fără cheie Resend, linkul apare în UI doar pentru depanare.
+
+Flux creare cont: utilizatorul e salvat cu `status=inactiv` → email cu link `/activare-cont?token=…` → la click contul trece `activ` și se creează sesiunea. Până atunci loginul e respins (`inactive_account`).
+
+Autentificarea rulează pe server (sesiune JWT în cookie `httpOnly`). Parolele sunt stocate cu **PBKDF2** în D1; API-urile nu returnează niciodată câmpul `password`. Lista de utilizatori (`GET /api/users`) e doar pentru admin.
 
 ## Limbă / Language
 

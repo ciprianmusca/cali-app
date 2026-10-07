@@ -16,6 +16,7 @@ function ResetForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [mailOk, setMailOk] = useState(true);
   const [demoLink, setDemoLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -25,13 +26,23 @@ function ResetForm() {
     setError(null);
     setMsg(null);
     setDemoLink(null);
+    setMailOk(true);
     const res = await fetch("/api/auth/forgot-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
     });
-    const data = (await res.json()) as { demoResetUrl?: string };
-    setMsg(t("auth.resetSent"));
+    if (!res.ok) {
+      setError(t("obs.error"));
+      return;
+    }
+    const data = (await res.json()) as {
+      demoResetUrl?: string;
+      mailSent?: boolean;
+    };
+    const sent = data.mailSent !== false;
+    setMailOk(sent);
+    setMsg(sent ? t("auth.resetSent") : t("auth.resetMailFailed"));
     if (data.demoResetUrl) setDemoLink(data.demoResetUrl);
   };
 
@@ -100,7 +111,18 @@ function ResetForm() {
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        {msg ? <p className="text-sm text-emerald-800">{msg}</p> : null}
+        {msg ? (
+          <p
+            className={
+              mailOk
+                ? "text-sm text-emerald-800"
+                : "text-sm text-amber-800 dark:text-amber-200"
+            }
+          >
+            {msg}
+          </p>
+        ) : null}
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
         {demoLink ? (
           <p className="break-all text-xs text-muted-foreground">
             {t("auth.resetDemoLink")}{" "}

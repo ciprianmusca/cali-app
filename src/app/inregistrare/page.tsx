@@ -2,7 +2,6 @@
 
 import { FormEvent, useCallback, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +15,6 @@ import { GDPR_VERSION } from "@/lib/constants";
 
 export default function RegisterPage() {
   const { t } = useI18n();
-  const router = useRouter();
   const register = useCaliStore((s) => s.register);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -27,6 +25,10 @@ export default function RegisterPage() {
   const [gdprOk, setGdprOk] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<{
+    mailSent?: boolean;
+    demoActivateUrl?: string;
+  } | null>(null);
 
   const onToken = useCallback((token: string | null) => {
     setTurnstileToken(token);
@@ -69,8 +71,40 @@ export default function RegisterPage() {
       setError(res.error ?? t("obs.error"));
       return;
     }
-    router.push("/acasa");
+    setDone({
+      mailSent: res.mailSent,
+      demoActivateUrl: res.demoActivateUrl,
+    });
   };
+
+  if (done) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-12">
+        <h1 className="font-display text-3xl text-forest">
+          {t("auth.registerTitle")}
+        </h1>
+        <p className="mt-4 text-sm text-forest">{t("auth.activateSent")}</p>
+        {!done.mailSent ? (
+          <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">
+            {t("auth.mailNotConfigured")}
+          </p>
+        ) : null}
+        {done.demoActivateUrl ? (
+          <p className="mt-3 break-all text-xs text-muted-foreground">
+            {t("auth.activateDemoLink")}{" "}
+            <a href={done.demoActivateUrl} className="text-primary underline">
+              {done.demoActivateUrl}
+            </a>
+          </p>
+        ) : null}
+        <p className="mt-6 text-sm">
+          <Link href="/autentificare" className="text-primary underline">
+            {t("nav.login")}
+          </Link>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-md px-4 py-12">

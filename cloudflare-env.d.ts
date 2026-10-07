@@ -11,4 +11,9 @@ interface CloudflareEnv {
     ) => Promise<unknown>;
   };
   AUTH_SECRET?: string;
+  /** Resend.com API key for activation / password-reset emails. */
+  RESEND_API_KEY?: string;
+  /** From address, e.g. noreply@cali-lab.app */
+  MAIL_FROM?: string;
+  MAIL_FROM_NAME?: string;
 }

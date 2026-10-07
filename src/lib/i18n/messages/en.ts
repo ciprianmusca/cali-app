@@ -487,7 +487,18 @@ export const en: { [K in keyof RoMessages]: string } = {
   "auth.resetSub": "Enter your email. You will receive a reset link.",
   "auth.resetSend": "Send link",
   "auth.resetSent": "If an account exists, we sent instructions.",
-  "auth.resetDemoLink": "Demo link (no SMTP):",
+  "auth.resetDemoLink": "Local link (mail not configured):",
+  "auth.activateTitle": "Activate account",
+  "auth.activateWorking": "Activating your account…",
+  "auth.activateInvalid":
+    "Activation link is invalid or expired. Register again or contact an administrator.",
+  "auth.activateSent":
+    "Your account was created. Check your email and open the activation link before signing in.",
+  "auth.activateDemoLink": "Local activation link (mail not configured):",
+  "auth.mailNotConfigured":
+    "Outbound email is not configured on the server (missing RESEND_API_KEY). Use the link below or ask an administrator to configure mail.",
+  "auth.resetMailFailed":
+    "Your request was saved, but the email could not be sent. Check mail configuration.",
   "auth.newPassword": "New password",
   "auth.resetSubmit": "Set password",
   "auth.resetDone": "Password updated. You can sign in.",

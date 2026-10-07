@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import {
+  createSessionToken,
+  setSessionCookie,
+  toPublicUser,
+} from "@/lib/auth";
+import {
   ensureSchema,
   findPasswordResetByHash,
   findUserById,
@@ -7,20 +12,15 @@ import {
   markPasswordResetUsed,
   upsertUser,
 } from "@/lib/db";
-import { hashPassword } from "@/lib/password";
-import { isValidPassword } from "@/lib/format";
 import { writeAudit } from "@/lib/audit";
 import { sha256Hex } from "@/lib/token";
 
+/** Activate account from the email link (token stored in D1). */
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as {
-      token?: string;
-      password?: string;
-    };
+    const body = (await request.json()) as { token?: string };
     const token = body.token?.trim() ?? "";
-    const password = body.password ?? "";
-    if (!token || !isValidPassword(password)) {
+    if (!token) {
       return NextResponse.json(
         { ok: false, error: "invalid" },
         { status: 400 }
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     const db = await getDB();
     await ensureSchema(db);
     const tokenHash = await sha256Hex(token);
-    const row = await findPasswordResetByHash(db, tokenHash, "reset");
+    const row = await findPasswordResetByHash(db, tokenHash, "activate");
     if (!row || row.usedAt || new Date(row.expiresAt).getTime() < Date.now()) {
       return NextResponse.json(
         { ok: false, error: "token_invalid" },
@@ -46,24 +46,28 @@ export async function POST(request: Request) {
       );
     }
 
-    await upsertUser(db, {
+    const updated = {
       ...user,
-      password: await hashPassword(password),
-    });
+      status: "activ" as const,
+    };
+    await upsertUser(db, updated);
     await markPasswordResetUsed(db, row.id);
     await writeAudit(db, {
       actorId: user.id,
       actorName: user.name,
       actorRole: user.role,
-      action: "password_change",
+      action: "update_user",
       objectType: "user",
       objectId: user.id,
-      detail: "reset_via_email",
+      detail: "email_activation",
     });
 
-    return NextResponse.json({ ok: true });
+    const session = await createSessionToken(updated);
+    await setSessionCookie(session);
+
+    return NextResponse.json({ ok: true, user: toPublicUser(updated) });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "reset_failed";
+    const message = e instanceof Error ? e.message : "activate_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }

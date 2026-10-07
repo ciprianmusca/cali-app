@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 import {
-  createSessionToken,
-  setSessionCookie,
-  toPublicUser,
-} from "@/lib/auth";
-import {
   ensureSchema,
   findUserByEmail,
   getDB,
   seedIfEmpty,
   upsertUser,
+  createPasswordReset,
 } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import type { User } from "@/lib/types";
 import { isValidPassword } from "@/lib/format";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { sendAccountActivationEmail } from "@/lib/mail";
+import { randomTokenHex, sha256Hex } from "@/lib/token";
+
+const ACTIVATION_HOURS = 48;
 
 export async function POST(request: Request) {
   try {
@@ -82,25 +82,51 @@ export async function POST(request: Request) {
     }
 
     const now = new Date().toISOString();
-    // ADM-14/15: account activates only with GDPR policy acceptance.
+    // Account stays inactive until the activation email link is opened.
     const user: User = {
       id: `u-${crypto.randomUUID().slice(0, 8)}`,
       email,
       name,
       role,
-      status: "activ",
+      status: "inactiv",
       password: await hashPassword(password),
       isAdult: true,
       gdprAcceptedAt: now,
       gdprVersion: body.gdprVersion,
       registeredAt: now,
+      isDemo: false,
     };
     await upsertUser(db, user);
 
-    const token = await createSessionToken(user);
-    await setSessionCookie(token);
+    const raw = randomTokenHex(32);
+    const tokenHash = await sha256Hex(raw);
+    await createPasswordReset(db, {
+      id: `act-${crypto.randomUUID().slice(0, 10)}`,
+      userId: user.id,
+      tokenHash,
+      purpose: "activate",
+      expiresAt: new Date(
+        Date.now() + ACTIVATION_HOURS * 3600_000
+      ).toISOString(),
+      createdAt: now,
+    });
 
-    return NextResponse.json({ ok: true, user: toPublicUser(user) });
+    const origin = new URL(request.url).origin;
+    const activateUrl = `${origin}/activare-cont?token=${raw}`;
+    const mail = await sendAccountActivationEmail({
+      to: user.email,
+      name: user.name,
+      activateUrl,
+      expiresHours: ACTIVATION_HOURS,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      needsActivation: true,
+      mailSent: mail.sent,
+      /** Only when Resend/mail is not configured — for local debugging. */
+      demoActivateUrl: mail.demoResetUrl,
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "register_failed";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
