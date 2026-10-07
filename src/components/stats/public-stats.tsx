@@ -51,10 +51,12 @@ export function PublicStats() {
     );
   }
 
-  // Public stats: approved only (visitors); authenticated bootstrap already filtered.
-  const visible = user
-    ? observations
-    : observations.filter((o) => o.status === "aprobat");
+  // Public / official: approved non-demo. Authenticated: same demo lane as user.
+  const visible = observations.filter((o) => {
+    if (Boolean(o.isDemo) !== Boolean(user?.isDemo)) return false;
+    if (!user && o.status !== "aprobat") return false;
+    return true;
+  });
 
   // DES-11: cumulative totals since launch (not last 30 days).
   const totalUsers = users.filter((u) => u.status === "activ").length;
