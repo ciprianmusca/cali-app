@@ -20,7 +20,12 @@ export async function GET() {
     const session = await getSessionUser();
     const all = await listObservations(db);
     const viewer = session
-      ? { id: session.id, role: session.role }
+      ? {
+          id: session.id,
+          role: session.role,
+          canValidateObservations: session.canValidateObservations,
+          isDemo: session.isDemo,
+        }
       : null;
     return NextResponse.json({
       ok: true,
@@ -51,6 +56,7 @@ export async function POST(request: Request) {
       authorId: auth.user.id,
       authorRole: auth.user.role,
       authorName: auth.user.name,
+      isDemo: Boolean(auth.user.isDemo),
     });
     const bucket = await getPhotosBucket();
     const photos = await persistObservationPhotos(
@@ -58,7 +64,11 @@ export async function POST(request: Request) {
       unique.id,
       unique.photos ?? []
     );
-    const safe: Observation = { ...unique, photos };
+    const safe: Observation = {
+      ...unique,
+      photos,
+      isDemo: Boolean(auth.user.isDemo),
+    };
     await upsertObservation(db, safe);
     return NextResponse.json({ ok: true, id: safe.id, code: safe.code });
   } catch (e) {

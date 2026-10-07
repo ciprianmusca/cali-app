@@ -195,6 +195,77 @@ export async function ensureSchema(db: D1Database): Promise<void> {
   ]);
   await migrateFieldActivitiesSchema(db);
   await migrateUsersCapabilitiesSchema(db);
+  await migrateDemoSandboxSchema(db);
+}
+
+/** Isolate „Testează aplicația” accounts + observations from the official lane. */
+async function migrateDemoSandboxSchema(db: D1Database): Promise<void> {
+  for (const sql of [
+    `ALTER TABLE users ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE observations ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0`,
+  ]) {
+    try {
+      await db.prepare(sql).run();
+    } catch {
+      /* column already exists */
+    }
+  }
+  try {
+    await db
+      .prepare(
+        `CREATE INDEX IF NOT EXISTS idx_observations_is_demo ON observations(is_demo)`
+      )
+      .run();
+  } catch {
+    /* ignore */
+  }
+  try {
+    await db
+      .prepare(`CREATE INDEX IF NOT EXISTS idx_users_is_demo ON users(is_demo)`)
+      .run();
+  } catch {
+    /* ignore */
+  }
+  // Mark public sandbox emails (not admin) as demo.
+  for (const email of [
+    "ranger@cali-lab.ro",
+    "profesor@cali-lab.ro",
+    "turist@cali-lab.ro",
+    "elev@cali-lab.ro",
+  ]) {
+    try {
+      await db
+        .prepare(
+          `UPDATE users SET is_demo = 1 WHERE lower(email) = lower(?)`
+        )
+        .bind(email)
+        .run();
+    } catch {
+      /* ignore */
+    }
+  }
+  // Admin stays on the official lane.
+  try {
+    await db
+      .prepare(
+        `UPDATE users SET is_demo = 0 WHERE lower(email) = lower(?)`
+      )
+      .bind("admin@cali-lab.ro")
+      .run();
+  } catch {
+    /* ignore */
+  }
+  // Observations authored by demo users inherit the sandbox flag.
+  try {
+    await db
+      .prepare(
+        `UPDATE observations SET is_demo = 1
+         WHERE author_id IN (SELECT id FROM users WHERE is_demo = 1)`
+      )
+      .run();
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Add join_code to older D1 installs and backfill missing codes. */
@@ -282,6 +353,7 @@ export type UserRow = {
   can_manage_users?: number | null;
   can_validate_observations?: number | null;
   can_teach_school?: number | null;
+  is_demo?: number | null;
 };
 
 type ObsRow = {
@@ -304,6 +376,7 @@ type ObsRow = {
   is_sentinel_tree: number | null;
   species: string | null;
   synced_at: string | null;
+  is_demo?: number | null;
 };
 
 export function userFromRow(row: UserRow): User {
@@ -329,6 +402,7 @@ export function userFromRow(row: UserRow): User {
       ? row.can_validate_observations === 1
       : false,
     canTeachSchool: isRanger ? row.can_teach_school === 1 : false,
+    isDemo: row.is_demo === 1,
   };
 }
 
@@ -376,6 +450,7 @@ export function observationFromRow(row: ObsRow): Observation {
         : undefined,
     activityId:
       typeof payload.activityId === "string" ? payload.activityId : undefined,
+    isDemo: row.is_demo === 1 || payload.isDemo === true,
     classroomStatus:
       payload.classroomStatus === "admis" ||
       payload.classroomStatus === "respins" ||
@@ -459,6 +534,7 @@ function payloadFor(obs: Observation): Record<string, unknown> {
     locationAdjusted: obs.locationAdjusted,
     sentinelTreeId: obs.sentinelTreeId,
     activityId: obs.activityId,
+    isDemo: obs.isDemo || undefined,
     speciesOther: obs.speciesOther,
     editHistory: obs.editHistory,
     validationHistory: obs.validationHistory,
@@ -664,14 +740,15 @@ export async function upsertUser(db: D1Database, user: User): Promise<void> {
   const validateObs =
     user.role === "ranger" && user.canValidateObservations ? 1 : 0;
   const teachSchool = user.role === "ranger" && user.canTeachSchool ? 1 : 0;
+  const isDemo = user.isDemo ? 1 : 0;
   await db
     .prepare(
       `INSERT INTO users (
         id, email, name, role, status, password, is_adult, parental_consent,
         gdpr_accepted_at, gdpr_version, registered_at, last_login_at,
         can_manage_registrations, can_manage_users, can_validate_observations,
-        can_teach_school
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        can_teach_school, is_demo
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         email=excluded.email,
         name=excluded.name,
@@ -687,7 +764,8 @@ export async function upsertUser(db: D1Database, user: User): Promise<void> {
         can_manage_registrations=excluded.can_manage_registrations,
         can_manage_users=excluded.can_manage_users,
         can_validate_observations=excluded.can_validate_observations,
-        can_teach_school=excluded.can_teach_school`
+        can_teach_school=excluded.can_teach_school,
+        is_demo=excluded.is_demo`
     )
     .bind(
       user.id,
@@ -705,7 +783,8 @@ export async function upsertUser(db: D1Database, user: User): Promise<void> {
       manageUsers, // legacy column kept in sync
       manageUsers,
       validateObs,
-      teachSchool
+      teachSchool,
+      isDemo
     )
     .run();
 }
@@ -754,8 +833,8 @@ export async function upsertObservation(
         id, code, module, status, author_id, author_role, author_name, details,
         photos_json, location_json, payload_json, created_at, validated_at,
         validator_id, validator_name, validation_comment, is_sentinel_tree,
-        species, synced_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        species, synced_at, is_demo
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         code=excluded.code,
         module=excluded.module,
@@ -774,7 +853,8 @@ export async function upsertObservation(
         validation_comment=excluded.validation_comment,
         is_sentinel_tree=excluded.is_sentinel_tree,
         species=excluded.species,
-        synced_at=excluded.synced_at`
+        synced_at=excluded.synced_at,
+        is_demo=excluded.is_demo`
     )
     .bind(
       obs.id,
@@ -799,7 +879,8 @@ export async function upsertObservation(
       obs.validationComment ?? null,
       obs.isSentinelTree ? 1 : 0,
       obs.species ?? null,
-      syncedAt
+      syncedAt,
+      obs.isDemo ? 1 : 0
     )
     .run();
 }
@@ -1295,6 +1376,7 @@ const SEED_USERS: User[] = [
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-05-01T08:00:00.000Z",
     lastLoginAt: "2026-09-20T09:00:00.000Z",
+    isDemo: false,
   },
   {
     id: "u-ranger",
@@ -1311,6 +1393,7 @@ const SEED_USERS: User[] = [
     canManageUsers: false,
     canValidateObservations: true,
     canTeachSchool: false,
+    isDemo: true,
   },
   {
     id: "u-turist",
@@ -1324,6 +1407,7 @@ const SEED_USERS: User[] = [
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-06-15T14:00:00.000Z",
     lastLoginAt: "2026-09-24T16:00:00.000Z",
+    isDemo: true,
   },
   {
     id: "u-rezident",
@@ -1336,6 +1420,7 @@ const SEED_USERS: User[] = [
     gdprAcceptedAt: "2026-09-02T11:00:00.000Z",
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-06-20T10:00:00.000Z",
+    isDemo: false,
   },
   {
     id: "u-elev",
@@ -1350,6 +1435,7 @@ const SEED_USERS: User[] = [
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-09-01T08:00:00.000Z",
     lastLoginAt: "2026-09-20T08:00:00.000Z",
+    isDemo: true,
   },
   {
     id: "u-profesor",
@@ -1363,6 +1449,7 @@ const SEED_USERS: User[] = [
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-05-15T08:00:00.000Z",
     lastLoginAt: "2026-09-22T08:00:00.000Z",
+    isDemo: true,
   },
 ];
 

@@ -90,7 +90,12 @@ export async function GET(request: Request) {
     // Visibility filter applies; status included; free-text details excluded.
     const session = await getSessionUser();
     const viewer = session
-      ? { id: session.id, role: session.role }
+      ? {
+          id: session.id,
+          role: session.role,
+          canValidateObservations: session.canValidateObservations,
+          isDemo: session.isDemo,
+        }
       : null;
     const visible = filterObservationsForViewer(all, viewer);
     const geoOpts: FairExportOptions = { full: true, includeDetails: false };

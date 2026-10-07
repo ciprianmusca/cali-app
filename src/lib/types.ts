@@ -228,6 +228,11 @@ export interface User {
    * (same as profesor: activities, lesson hub, join codes).
    */
   canTeachSchool?: boolean;
+  /**
+   * Sandbox („Testează aplicația”) account — observations stay in the
+   * demo lane and never enter the official map / validation / export.
+   */
+  isDemo?: boolean;
 }
 
 /** Safe user shape for API / client state (no password). */
@@ -283,6 +288,11 @@ export interface ObservationBase {
   /** pending until successfully uploaded when online */
   syncStatus?: SyncStatus;
   syncError?: string;
+  /**
+   * Sandbox observation — written by a demo account; excluded from the
+   * official flow (public map, FAIR export, official validation).
+   */
+  isDemo?: boolean;
   syncedAt?: string;
 }
 

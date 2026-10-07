@@ -65,7 +65,14 @@ function ObservationsList() {
   }, []);
 
   const filtered = useMemo(() => {
-    const viewer = user ? { id: user.id, role: user.role } : null;
+    const viewer = user
+      ? {
+          id: user.id,
+          role: user.role,
+          canValidateObservations: user.canValidateObservations,
+          isDemo: user.isDemo,
+        }
+      : null;
     return sortByCreatedDesc(
       filterObservationsForViewer(observations, viewer).filter((o) => {
         if (module !== "all" && o.module !== module) return false;

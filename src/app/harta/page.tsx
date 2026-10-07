@@ -48,6 +48,7 @@ export default function HartaPage() {
           id: user.id,
           role: user.role,
           canValidateObservations: user.canValidateObservations,
+          isDemo: user.isDemo,
         }
       : null;
     let list = filterObservationsForViewer(observations, viewer);

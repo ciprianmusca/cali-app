@@ -156,8 +156,10 @@ export function filterForFairExport(
   list: Observation[],
   opts: FairExportOptions
 ): Observation[] {
-  if (opts.full) return list;
-  return list.filter((o) => o.status === "aprobat");
+  // Sandbox demo observations never enter FAIR / public exports.
+  const official = list.filter((o) => !o.isDemo);
+  if (opts.full) return official;
+  return official.filter((o) => o.status === "aprobat");
 }
 
 export async function fairRecord(

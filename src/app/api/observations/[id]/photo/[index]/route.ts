@@ -33,7 +33,12 @@ export async function GET(
 
     const session = await getSessionUser();
     const viewer = session
-      ? { id: session.id, role: session.role }
+      ? {
+          id: session.id,
+          role: session.role,
+          canValidateObservations: session.canValidateObservations,
+          isDemo: session.isDemo,
+        }
       : null;
     if (!canViewObservation(existing, viewer)) {
       return NextResponse.json(

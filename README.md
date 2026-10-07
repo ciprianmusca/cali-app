@@ -35,7 +35,9 @@ npm run dev
 | Turist | turist@cali-lab.ro | Turist123! |
 | Elev | elev@cali-lab.ro | Elev1234! |
 
-Conturile există în D1 și pot fi folosite la login. **Lista și câmpurile precompletate nu apar pe pagina de autentificare** (decât dacă `NEXT_PUBLIC_DEMO_MODE=true`).
+Conturile există în D1. **Lista publică** (fără admin) e pe **[/testeaza](/testeaza)** („Testează aplicația”). Observațiile din aceste conturi sunt marcate `isDemo` și **nu apar** pe harta publică, la validarea oficială sau în exportul FAIR.
+
+Pe `/autentificare`, lista demo și câmpurile precompletate apar doar dacă `NEXT_PUBLIC_DEMO_MODE=true`.
 
 Conturile demo sunt **active** doar după acord GDPR (versiunea politicii e salvată pe utilizator). Resetarea parolei folosește `passwordResetMinutesUser` / `passwordResetMinutesAdmin`; fără SMTP, linkul apare în UI (demo).
 

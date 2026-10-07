@@ -59,6 +59,17 @@ export default function HomePage() {
               >
                 {t("landing.ctaMap")}
               </Link>
+              {!user ? (
+                <Link
+                  href="/testeaza"
+                  className={cn(
+                    buttonVariants({ size: "lg", variant: "outline" }),
+                    "border-white/40 bg-transparent text-white hover:bg-white/10"
+                  )}
+                >
+                  {t("nav.tryApp")}
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>

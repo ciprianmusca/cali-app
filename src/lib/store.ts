@@ -126,6 +126,7 @@ const seedUsers: PublicUser[] = [
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-05-01T08:00:00.000Z",
     lastLoginAt: "2026-09-20T09:00:00.000Z",
+    isDemo: false,
   },
   {
     id: "u-ranger",
@@ -141,6 +142,7 @@ const seedUsers: PublicUser[] = [
     canManageUsers: false,
     canValidateObservations: true,
     canTeachSchool: false,
+    isDemo: true,
   },
   {
     id: "u-turist",
@@ -153,6 +155,7 @@ const seedUsers: PublicUser[] = [
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-06-15T14:00:00.000Z",
     lastLoginAt: "2026-09-24T16:00:00.000Z",
+    isDemo: true,
   },
   {
     id: "u-rezident",
@@ -164,6 +167,7 @@ const seedUsers: PublicUser[] = [
     gdprAcceptedAt: "2026-09-02T11:00:00.000Z",
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-06-20T10:00:00.000Z",
+    isDemo: false,
   },
   {
     id: "u-elev",
@@ -177,6 +181,7 @@ const seedUsers: PublicUser[] = [
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-09-01T08:00:00.000Z",
     lastLoginAt: "2026-09-20T08:00:00.000Z",
+    isDemo: true,
   },
   {
     id: "u-profesor",
@@ -189,6 +194,7 @@ const seedUsers: PublicUser[] = [
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-05-15T08:00:00.000Z",
     lastLoginAt: "2026-09-22T08:00:00.000Z",
+    isDemo: true,
   },
 ];
 
@@ -776,12 +782,15 @@ export const useCaliStore = create<CaliState>()(
 
       addObservation: (obs) => {
         const activeId = get().settings.activeActivityId;
+        const author = get().currentUser();
         const withActivity: Observation =
           !obs.activityId && activeId
             ? { ...obs, activityId: activeId }
             : obs;
         const pending: Observation = {
           ...stripBase64Photos(withActivity),
+          // Stamp sandbox lane from the signed-in user before queueing.
+          isDemo: Boolean(author?.isDemo) || Boolean(withActivity.isDemo),
           syncStatus: "pending",
           syncError: undefined,
         };

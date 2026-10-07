@@ -71,6 +71,7 @@ export async function GET() {
       id: session.id,
       role: session.role,
       canValidateObservations: canValidateObservations(session),
+      isDemo: session.isDemo,
     };
 
     return NextResponse.json({

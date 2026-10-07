@@ -78,7 +78,14 @@ function ObservationDetail({ id }: { id: string }) {
   const [creatingTree, setCreatingTree] = useState(false);
   const [activity, setActivity] = useState<FieldActivity | null>(null);
 
-  const viewer = user ? { id: user.id, role: user.role } : null;
+  const viewer = user
+    ? {
+        id: user.id,
+        role: user.role,
+        canValidateObservations: user.canValidateObservations,
+        isDemo: user.isDemo,
+      }
+    : null;
   const candidate = observations.find((o) => o.id === id);
   const obs =
     candidate && canViewObservation(candidate, viewer) ? candidate : undefined;

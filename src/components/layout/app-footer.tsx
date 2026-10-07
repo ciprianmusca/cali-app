@@ -71,6 +71,12 @@ export function AppFooter() {
             <Link href="/harta" className="underline-offset-2 hover:underline">
               {t("footer.obsMap")}
             </Link>
+            <Link
+              href="/testeaza"
+              className="underline-offset-2 hover:underline"
+            >
+              {t("nav.tryApp")}
+            </Link>
             <a
               href="https://www.ipsv.ro"
               target="_blank"

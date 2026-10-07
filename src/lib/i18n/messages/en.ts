@@ -697,6 +697,18 @@ export const en: { [K in keyof RoMessages]: string } = {
   "nav.guide": "Guide",
   "nav.faq": "FAQ",
   "nav.contact": "Contact",
+  "nav.tryApp": "Try the app",
+
+  "demo.title": "Try the app",
+  "demo.sub":
+    "Practice accounts with visible email and password. Sign in and explore the modules without a real account.",
+  "demo.isolation":
+    "Everything you save here stays in the test zone — it never reaches the public map, official validation, or FAIR export.",
+  "demo.enter": "Enter",
+  "demo.copy": "Copy",
+  "demo.copied": "Copied",
+  "demo.banner": "Test mode (sandbox) — data stays off the official flow",
+  "demo.officialHint": "For real observations, create an official account:",
 
   "partners.band": "Partners",
   "partners.isv": "Institute for Life Sciences (ISV)",

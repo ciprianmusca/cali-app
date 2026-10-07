@@ -19,6 +19,7 @@ import {
   HelpCircle,
   Mail,
   ClipboardList,
+  FlaskConical,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +49,10 @@ export function AppHeader() {
   const [scrolled, setScrolled] = useState(false);
 
   const user = users.find((u) => u.id === currentUserId) ?? null;
-  const pending = observations.filter((o) => o.status === "in_asteptare").length;
+  const pending = observations.filter(
+    (o) =>
+      o.status === "in_asteptare" && Boolean(o.isDemo) === Boolean(user?.isDemo)
+  ).length;
 
   const guestInfoLinks = [
     { href: "/despre", label: t("nav.about"), icon: Info },
@@ -98,6 +102,11 @@ export function AppHeader() {
     : [
         { href: "/", label: t("nav.stats"), icon: BarChart3 },
         { href: "/harta", label: t("nav.map"), icon: Map },
+        {
+          href: "/testeaza",
+          label: t("nav.tryApp"),
+          icon: FlaskConical,
+        },
         ...guestInfoLinks,
       ];
 

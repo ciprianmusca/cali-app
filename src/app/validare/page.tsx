@@ -77,17 +77,20 @@ function ValidationQueue() {
   const [undoCount, setUndoCount] = useState(0);
   const [undoVisible, setUndoVisible] = useState(false);
 
+  const user = useCaliStore((s) => s.currentUser());
   const pending = useMemo(
     () =>
       sortByCreatedDesc(
         observations.filter((o) => {
           if (o.status !== "in_asteptare") return false;
+          // Stay in the same demo / official lane as the signed-in validator.
+          if (Boolean(o.isDemo) !== Boolean(user?.isDemo)) return false;
           if (module !== "all" && o.module !== module) return false;
           if (authorRole !== "all" && o.authorRole !== authorRole) return false;
           return true;
         })
       ),
-    [observations, module, authorRole]
+    [observations, module, authorRole, user?.isDemo]
   );
 
   useEffect(() => {

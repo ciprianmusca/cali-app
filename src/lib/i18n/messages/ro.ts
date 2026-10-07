@@ -720,6 +720,18 @@ export const ro = {
   "nav.guide": "Ghid",
   "nav.faq": "Întrebări frecvente",
   "nav.contact": "Contact",
+  "nav.tryApp": "Testează aplicația",
+
+  "demo.title": "Testează aplicația",
+  "demo.sub":
+    "Conturi de exercițiu cu email și parolă vizibile. Intră și explorează modulele fără cont real.",
+  "demo.isolation":
+    "Tot ce salvezi aici rămâne în zona de test — nu ajunge pe harta publică, la validarea oficială sau în exportul FAIR.",
+  "demo.enter": "Intră",
+  "demo.copy": "Copiază",
+  "demo.copied": "Copiat",
+  "demo.banner": "Mod test (sandbox) — datele nu intră pe fluxul oficial",
+  "demo.officialHint": "Pentru observații reale, creează un cont oficial:",
 
   // Partners
   "partners.band": "Parteneri",

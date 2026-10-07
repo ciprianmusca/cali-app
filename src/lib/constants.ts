@@ -129,3 +129,20 @@ export const DEMO_ACCOUNTS = [
     role: "elev" as const,
   },
 ];
+
+/**
+ * Public sandbox accounts for „Testează aplicația”.
+ * Admin is intentionally excluded. Data from these users is isDemo=true
+ * and never appears in the official map / validation / FAIR export.
+ */
+export const DEMO_SANDBOX_ACCOUNTS = DEMO_ACCOUNTS.filter(
+  (a) => a.role !== "admin"
+);
+
+export const DEMO_SANDBOX_EMAILS = new Set(
+  DEMO_SANDBOX_ACCOUNTS.map((a) => a.email.toLowerCase())
+);
+
+export function isSandboxDemoEmail(email: string): boolean {
+  return DEMO_SANDBOX_EMAILS.has(email.trim().toLowerCase());
+}

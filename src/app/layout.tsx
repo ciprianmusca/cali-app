@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Figtree } from "next/font/google";
 import { AppHeader } from "@/components/layout/app-header";
 import { AppFooter } from "@/components/layout/app-footer";
+import { DemoSandboxBanner } from "@/components/layout/demo-sandbox-banner";
 import { LocaleDocument } from "@/components/layout/locale-document";
 import { StoreHydration } from "@/components/layout/store-hydration";
 import {
@@ -78,6 +79,7 @@ export default function RootLayout({
         <LocaleDocument />
         <ServiceWorkerRegister />
         <AppHeader />
+        <DemoSandboxBanner />
         <OfflineSyncBar />
         <main className="flex-1">{children}</main>
         <AppFooter />

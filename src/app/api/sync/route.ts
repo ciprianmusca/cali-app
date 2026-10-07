@@ -62,6 +62,16 @@ export async function POST(request: Request) {
 
       try {
         const existing = await getObservationById(db, obs.id);
+        // Demo and official lanes never mix on write.
+        if (session.isDemo && existing && !existing.isDemo) {
+          errors.push({ id: obs.id, error: "forbidden" });
+          continue;
+        }
+        if (!session.isDemo && existing?.isDemo) {
+          errors.push({ id: obs.id, error: "forbidden" });
+          continue;
+        }
+
         const base: Observation = isStaff
           ? obs
           : {
@@ -94,6 +104,8 @@ export async function POST(request: Request) {
         const safe: Observation = {
           ...unique,
           photos,
+          // Demo session → always sandbox; otherwise keep existing lane.
+          isDemo: Boolean(session.isDemo) || Boolean(existing?.isDemo),
           // Classroom debate is only written via /classroom API — never wipe it on sync.
           classroomStatus: existing?.classroomStatus ?? unique.classroomStatus,
           classroomComment:
