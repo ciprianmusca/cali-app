@@ -43,16 +43,18 @@ Pe `/autentificare`, lista demo și câmpurile precompletate apar doar dacă `NE
 
 Conturile demo sunt **active** doar după acord GDPR (versiunea politicii e salvată pe utilizator).
 
-**Email (activare cont + resetare parolă):** pe Workers nu există SMTP raw. Configurați [Resend](https://resend.com) ca secrete Cloudflare:
+**Email (activare cont + resetare parolă):** linkurile se trimit **doar pe email**, niciodată în UI pe producție. Pe Workers:
 
+1. **Resend** (recomandat):
 ```bash
 npx wrangler secret put RESEND_API_KEY
 npx wrangler secret put MAIL_FROM          # ex. noreply@cali-lab.app (domeniu verificat în Resend)
-# opțional:
-npx wrangler secret put MAIL_FROM_NAME     # implicit CALI-LAB
+npx wrangler secret put MAIL_FROM_NAME     # opțional, implicit CALI-LAB
 ```
 
-Local (`.dev.vars`): `RESEND_API_KEY=re_…` și `MAIL_FROM=…`. Tokenurile de activare/reset se salvează **mereu în D1** (`password_resets`); fără cheie Resend, linkul apare în UI doar pentru depanare.
+2. sau **Cloudflare Email Service** (Workers Paid): binding `EMAIL` în `wrangler.jsonc`, domeniu onboarded în Email Service.
+
+Local (`.dev.vars`): `RESEND_API_KEY=re_…` și `MAIL_FROM=…`. Tokenurile se salvează **mereu în D1**; pe localhost, API-ul poate returna linkul doar pentru depanare.
 
 Flux creare cont: utilizatorul e salvat cu `status=inactiv` → email cu link `/activare-cont?token=…` → la click contul trece `activ` și se creează sesiunea. Până atunci loginul e respins (`inactive_account`).
 

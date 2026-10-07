@@ -518,9 +518,9 @@ export const ro = {
     "Contul a fost creat. Verificați emailul și deschideți linkul de activare înainte de autentificare.",
   "auth.activateDemoLink": "Link local de activare (mail neconfigurat):",
   "auth.mailNotConfigured":
-    "Trimiterea emailului nu este configurată pe server (lipsește RESEND_API_KEY). Folosiți linkul de mai jos sau cereți administratorului să configureze mailul.",
+    "Emailul de activare nu a putut fi trimis. Contactați administratorul (lipsește configurația mail pe server).",
   "auth.resetMailFailed":
-    "Cererea a fost salvată, dar emailul nu a putut fi trimis. Verificați configurația mailului.",
+    "Cererea a fost înregistrată, dar emailul nu a putut fi trimis. Contactați administratorul.",
   "auth.newPassword": "Parolă nouă",
   "auth.resetSubmit": "Setează parola",
   "auth.resetDone": "Parola a fost actualizată. Puteți intra în cont.",

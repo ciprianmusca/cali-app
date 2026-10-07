@@ -17,7 +17,6 @@ function ResetForm() {
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [mailOk, setMailOk] = useState(true);
-  const [demoLink, setDemoLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
@@ -25,7 +24,6 @@ function ResetForm() {
     e.preventDefault();
     setError(null);
     setMsg(null);
-    setDemoLink(null);
     setMailOk(true);
     const res = await fetch("/api/auth/forgot-password", {
       method: "POST",
@@ -37,13 +35,12 @@ function ResetForm() {
       return;
     }
     const data = (await res.json()) as {
-      demoResetUrl?: string;
       mailSent?: boolean;
     };
+    // Link goes only by email — never render tokens in the page.
     const sent = data.mailSent !== false;
     setMailOk(sent);
     setMsg(sent ? t("auth.resetSent") : t("auth.resetMailFailed"));
-    if (data.demoResetUrl) setDemoLink(data.demoResetUrl);
   };
 
   const setNewPassword = async (e: FormEvent) => {
@@ -123,14 +120,6 @@ function ResetForm() {
           </p>
         ) : null}
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        {demoLink ? (
-          <p className="break-all text-xs text-muted-foreground">
-            {t("auth.resetDemoLink")}{" "}
-            <a href={demoLink} className="text-primary underline">
-              {demoLink}
-            </a>
-          </p>
-        ) : null}
         <Button type="submit" className="w-full">
           {t("auth.resetSend")}
         </Button>

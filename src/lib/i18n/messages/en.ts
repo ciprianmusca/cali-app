@@ -496,9 +496,9 @@ export const en: { [K in keyof RoMessages]: string } = {
     "Your account was created. Check your email and open the activation link before signing in.",
   "auth.activateDemoLink": "Local activation link (mail not configured):",
   "auth.mailNotConfigured":
-    "Outbound email is not configured on the server (missing RESEND_API_KEY). Use the link below or ask an administrator to configure mail.",
+    "The activation email could not be sent. Contact an administrator (mail is not configured on the server).",
   "auth.resetMailFailed":
-    "Your request was saved, but the email could not be sent. Check mail configuration.",
+    "Your request was recorded, but the email could not be sent. Contact an administrator.",
   "auth.newPassword": "New password",
   "auth.resetSubmit": "Set password",
   "auth.resetDone": "Password updated. You can sign in.",

@@ -164,7 +164,6 @@ function UsersAdmin() {
       const data = (await res.json()) as {
         ok?: boolean;
         mailSent?: boolean;
-        demoResetUrl?: string;
         error?: string;
       };
       if (!res.ok) {
@@ -172,13 +171,11 @@ function UsersAdmin() {
         return;
       }
       if (action === "reset_password") {
-        if (data.demoResetUrl) {
-          setMsg(`${t("auth.resetDemoLink")} ${data.demoResetUrl}`);
-        } else if (data.mailSent === false) {
-          setMsg(t("auth.resetMailFailed"));
-        } else {
-          setMsg(t("auth.resetSent"));
-        }
+        setMsg(
+          data.mailSent === false
+            ? t("auth.resetMailFailed")
+            : t("auth.resetSent")
+        );
       } else {
         setMsg(t("admin.save"));
       }

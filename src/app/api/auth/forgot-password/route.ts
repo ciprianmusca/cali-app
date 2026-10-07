@@ -6,7 +6,7 @@ import {
   getDB,
   seedIfEmpty,
 } from "@/lib/db";
-import { sendPasswordResetEmail } from "@/lib/mail";
+import { allowDevMailLinks, sendPasswordResetEmail } from "@/lib/mail";
 import { randomTokenHex, sha256Hex } from "@/lib/token";
 
 export async function POST(request: Request) {
@@ -55,7 +55,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       mailSent: mail.sent,
-      demoResetUrl: mail.demoResetUrl,
+      // Never expose reset tokens on production (cali-lab.app).
+      demoResetUrl: allowDevMailLinks(request.url)
+        ? mail.demoResetUrl
+        : undefined,
       expiresMinutes: minutes,
     });
   } catch (e) {

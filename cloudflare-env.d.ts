@@ -16,4 +16,14 @@ interface CloudflareEnv {
   /** From address, e.g. noreply@cali-lab.app */
   MAIL_FROM?: string;
   MAIL_FROM_NAME?: string;
+  /** Cloudflare Email Service binding (Workers Paid / Email Sending). */
+  EMAIL?: {
+    send: (msg: {
+      to: string;
+      from: string | { email: string; name?: string };
+      subject: string;
+      html?: string;
+      text?: string;
+    }) => Promise<{ messageId?: string }>;
+  };
 }

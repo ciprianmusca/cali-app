@@ -27,7 +27,6 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{
     mailSent?: boolean;
-    demoActivateUrl?: string;
   } | null>(null);
 
   const onToken = useCallback((token: string | null) => {
@@ -73,7 +72,6 @@ export default function RegisterPage() {
     }
     setDone({
       mailSent: res.mailSent,
-      demoActivateUrl: res.demoActivateUrl,
     });
   };
 
@@ -87,14 +85,6 @@ export default function RegisterPage() {
         {!done.mailSent ? (
           <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">
             {t("auth.mailNotConfigured")}
-          </p>
-        ) : null}
-        {done.demoActivateUrl ? (
-          <p className="mt-3 break-all text-xs text-muted-foreground">
-            {t("auth.activateDemoLink")}{" "}
-            <a href={done.demoActivateUrl} className="text-primary underline">
-              {done.demoActivateUrl}
-            </a>
           </p>
         ) : null}
         <p className="mt-6 text-sm">

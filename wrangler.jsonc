@@ -34,6 +34,11 @@
   "ai": {
     "binding": "AI"
   },
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ],
   "vars": {
     "AUTH_SECRET": "ce3f0b71ac9ca5923bf3cf9be82314f3bbc3d7a2a0ad9d5c9c6f5dbd19f3e770",
     "EXPORT_PSEUDO_SALT": "cali-lab-export-pseudo-7f3a9c2e1b84d6a0",

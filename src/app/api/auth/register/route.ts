@@ -11,7 +11,7 @@ import { hashPassword } from "@/lib/password";
 import type { User } from "@/lib/types";
 import { isValidPassword } from "@/lib/format";
 import { verifyTurnstileToken } from "@/lib/turnstile";
-import { sendAccountActivationEmail } from "@/lib/mail";
+import { allowDevMailLinks, sendAccountActivationEmail } from "@/lib/mail";
 import { randomTokenHex, sha256Hex } from "@/lib/token";
 
 const ACTIVATION_HOURS = 48;
@@ -124,8 +124,9 @@ export async function POST(request: Request) {
       ok: true,
       needsActivation: true,
       mailSent: mail.sent,
-      /** Only when Resend/mail is not configured — for local debugging. */
-      demoActivateUrl: mail.demoResetUrl,
+      demoActivateUrl: allowDevMailLinks(request.url)
+        ? mail.demoResetUrl
+        : undefined,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "register_failed";

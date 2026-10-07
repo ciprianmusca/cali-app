@@ -10,7 +10,7 @@ import {
   getDB,
   upsertUser,
 } from "@/lib/db";
-import { sendPasswordResetEmail } from "@/lib/mail";
+import { allowDevMailLinks, sendPasswordResetEmail } from "@/lib/mail";
 import { randomTokenHex, sha256Hex } from "@/lib/token";
 import type { UserRole, UserStatus } from "@/lib/types";
 
@@ -85,7 +85,9 @@ export async function PATCH(
       return NextResponse.json({
         ok: true,
         mailSent: mail.sent,
-        demoResetUrl: mail.demoResetUrl,
+        demoResetUrl: allowDevMailLinks(request.url)
+          ? mail.demoResetUrl
+          : undefined,
       });
     }
 

@@ -1,6 +1,8 @@
 /**
- * Outbound mail for Workers: Resend HTTP API (preferred), with a safe
- * fallback that returns the link only when no provider is configured.
+ * Outbound mail for Workers:
+ * 1) Resend HTTP API (RESEND_API_KEY)
+ * 2) Cloudflare Email Service binding (env.EMAIL.send)
+ * Never expose reset/activation tokens in the production UI.
  */
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
@@ -8,16 +10,40 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 export type MailResult = {
   sent: boolean;
   error?: string;
-  /** Only when no mail provider is configured (local / missing secrets). */
+  /**
+   * Local-dev only. API routes must strip this on production hosts.
+   */
   demoResetUrl?: string;
 };
+
+/** True only for local/dev hosts — production must never expose mail tokens in UI. */
+export function allowDevMailLinks(requestUrl: string | URL): boolean {
+  try {
+    const host = new URL(requestUrl).hostname;
+    return (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host.endsWith(".localhost")
+    );
+  } catch {
+    return false;
+  }
+}
 
 type MailEnv = {
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
   MAIL_FROM_NAME?: string;
-  /** Legacy flag — if set without Resend, we still cannot SMTP from Workers. */
   SMTP_HOST?: string;
+  EMAIL?: {
+    send: (msg: {
+      to: string;
+      from: string | { email: string; name?: string };
+      subject: string;
+      html?: string;
+      text?: string;
+    }) => Promise<{ messageId?: string }>;
+  };
 };
 
 async function readMailEnv(): Promise<MailEnv> {
@@ -29,6 +55,7 @@ async function readMailEnv(): Promise<MailEnv> {
       MAIL_FROM: e.MAIL_FROM || process.env.MAIL_FROM,
       MAIL_FROM_NAME: e.MAIL_FROM_NAME || process.env.MAIL_FROM_NAME,
       SMTP_HOST: e.SMTP_HOST || process.env.SMTP_HOST,
+      EMAIL: e.EMAIL,
     };
   } catch {
     return {
@@ -40,10 +67,10 @@ async function readMailEnv(): Promise<MailEnv> {
   }
 }
 
-function fromAddress(env: MailEnv): string {
+function fromParts(env: MailEnv): { email: string; name: string; header: string } {
   const email = (env.MAIL_FROM || "noreply@cali-lab.app").trim();
   const name = (env.MAIL_FROM_NAME || "CALI-LAB").trim();
-  return `${name} <${email}>`;
+  return { email, name, header: `${name} <${email}>` };
 }
 
 async function sendViaResend(opts: {
@@ -76,32 +103,71 @@ async function sendViaResend(opts: {
   return { sent: true };
 }
 
+async function sendViaCloudflareEmail(opts: {
+  binding: NonNullable<MailEnv["EMAIL"]>;
+  fromEmail: string;
+  fromName: string;
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+}): Promise<MailResult> {
+  try {
+    await opts.binding.send({
+      to: opts.to,
+      from: { email: opts.fromEmail, name: opts.fromName },
+      subject: opts.subject,
+      text: opts.text,
+      html: opts.html,
+    });
+    return { sent: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`[cali-mail] Cloudflare EMAIL.send failed: ${message}`);
+    return { sent: false, error: "cf_email_failed" };
+  }
+}
+
 async function sendMail(opts: {
   to: string;
   subject: string;
   text: string;
   html: string;
-  /** Fallback link shown in UI only when mail cannot be sent. */
+  /** Logged server-side only when no provider works (never shown on production). */
   linkForDemoFallback?: string;
 }): Promise<MailResult> {
   const env = await readMailEnv();
-  const from = fromAddress(env);
+  const from = fromParts(env);
 
   if (env.RESEND_API_KEY && env.RESEND_API_KEY.length > 8) {
-    return sendViaResend({
+    const resend = await sendViaResend({
       apiKey: env.RESEND_API_KEY,
-      from,
+      from: from.header,
       to: opts.to,
       subject: opts.subject,
       text: opts.text,
       html: opts.html,
     });
+    if (resend.sent) return resend;
+    // Fall through to Cloudflare Email if Resend failed.
   }
 
-  // Workers cannot open raw SMTP sockets. Avoid pretending we sent.
+  if (env.EMAIL?.send) {
+    const cf = await sendViaCloudflareEmail({
+      binding: env.EMAIL,
+      fromEmail: from.email,
+      fromName: from.name,
+      to: opts.to,
+      subject: opts.subject,
+      text: opts.text,
+      html: opts.html,
+    });
+    if (cf.sent) return cf;
+  }
+
   if (env.SMTP_HOST) {
     console.error(
-      `[cali-mail] SMTP_HOST=${env.SMTP_HOST} is set but Workers need RESEND_API_KEY (HTTP).`
+      `[cali-mail] SMTP_HOST=${env.SMTP_HOST} is set but Workers need RESEND_API_KEY or EMAIL binding.`
     );
   }
 
@@ -111,6 +177,7 @@ async function sendMail(opts: {
   );
   return {
     sent: false,
+    // Only useful when API route decides allowDevMailLinks(request).
     demoResetUrl: opts.linkForDemoFallback,
     error: "mail_not_configured",
   };
