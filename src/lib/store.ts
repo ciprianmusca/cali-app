@@ -70,8 +70,6 @@ interface CaliState {
     error?: string;
     needsActivation?: boolean;
     mailSent?: boolean;
-    /** Present when account was activated immediately (mail unavailable). */
-    loggedIn?: boolean;
   }>;
   acceptGdpr: () => void;
   notifications: AppNotification[];
@@ -723,7 +721,6 @@ export const useCaliStore = create<CaliState>()(
             error?: string;
             needsActivation?: boolean;
             mailSent?: boolean;
-            user?: PublicUser;
           };
           if (!res.ok || !data.ok) {
             if (data.error === "email_exists") {
@@ -740,29 +737,11 @@ export const useCaliStore = create<CaliState>()(
             }
             return { ok: false, error: tKey("obs.error") };
           }
-          if (data.user && !data.needsActivation) {
-            set((s) => ({
-              currentUserId: data.user!.id,
-              lastSessionUserId: data.user!.id,
-              users: [
-                data.user!,
-                ...s.users.filter((u) => u.id !== data.user!.id),
-              ],
-            }));
-            void get().pullFromServer();
-            return {
-              ok: true,
-              needsActivation: false,
-              mailSent: false,
-              loggedIn: true,
-            };
-          }
-          // Session starts after the activation email link is opened.
+          // No session until email activation or admin/ranger activation.
           return {
             ok: true,
             needsActivation: true,
             mailSent: data.mailSent === true,
-            loggedIn: false,
           };
         } catch {
           return { ok: false, error: tKey("obs.error") };

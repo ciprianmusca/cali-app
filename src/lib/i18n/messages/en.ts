@@ -62,7 +62,7 @@ export const en: { [K in keyof RoMessages]: string } = {
 
   "error.invalidLogin": "Incorrect email or password.",
   "error.inactiveAccount":
-    "Account is not active. Check your activation email.",
+    "Account is not active. Open the email activation link or wait for an administrator / ranger to activate it.",
   "error.mustBeAdult": "You must confirm that you are an adult.",
   "error.emailExists": "An account with this email already exists.",
   "error.passwordMismatch": "Passwords do not match.",
@@ -493,7 +493,9 @@ export const en: { [K in keyof RoMessages]: string } = {
   "auth.activateInvalid":
     "Activation link is invalid or expired. Register again or contact an administrator.",
   "auth.activateSent":
-    "Your account was created. Check your email and open the activation link before signing in.",
+    "Your account was created (inactive). Check your email and open the activation link before signing in.",
+  "auth.activatePendingAdmin":
+    "Your account was created but stays inactive. An administrator or ranger must activate it (the activation email could not be sent).",
   "auth.activateDemoLink": "Local activation link (mail not configured):",
   "auth.mailNotConfigured":
     "The activation email could not be sent. Contact an administrator (mail is not configured on the server).",
@@ -507,7 +509,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "admin.search": "Search name or email",
   "admin.edit": "Edit",
   "admin.suspend": "Suspend",
-  "admin.reactivate": "Reactivate",
+  "admin.reactivate": "Activate",
   "admin.resetPw": "Reset password",
   "admin.deleteUser": "Delete",
   "admin.deleteConfirm":

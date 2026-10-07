@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
 import {
-  createSessionToken,
-  setSessionCookie,
-  toPublicUser,
-} from "@/lib/auth";
-import {
   ensureSchema,
   findUserByEmail,
   getDB,
+  insertNotification,
+  listUsers,
   seedIfEmpty,
   upsertUser,
   createPasswordReset,
-  markPasswordResetUsed,
 } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import type { User } from "@/lib/types";
@@ -19,6 +15,7 @@ import { isValidPassword } from "@/lib/format";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { allowDevMailLinks, sendAccountActivationEmail } from "@/lib/mail";
 import { randomTokenHex, sha256Hex } from "@/lib/token";
+import { canManageUsers } from "@/lib/capabilities";
 import { writeAudit } from "@/lib/audit";
 
 const ACTIVATION_HOURS = 48;
@@ -89,6 +86,7 @@ export async function POST(request: Request) {
     }
 
     const now = new Date().toISOString();
+    // Always inactive until email link OR admin/ranger activation.
     const user: User = {
       id: `u-${crypto.randomUUID().slice(0, 8)}`,
       email,
@@ -106,9 +104,8 @@ export async function POST(request: Request) {
 
     const raw = randomTokenHex(32);
     const tokenHash = await sha256Hex(raw);
-    const tokenId = `act-${crypto.randomUUID().slice(0, 10)}`;
     await createPasswordReset(db, {
-      id: tokenId,
+      id: `act-${crypto.randomUUID().slice(0, 10)}`,
       userId: user.id,
       tokenHash,
       purpose: "activate",
@@ -127,38 +124,44 @@ export async function POST(request: Request) {
       expiresHours: ACTIVATION_HOURS,
     });
 
-    // When outbound mail works: keep inactive until the email link is opened.
-    if (mail.sent) {
-      return NextResponse.json({
-        ok: true,
-        needsActivation: true,
-        mailSent: true,
+    await writeAudit(db, {
+      actorId: user.id,
+      actorName: user.name,
+      actorRole: user.role,
+      action: "create_user",
+      objectType: "user",
+      objectId: user.id,
+      detail: mail.sent
+        ? "self_register_pending_email"
+        : "self_register_pending_admin",
+    });
+
+    // Notify official account managers so they can activate if mail fails.
+    const managers = (await listUsers(db)).filter(
+      (u) =>
+        !u.isDemo &&
+        u.status === "activ" &&
+        canManageUsers(u)
+    );
+    const notifBody = mail.sent
+      ? `${user.name} (${user.email}) s-a înregistrat. Așteaptă activarea pe email.`
+      : `${user.name} (${user.email}) s-a înregistrat. Emailul nu a putut fi trimis — activați contul din Administrare.`;
+    for (const m of managers) {
+      await insertNotification(db, {
+        id: `n-${crypto.randomUUID().slice(0, 10)}`,
+        userId: m.id,
+        type: "info",
+        title: "Cont nou de activat",
+        body: notifBody,
+        createdAt: now,
       });
     }
 
-    // Mail not configured / failed: do not leave the user stuck without a link.
-    // Activate immediately and start a session (no token exposed in the UI).
-    const active: User = { ...user, status: "activ" };
-    await upsertUser(db, active);
-    await markPasswordResetUsed(db, tokenId);
-    await writeAudit(db, {
-      actorId: active.id,
-      actorName: active.name,
-      actorRole: active.role,
-      action: "update_user",
-      objectType: "user",
-      objectId: active.id,
-      detail: "auto_activate_mail_unavailable",
-    });
-    const session = await createSessionToken(active);
-    await setSessionCookie(session);
-
     return NextResponse.json({
       ok: true,
-      needsActivation: false,
-      mailSent: false,
-      user: toPublicUser(active),
-      // Localhost only — never on cali-lab.app.
+      needsActivation: true,
+      mailSent: mail.sent,
+      // Localhost only — never expose tokens on production.
       demoActivateUrl: allowDevMailLinks(request.url)
         ? mail.demoResetUrl
         : undefined,

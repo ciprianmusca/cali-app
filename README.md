@@ -56,7 +56,7 @@ npx wrangler secret put MAIL_FROM_NAME     # opțional, implicit CALI-LAB
 
 Local (`.dev.vars`): `RESEND_API_KEY=re_…` și `MAIL_FROM=…`. Tokenurile se salvează **mereu în D1**; pe localhost, API-ul poate returna linkul doar pentru depanare.
 
-Flux creare cont: dacă mailul e configurat, userul rămâne `inactiv` până deschide `/activare-cont?token=…` din email. Dacă mailul **nu** e configurat, contul se activează imediat (fără link în UI) ca să nu rămână blocat.
+Flux creare cont: userul rămâne mereu `inactiv` până la (1) linkul din email `/activare-cont?token=…` sau (2) activare manuală de admin/ranger („Activează” în Gestiune utilizatori). Fără `RESEND_API_KEY`, emailul nu pleacă — adminii primesc notificare în aplicație.
 
 Autentificarea rulează pe server (sesiune JWT în cookie `httpOnly`). Parolele sunt stocate cu **PBKDF2** în D1; API-urile nu returnează niciodată câmpul `password`. Lista de utilizatori (`GET /api/users`) e doar pentru admin.
 
