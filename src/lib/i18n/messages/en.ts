@@ -512,6 +512,10 @@ export const en: { [K in keyof RoMessages]: string } = {
   "admin.deleteUser": "Delete",
   "admin.deleteConfirm":
     "Delete this account? Observations remain, pseudonymised.",
+  "admin.cannotDeleteDemo":
+    "Sandbox test accounts cannot be deleted from the official app — they are recreated for /testeaza.",
+  "admin.sandboxNote":
+    "Student / ranger / tourist / teacher accounts from /testeaza are not listed here; their data stays in the test lane.",
   "admin.actions": "Actions",
   "admin.auditTitle": "Audit log",
   "admin.auditSub": "Admin logins, validations, exports, accounts.",

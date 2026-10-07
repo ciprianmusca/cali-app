@@ -534,6 +534,10 @@ export const ro = {
   "admin.deleteUser": "Șterge",
   "admin.deleteConfirm":
     "Ștergeți contul? Observațiile rămân, pseudonimizate.",
+  "admin.cannotDeleteDemo":
+    "Conturile de test (sandbox) nu pot fi șterse din aplicația oficială — se recreează automat pentru /testeaza.",
+  "admin.sandboxNote":
+    "Conturile elev / ranger / turist / profesor din /testeaza nu apar aici; datele lor rămân pe banda de test.",
   "admin.actions": "Acțiuni",
   "admin.auditTitle": "Jurnal de audit",
   "admin.auditSub": "Autentificări admin, validări, exporturi, conturi.",

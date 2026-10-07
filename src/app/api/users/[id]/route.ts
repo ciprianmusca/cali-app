@@ -10,6 +10,7 @@ import {
   getDB,
   upsertUser,
 } from "@/lib/db";
+import { isProtectedSeedEmail } from "@/lib/constants";
 import { allowDevMailLinks, sendPasswordResetEmail } from "@/lib/mail";
 import { randomTokenHex, sha256Hex } from "@/lib/token";
 import type { UserRole, UserStatus } from "@/lib/types";
@@ -190,6 +191,14 @@ export async function DELETE(
     if (existing.role === "admin" && auth.user.role !== "admin") {
       return NextResponse.json(
         { ok: false, error: "forbidden" },
+        { status: 403 }
+      );
+    }
+    // Seeded sandbox accounts are re-created by ensureDemoUsers on every
+    // seedIfEmpty — deleting them only looks like it works until the next refresh.
+    if (isProtectedSeedEmail(existing.email) || existing.isDemo) {
+      return NextResponse.json(
+        { ok: false, error: "cannot_delete_demo" },
         { status: 403 }
       );
     }

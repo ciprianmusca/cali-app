@@ -124,6 +124,11 @@ export const DEMO_ACCOUNTS = [
     role: "turist" as const,
   },
   {
+    email: "rezident@cali-lab.ro",
+    password: "Rezident123!",
+    role: "rezident" as const,
+  },
+  {
     email: "elev@cali-lab.ro",
     password: "Elev1234!",
     role: "elev" as const,
@@ -145,4 +150,10 @@ export const DEMO_SANDBOX_EMAILS = new Set(
 
 export function isSandboxDemoEmail(email: string): boolean {
   return DEMO_SANDBOX_EMAILS.has(email.trim().toLowerCase());
+}
+
+/** Seeded accounts that must stay available for /testeaza (and admin login). */
+export function isProtectedSeedEmail(email: string): boolean {
+  const e = email.trim().toLowerCase();
+  return DEMO_ACCOUNTS.some((a) => a.email.toLowerCase() === e);
 }

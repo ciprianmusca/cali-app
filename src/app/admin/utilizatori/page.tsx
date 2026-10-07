@@ -188,13 +188,19 @@ function UsersAdmin() {
   const deleteUser = async (u: PublicUser) => {
     if (!confirm(t("admin.deleteConfirm"))) return;
     setBusyId(u.id);
+    setMsg(null);
     try {
       const res = await fetch(`/api/users/${u.id}`, {
         method: "DELETE",
         credentials: "include",
       });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setMsg(t("obs.error"));
+        setMsg(
+          data.error === "cannot_delete_demo"
+            ? t("admin.cannotDeleteDemo")
+            : t("obs.error")
+        );
         return;
       }
       await refreshUsers();
@@ -285,6 +291,9 @@ function UsersAdmin() {
           {showForm ? t("admin.close") : t("admin.createUser")}
         </Button>
       </div>
+      <p className="mt-2 text-sm text-muted-foreground">
+        {t("admin.sandboxNote")}
+      </p>
 
       {showForm ? (
         <form

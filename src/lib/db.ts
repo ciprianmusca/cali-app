@@ -247,6 +247,7 @@ async function migrateDemoSandboxSchema(db: D1Database): Promise<void> {
     "ranger@cali-lab.ro",
     "profesor@cali-lab.ro",
     "turist@cali-lab.ro",
+    "rezident@cali-lab.ro",
     "elev@cali-lab.ro",
   ]) {
     try {
@@ -1572,7 +1573,7 @@ const SEED_USERS: User[] = [
     gdprAcceptedAt: "2026-09-02T11:00:00.000Z",
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-06-20T10:00:00.000Z",
-    isDemo: false,
+    isDemo: true,
   },
   {
     id: "u-elev",

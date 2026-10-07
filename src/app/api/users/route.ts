@@ -22,7 +22,10 @@ export async function GET() {
     const db = await getDB();
     await ensureSchema(db);
     await seedIfEmpty(db);
-    const users = (await listUsers(db)).map(toPublicUser);
+    // Official managers only see the official lane; sandbox accounts live on /testeaza.
+    const users = (await listUsers(db))
+      .filter((u) => (auth.user.isDemo ? Boolean(u.isDemo) : !u.isDemo))
+      .map(toPublicUser);
     return NextResponse.json({ ok: true, users });
   } catch (e) {
     const message = e instanceof Error ? e.message : "list_failed";
