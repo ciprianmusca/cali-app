@@ -59,7 +59,11 @@ export function PublicStats() {
   });
 
   // DES-11: cumulative totals since launch (not last 30 days).
-  const totalUsers = users.filter((u) => u.status === "activ").length;
+  // Guest / official: only non-demo accounts; sandbox viewers: demo accounts.
+  const totalUsers = users.filter(
+    (u) =>
+      u.status === "activ" && Boolean(u.isDemo) === Boolean(user?.isDemo)
+  ).length;
   const totalObs = visible.length;
   const approvedCount = visible.filter((o) => o.status === "aprobat").length;
   const distCount = visible.filter((o) => o.module === "perturbari").length;

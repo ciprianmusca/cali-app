@@ -196,6 +196,7 @@ export async function ensureSchema(db: D1Database): Promise<void> {
   await migrateFieldActivitiesSchema(db);
   await migrateUsersCapabilitiesSchema(db);
   await migrateDemoSandboxSchema(db);
+  await migrateOfficialDataToSandboxOnce(db);
 }
 
 /** Isolate „Testează aplicația” accounts + observations from the official lane. */
@@ -262,6 +263,73 @@ async function migrateDemoSandboxSchema(db: D1Database): Promise<void> {
         `UPDATE observations SET is_demo = 1
          WHERE author_id IN (SELECT id FROM users WHERE is_demo = 1)`
       )
+      .run();
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * One-shot: move ALL existing rows into the sandbox lane so the official
+ * app starts empty (new real data will be loaded separately). Admin stays official.
+ */
+async function migrateOfficialDataToSandboxOnce(
+  db: D1Database
+): Promise<void> {
+  try {
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS schema_meta (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        )`
+      )
+      .run();
+  } catch {
+    /* ignore */
+  }
+
+  const done = await db
+    .prepare(`SELECT value FROM schema_meta WHERE key = ?`)
+    .bind("official_cleared_v1")
+    .first<{ value: string }>();
+  if (done?.value) return;
+
+  try {
+    await db.prepare(`UPDATE observations SET is_demo = 1`).run();
+  } catch {
+    /* column missing on very old installs — migrateDemoSandboxSchema ran first */
+  }
+
+  try {
+    await db
+      .prepare(
+        `UPDATE users SET is_demo = 1 WHERE lower(email) != lower(?)`
+      )
+      .bind("admin@cali-lab.ro")
+      .run();
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    await db
+      .prepare(
+        `UPDATE users SET is_demo = 0 WHERE lower(email) = lower(?)`
+      )
+      .bind("admin@cali-lab.ro")
+      .run();
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    await db
+      .prepare(
+        `INSERT INTO schema_meta (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+      )
+      .bind("official_cleared_v1", new Date().toISOString())
       .run();
   } catch {
     /* ignore */

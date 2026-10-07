@@ -167,7 +167,7 @@ const seedUsers: PublicUser[] = [
     gdprAcceptedAt: "2026-09-02T11:00:00.000Z",
     gdprVersion: GDPR_VERSION,
     registeredAt: "2026-06-20T10:00:00.000Z",
-    isDemo: false,
+    isDemo: true,
   },
   {
     id: "u-elev",

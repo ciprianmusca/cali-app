@@ -37,6 +37,8 @@ npm run dev
 
 Conturile există în D1. **Lista publică** (fără admin) e pe **[/testeaza](/testeaza)** („Testează aplicația”). Observațiile din aceste conturi sunt marcate `isDemo` și **nu apar** pe harta publică, la validarea oficială sau în exportul FAIR.
 
+**Reset oficial:** migrarea `official_cleared_v1` mută **toate** observațiile (și toți userii în afară de admin) în zona de test. Aplicația oficială pornește goală; datele reale se încarcă din nou. Datele vechi rămân vizibile doar din conturile sandbox (`/testeaza`).
+
 Pe `/autentificare`, lista demo și câmpurile precompletate apar doar dacă `NEXT_PUBLIC_DEMO_MODE=true`.
 
 Conturile demo sunt **active** doar după acord GDPR (versiunea politicii e salvată pe utilizator). Resetarea parolei folosește `passwordResetMinutesUser` / `passwordResetMinutesAdmin`; fără SMTP, linkul apare în UI (demo).
