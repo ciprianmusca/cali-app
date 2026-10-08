@@ -508,6 +508,8 @@ export const en: { [K in keyof RoMessages]: string } = {
 
   "admin.search": "Search name or email",
   "admin.edit": "Edit",
+  "admin.editUser": "Edit user",
+  "admin.emailUsed": "An account with this email already exists.",
   "admin.suspend": "Suspend",
   "admin.reactivate": "Activate",
   "admin.resetPw": "Reset password",

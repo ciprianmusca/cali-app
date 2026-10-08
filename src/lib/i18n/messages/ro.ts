@@ -531,6 +531,8 @@ export const ro = {
 
   "admin.search": "Căutare nume sau e-mail",
   "admin.edit": "Editează",
+  "admin.editUser": "Editează utilizator",
+  "admin.emailUsed": "Există deja un cont cu acest email.",
   "admin.suspend": "Suspendă",
   "admin.reactivate": "Activează",
   "admin.resetPw": "Resetare parolă",

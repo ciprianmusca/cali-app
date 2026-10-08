@@ -6,6 +6,7 @@ import {
   createPasswordReset,
   deleteUserKeepObservations,
   ensureSchema,
+  findUserByEmail,
   findUserById,
   getDB,
   upsertUser,
@@ -136,10 +137,21 @@ export async function PATCH(
           : existing.canTeachSchool,
     });
 
+    const nextEmail = (body.email?.trim() || existing.email).toLowerCase();
+    if (nextEmail !== existing.email.toLowerCase()) {
+      const emailOwner = await findUserByEmail(db, nextEmail);
+      if (emailOwner && emailOwner.id !== existing.id) {
+        return NextResponse.json(
+          { ok: false, error: "email_used" },
+          { status: 409 }
+        );
+      }
+    }
+
     const updated = {
       ...existing,
       name: body.name?.trim() || existing.name,
-      email: body.email?.trim() || existing.email,
+      email: nextEmail,
       role: nextRole,
       status,
       parentalConsent:

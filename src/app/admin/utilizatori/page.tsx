@@ -3,6 +3,13 @@
 import { FormEvent, useMemo, useState } from "react";
 import { AuthGate } from "@/components/layout/auth-gate";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -29,7 +36,7 @@ function UsersAdmin() {
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [statusFilter, setStatusFilter] = useState<UserStatus | "all">("all");
   const [search, setSearch] = useState("");
-  const [showForm, setShowForm] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<PublicUser | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -39,7 +46,9 @@ function UsersAdmin() {
   const [canValidateObs, setCanValidateObs] = useState(false);
   const [canTeach, setCanTeach] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const isAdmin = me?.role === "admin";
   const creatableRoles = useMemo(
@@ -72,8 +81,52 @@ function UsersAdmin() {
     }
   };
 
-  const onCreate = async (e: FormEvent) => {
+  const resetFormFields = () => {
+    setEditing(null);
+    setName("");
+    setEmail("");
+    setRole("elev");
+    setParental(false);
+    setCanManageUsersFlag(false);
+    setCanValidateObs(false);
+    setCanTeach(false);
+    setFormError(null);
+  };
+
+  const openCreate = () => {
+    resetFormFields();
+    setFormOpen(true);
+  };
+
+  const startEdit = (u: PublicUser) => {
+    setEditing(u);
+    setName(u.name);
+    setEmail(u.email);
+    setRole(u.role);
+    setParental(Boolean(u.parentalConsent));
+    setCanManageUsersFlag(Boolean(u.canManageUsers));
+    setCanValidateObs(Boolean(u.canValidateObservations));
+    setCanTeach(Boolean(u.canTeachSchool));
+    setFormError(null);
+    setMsg(null);
+    setFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setFormOpen(false);
+    resetFormFields();
+  };
+
+  const onSave = async (e: FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+    setMsg(null);
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedName || !trimmedEmail) {
+      setFormError(t("obs.error"));
+      return;
+    }
     const rangerFlags =
       role === "ranger"
         ? {
@@ -86,66 +139,62 @@ function UsersAdmin() {
             canValidateObservations: false,
             canTeachSchool: false,
           };
-    if (editing) {
-      setBusyId(editing.id);
-      try {
+
+    setSaving(true);
+    try {
+      if (editing) {
+        setBusyId(editing.id);
         const res = await fetch(`/api/users/${editing.id}`, {
           method: "PATCH",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name,
-            email,
+            name: trimmedName,
+            email: trimmedEmail,
             role,
             parentalConsent: role === "elev" ? parental : undefined,
             ...rangerFlags,
           }),
         });
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
         if (!res.ok) {
-          setMsg(t("obs.error"));
+          setFormError(
+            data.error === "email_used"
+              ? t("admin.emailUsed")
+              : t("obs.error")
+          );
           return;
         }
         await refreshUsers();
         setMsg(t("admin.save"));
-        setEditing(null);
-        setShowForm(false);
-      } finally {
-        setBusyId(null);
+        closeForm();
+        return;
       }
-      return;
-    }
-    const res = await createUser({
-      name,
-      email,
-      role,
-      parentalConsent: role === "elev" ? parental : undefined,
-      ...rangerFlags,
-    });
-    if (!res.ok) {
-      setMsg(res.error ?? t("obs.error"));
-      return;
-    }
-    setMsg(t("admin.userCreated"));
-    setShowForm(false);
-    setName("");
-    setEmail("");
-    setParental(false);
-    setCanManageUsersFlag(false);
-    setCanValidateObs(false);
-    setCanTeach(false);
-    await refreshUsers();
-  };
 
-  const startEdit = (u: PublicUser) => {
-    setEditing(u);
-    setName(u.name);
-    setEmail(u.email);
-    setRole(u.role);
-    setParental(Boolean(u.parentalConsent));
-    setCanManageUsersFlag(Boolean(u.canManageUsers));
-    setCanValidateObs(Boolean(u.canValidateObservations));
-    setCanTeach(Boolean(u.canTeachSchool));
-    setShowForm(true);
+      const res = await createUser({
+        name: trimmedName,
+        email: trimmedEmail,
+        role,
+        parentalConsent: role === "elev" ? parental : undefined,
+        ...rangerFlags,
+      });
+      if (!res.ok) {
+        setFormError(
+          res.error?.includes("email") || res.error === "email_used"
+            ? t("admin.emailUsed")
+            : (res.error ?? t("obs.error"))
+        );
+        return;
+      }
+      setMsg(t("admin.userCreated"));
+      closeForm();
+      await refreshUsers();
+    } finally {
+      setSaving(false);
+      setBusyId(null);
+    }
   };
 
   const patchAction = async (
@@ -215,6 +264,7 @@ function UsersAdmin() {
     return (
       <div className="flex flex-wrap gap-1">
         <Button
+          type="button"
           size="sm"
           variant="outline"
           disabled={busyId === u.id || lockedAdmin}
@@ -224,6 +274,7 @@ function UsersAdmin() {
         </Button>
         {u.status === "activ" ? (
           <Button
+            type="button"
             size="sm"
             variant="outline"
             disabled={busyId === u.id || lockedAdmin}
@@ -233,6 +284,7 @@ function UsersAdmin() {
           </Button>
         ) : (
           <Button
+            type="button"
             size="sm"
             variant="outline"
             disabled={busyId === u.id || lockedAdmin}
@@ -242,6 +294,7 @@ function UsersAdmin() {
           </Button>
         )}
         <Button
+          type="button"
           size="sm"
           variant="outline"
           disabled={busyId === u.id || lockedAdmin}
@@ -250,6 +303,7 @@ function UsersAdmin() {
           {t("admin.resetPw")}
         </Button>
         <Button
+          type="button"
           size="sm"
           variant="destructive"
           disabled={busyId === u.id || lockedAdmin}
@@ -277,123 +331,13 @@ function UsersAdmin() {
         <h1 className="font-display text-3xl text-forest">
           {t("admin.usersTitle")}
         </h1>
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setName("");
-            setEmail("");
-            setCanManageUsersFlag(false);
-            setCanValidateObs(false);
-            setCanTeach(false);
-            setShowForm((v) => !v);
-          }}
-        >
-          {showForm ? t("admin.close") : t("admin.createUser")}
+        <Button type="button" onClick={openCreate}>
+          {t("admin.createUser")}
         </Button>
       </div>
       <p className="mt-2 text-sm text-muted-foreground">
         {t("admin.sandboxNote")}
       </p>
-
-      {showForm ? (
-        <form
-          onSubmit={onCreate}
-          className="mt-6 space-y-4 rounded-lg border bg-card/80 p-4"
-        >
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label>{t("auth.name")}</Label>
-              <Input
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>{t("auth.email")}</Label>
-              <Input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>{t("admin.role")}</Label>
-            <RadioGroup
-              value={role}
-              onValueChange={(v) => setRole(v as UserRole)}
-              className="grid gap-2 sm:grid-cols-3"
-            >
-              {creatableRoles.map((r) => (
-                <label key={r} className="flex items-center gap-2 text-sm">
-                  <RadioGroupItem value={r} />
-                  {t(roleKey(r))}
-                </label>
-              ))}
-            </RadioGroup>
-          </div>
-          {role === "elev" ? (
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={parental}
-                onChange={(e) => setParental(e.target.checked)}
-              />
-              {t("admin.parentalPdf")}
-            </label>
-          ) : null}
-          {role === "ranger" ? (
-            <div className="space-y-2 rounded-md border border-dashed p-3">
-              <p className="text-sm font-medium">{t("admin.rangerCaps")}</p>
-              <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={canManageUsersFlag}
-                  onChange={(e) => setCanManageUsersFlag(e.target.checked)}
-                />
-                <span>
-                  <span className="font-medium">{t("admin.capUsers")}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {t("admin.capUsersHint")}
-                  </span>
-                </span>
-              </label>
-              <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={canValidateObs}
-                  onChange={(e) => setCanValidateObs(e.target.checked)}
-                />
-                <span>
-                  <span className="font-medium">{t("admin.capObs")}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {t("admin.capObsHint")}
-                  </span>
-                </span>
-              </label>
-              <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={canTeach}
-                  onChange={(e) => setCanTeach(e.target.checked)}
-                />
-                <span>
-                  <span className="font-medium">{t("admin.capSchool")}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {t("admin.capSchoolHint")}
-                  </span>
-                </span>
-              </label>
-            </div>
-          ) : null}
-          <Button type="submit">{t("admin.save")}</Button>
-        </form>
-      ) : null}
 
       {msg ? (
         <p className="mt-4 break-all text-sm text-emerald-800">{msg}</p>
@@ -449,7 +393,6 @@ function UsersAdmin() {
         </div>
       </div>
 
-      {/* Desktop table */}
       <div className="mt-6 hidden overflow-x-auto rounded-lg border bg-card/80 md:block">
         <table className="w-full min-w-[900px] text-left text-sm">
           <thead className="border-b bg-muted/40 text-muted-foreground">
@@ -493,7 +436,6 @@ function UsersAdmin() {
         </table>
       </div>
 
-      {/* Mobile cards (UI-10) */}
       <div className="mt-6 space-y-3 md:hidden">
         {filtered.map((u) => (
           <div key={u.id} className="rounded-lg border bg-card/80 p-4 text-sm">
@@ -520,6 +462,132 @@ function UsersAdmin() {
           </div>
         ))}
       </div>
+
+      <Dialog
+        open={formOpen}
+        onOpenChange={(open) => {
+          if (!open) closeForm();
+          else setFormOpen(true);
+        }}
+      >
+        <DialogContent className="sm:max-w-lg" showCloseButton>
+          <DialogHeader>
+            <DialogTitle>
+              {editing ? t("admin.editUser") : t("admin.createUser")}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={onSave} className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="admin-user-name">{t("auth.name")}</Label>
+                <Input
+                  id="admin-user-name"
+                  required
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="admin-user-email">{t("auth.email")}</Label>
+                <Input
+                  id="admin-user-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{t("admin.role")}</Label>
+              <RadioGroup
+                value={role}
+                onValueChange={(v) => {
+                  if (v) setRole(v as UserRole);
+                }}
+                className="grid gap-2 sm:grid-cols-3"
+              >
+                {creatableRoles.map((r) => (
+                  <label key={r} className="flex items-center gap-2 text-sm">
+                    <RadioGroupItem value={r} />
+                    {t(roleKey(r))}
+                  </label>
+                ))}
+              </RadioGroup>
+            </div>
+            {role === "elev" ? (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={parental}
+                  onChange={(e) => setParental(e.target.checked)}
+                />
+                {t("admin.parentalPdf")}
+              </label>
+            ) : null}
+            {role === "ranger" ? (
+              <div className="space-y-2 rounded-md border border-dashed p-3">
+                <p className="text-sm font-medium">{t("admin.rangerCaps")}</p>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={canManageUsersFlag}
+                    onChange={(e) => setCanManageUsersFlag(e.target.checked)}
+                  />
+                  <span>
+                    <span className="font-medium">{t("admin.capUsers")}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {t("admin.capUsersHint")}
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={canValidateObs}
+                    onChange={(e) => setCanValidateObs(e.target.checked)}
+                  />
+                  <span>
+                    <span className="font-medium">{t("admin.capObs")}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {t("admin.capObsHint")}
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={canTeach}
+                    onChange={(e) => setCanTeach(e.target.checked)}
+                  />
+                  <span>
+                    <span className="font-medium">{t("admin.capSchool")}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {t("admin.capSchoolHint")}
+                    </span>
+                  </span>
+                </label>
+              </div>
+            ) : null}
+            {formError ? (
+              <p className="text-sm text-destructive">{formError}</p>
+            ) : null}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeForm}>
+                {t("admin.close")}
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {t("admin.save")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
