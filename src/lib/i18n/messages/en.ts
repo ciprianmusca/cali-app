@@ -63,6 +63,7 @@ export const en: { [K in keyof RoMessages]: string } = {
   "error.invalidLogin": "Incorrect email or password.",
   "error.inactiveAccount":
     "Account is not active. Open the email activation link or wait for an administrator / ranger to activate it.",
+  "error.rateLimited": "Too many requests. Try again in an hour.",
   "error.mustBeAdult": "You must confirm that you are an adult.",
   "error.emailExists": "An account with this email already exists.",
   "error.passwordMismatch": "Passwords do not match.",
@@ -484,23 +485,22 @@ export const en: { [K in keyof RoMessages]: string } = {
   "auth.gdprCheck": "I have read the",
   "auth.gdprPolicy": "Data policy",
   "auth.resetTitle": "Reset password",
-  "auth.resetSub": "Enter your email. You will receive a reset link.",
+  "auth.resetSub":
+    "Enter your email. If an account exists, you will receive a message.",
   "auth.resetSend": "Send link",
-  "auth.resetSent": "If an account exists, we sent instructions.",
-  "auth.resetDemoLink": "Local link (mail not configured):",
+  "auth.resetSent":
+    "If an account is associated with this email, you will receive instructions.",
   "auth.activateTitle": "Activate account",
   "auth.activateWorking": "Activating your account…",
   "auth.activateInvalid":
-    "Activation link is invalid or expired. Register again or contact an administrator.",
+    "Invalid or expired activation link. Register again or contact an administrator.",
   "auth.activateSent":
     "Your account was created (inactive). Check your email and open the activation link before signing in.",
   "auth.activatePendingAdmin":
     "Your account was created but stays inactive. An administrator or ranger must activate it (the activation email could not be sent).",
-  "auth.activateDemoLink": "Local activation link (mail not configured):",
-  "auth.mailNotConfigured":
-    "The activation email could not be sent. Contact an administrator (mail is not configured on the server).",
-  "auth.resetMailFailed":
-    "Your request was recorded, but the email could not be sent. Contact an administrator.",
+  "admin.resetMailSent": "Reset email sent (if mail is configured).",
+  "admin.resetMailFailed":
+    "Request saved, but the email could not be sent. Check Email Service.",
   "auth.newPassword": "New password",
   "auth.resetSubmit": "Set password",
   "auth.resetDone": "Password updated. You can sign in.",

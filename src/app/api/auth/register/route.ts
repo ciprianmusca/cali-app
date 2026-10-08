@@ -13,12 +13,17 @@ import { hashPassword } from "@/lib/password";
 import type { User } from "@/lib/types";
 import { isValidPassword } from "@/lib/format";
 import { verifyTurnstileToken } from "@/lib/turnstile";
-import { allowDevMailLinks, sendAccountActivationEmail } from "@/lib/mail";
+import {
+  appBaseUrl,
+  readMailEnv,
+  sendAccountActivationEmail,
+} from "@/lib/mail";
+import { allowOutboundMail } from "@/lib/mail-rate-limit";
 import { randomTokenHex, sha256Hex } from "@/lib/token";
 import { canManageUsers } from "@/lib/capabilities";
 import { writeAudit } from "@/lib/audit";
 
-const ACTIVATION_HOURS = 48;
+const ACTIVATION_HOURS = 24;
 
 export async function POST(request: Request) {
   try {
@@ -85,8 +90,15 @@ export async function POST(request: Request) {
       );
     }
 
+    const rate = await allowOutboundMail(db, { email, ip });
+    if (!rate.ok) {
+      return NextResponse.json(
+        { ok: false, error: "rate_limited" },
+        { status: 429 }
+      );
+    }
+
     const now = new Date().toISOString();
-    // Always inactive until email link OR admin/ranger activation.
     const user: User = {
       id: `u-${crypto.randomUUID().slice(0, 8)}`,
       email,
@@ -99,6 +111,7 @@ export async function POST(request: Request) {
       gdprVersion: body.gdprVersion,
       registeredAt: now,
       isDemo: false,
+      sessionVersion: 0,
     };
     await upsertUser(db, user);
 
@@ -115,8 +128,8 @@ export async function POST(request: Request) {
       createdAt: now,
     });
 
-    const origin = new URL(request.url).origin;
-    const activateUrl = `${origin}/activare-cont?token=${raw}`;
+    const mailEnv = await readMailEnv();
+    const activateUrl = `${appBaseUrl(mailEnv)}/activare?token=${raw}`;
     const mail = await sendAccountActivationEmail({
       to: user.email,
       name: user.name,
@@ -136,12 +149,8 @@ export async function POST(request: Request) {
         : "self_register_pending_admin",
     });
 
-    // Notify official account managers so they can activate if mail fails.
     const managers = (await listUsers(db)).filter(
-      (u) =>
-        !u.isDemo &&
-        u.status === "activ" &&
-        canManageUsers(u)
+      (u) => !u.isDemo && u.status === "activ" && canManageUsers(u)
     );
     const notifBody = mail.sent
       ? `${user.name} (${user.email}) s-a înregistrat. Așteaptă activarea pe email.`
@@ -161,10 +170,6 @@ export async function POST(request: Request) {
       ok: true,
       needsActivation: true,
       mailSent: mail.sent,
-      // Localhost only — never expose tokens on production.
-      demoActivateUrl: allowDevMailLinks(request.url)
-        ? mail.demoResetUrl
-        : undefined,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "register_failed";

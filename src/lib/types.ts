@@ -237,6 +237,10 @@ export interface User {
    * demo lane and never enter the official map / validation / export.
    */
   isDemo?: boolean;
+  /**
+   * Incremented on password reset / change to invalidate existing JWTs.
+   */
+  sessionVersion?: number;
 }
 
 /** Safe user shape for API / client state (no password). */

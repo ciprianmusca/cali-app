@@ -735,6 +735,9 @@ export const useCaliStore = create<CaliState>()(
             if (data.error === "gdpr_required") {
               return { ok: false, error: tKey("error.gdprRequired") };
             }
+            if (data.error === "rate_limited") {
+              return { ok: false, error: tKey("error.rateLimited") };
+            }
             return { ok: false, error: tKey("obs.error") };
           }
           // No session until email activation or admin/ranger activation.

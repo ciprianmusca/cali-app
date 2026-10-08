@@ -199,6 +199,34 @@ export async function ensureSchema(db: D1Database): Promise<void> {
   await migrateDemoSandboxSchema(db);
   await migrateOfficialDataToSandboxOnce(db);
   await migrateEmailTokenPurposeSchema(db);
+  await migrateSessionVersionSchema(db);
+  await migrateMailRateLimitsSchema(db);
+}
+
+/** JWT invalidation counter on users (password reset bumps it). */
+async function migrateSessionVersionSchema(db: D1Database): Promise<void> {
+  try {
+    await db
+      .prepare(
+        `ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 0`
+      )
+      .run();
+  } catch {
+    /* column exists */
+  }
+}
+
+/** Sliding hourly counters for outbound mail anti-abuse. */
+async function migrateMailRateLimitsSchema(db: D1Database): Promise<void> {
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS mail_rate_limits (
+        id TEXT PRIMARY KEY,
+        window_start TEXT NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0
+      )`
+    )
+    .run();
 }
 
 /** purpose=reset|activate on password_resets (account activation emails). */
@@ -491,6 +519,7 @@ export type UserRow = {
   can_validate_observations?: number | null;
   can_teach_school?: number | null;
   is_demo?: number | null;
+  session_version?: number | null;
 };
 
 type ObsRow = {
@@ -533,6 +562,7 @@ export function userFromRow(row: UserRow): User {
     registeredAt: row.registered_at,
     lastLoginAt: row.last_login_at ?? undefined,
     isDemo: row.is_demo === 1,
+    sessionVersion: row.session_version ?? 0,
     // Sandbox testers never manage accounts, even if a flag was set historically.
     canManageUsers:
       row.is_demo === 1
@@ -882,14 +912,15 @@ export async function upsertUser(db: D1Database, user: User): Promise<void> {
     user.role === "ranger" && user.canValidateObservations ? 1 : 0;
   const teachSchool = user.role === "ranger" && user.canTeachSchool ? 1 : 0;
   const isDemo = user.isDemo ? 1 : 0;
+  const sessionVersion = user.sessionVersion ?? 0;
   await db
     .prepare(
       `INSERT INTO users (
         id, email, name, role, status, password, is_adult, parental_consent,
         gdpr_accepted_at, gdpr_version, registered_at, last_login_at,
         can_manage_registrations, can_manage_users, can_validate_observations,
-        can_teach_school, is_demo
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        can_teach_school, is_demo, session_version
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         email=excluded.email,
         name=excluded.name,
@@ -906,7 +937,8 @@ export async function upsertUser(db: D1Database, user: User): Promise<void> {
         can_manage_users=excluded.can_manage_users,
         can_validate_observations=excluded.can_validate_observations,
         can_teach_school=excluded.can_teach_school,
-        is_demo=excluded.is_demo`
+        is_demo=excluded.is_demo,
+        session_version=excluded.session_version`
     )
     .bind(
       user.id,
@@ -925,7 +957,8 @@ export async function upsertUser(db: D1Database, user: User): Promise<void> {
       manageUsers,
       validateObs,
       teachSchool,
-      isDemo
+      isDemo,
+      sessionVersion
     )
     .run();
 }

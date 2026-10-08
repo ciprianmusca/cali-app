@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireUser, toPublicUser } from "@/lib/auth";
+import {
+  createSessionToken,
+  requireUser,
+  setSessionCookie,
+  toPublicUser,
+} from "@/lib/auth";
 import { writeAudit } from "@/lib/audit";
 import {
   deleteUserKeepObservations,
@@ -76,10 +81,14 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      await upsertUser(db, {
+      const updated = {
         ...auth.user,
         password: await hashPassword(body.newPassword!),
-      });
+        sessionVersion: (auth.user.sessionVersion ?? 0) + 1,
+      };
+      await upsertUser(db, updated);
+      // Keep this browser signed in; invalidate other sessions.
+      await setSessionCookie(await createSessionToken(updated));
       await writeAudit(db, {
         actorId: auth.user.id,
         actorName: auth.user.name,

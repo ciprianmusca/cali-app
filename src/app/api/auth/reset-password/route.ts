@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import {
+  clearSessionCookie,
+} from "@/lib/auth";
+import {
   ensureSchema,
   findPasswordResetByHash,
   findUserById,
@@ -46,9 +49,11 @@ export async function POST(request: Request) {
       );
     }
 
+    // Bump sessionVersion so existing JWTs stop working.
     await upsertUser(db, {
       ...user,
       password: await hashPassword(password),
+      sessionVersion: (user.sessionVersion ?? 0) + 1,
     });
     await markPasswordResetUsed(db, row.id);
     await writeAudit(db, {
@@ -60,6 +65,7 @@ export async function POST(request: Request) {
       objectId: user.id,
       detail: "reset_via_email",
     });
+    await clearSessionCookie();
 
     return NextResponse.json({ ok: true });
   } catch (e) {

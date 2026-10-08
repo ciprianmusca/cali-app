@@ -1,95 +1,72 @@
 "use client";
 
-import { FormEvent, Suspense, useState } from "react";
+import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { isValidPassword } from "@/lib/format";
+import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 import { useI18n } from "@/lib/i18n/use-i18n";
 
-function ResetForm() {
+function ResetRequestInner() {
   const { t } = useI18n();
+  const router = useRouter();
   const params = useSearchParams();
-  const token = params.get("token") ?? "";
+  const legacyToken = params.get("token");
+
+  useEffect(() => {
+    if (legacyToken) {
+      router.replace(
+        `/resetare-parola/confirmare?token=${encodeURIComponent(legacyToken)}`
+      );
+    }
+  }, [legacyToken, router]);
+
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-  const [mailOk, setMailOk] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const onToken = useCallback((token: string | null) => {
+    setTurnstileToken(token);
+  }, []);
 
   const requestLink = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setMsg(null);
-    setMailOk(true);
-    const res = await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    if (!res.ok) {
-      setError(t("obs.error"));
+    if (!turnstileToken) {
+      setError(t("error.captcha"));
       return;
     }
-    const data = (await res.json()) as {
-      mailSent?: boolean;
-    };
-    // Link goes only by email — never render tokens in the page.
-    const sent = data.mailSent !== false;
-    setMailOk(sent);
-    setMsg(sent ? t("auth.resetSent") : t("auth.resetMailFailed"));
+    setBusy(true);
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, turnstileToken }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        if (data.error === "captcha") {
+          setError(t("error.captcha"));
+          return;
+        }
+        setError(t("obs.error"));
+        return;
+      }
+      setMsg(t("auth.resetSent"));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const setNewPassword = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    if (!isValidPassword(password)) {
-      setError(t("error.passwordRules"));
-      return;
-    }
-    const res = await fetch("/api/auth/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, password }),
-    });
-    if (!res.ok) {
-      setError(t("auth.resetInvalid"));
-      return;
-    }
-    setDone(true);
-  };
-
-  if (token) {
+  if (legacyToken) {
     return (
       <div className="mx-auto max-w-md px-4 py-12">
-        <h1 className="font-display text-3xl text-forest">{t("auth.resetTitle")}</h1>
-        {done ? (
-          <p className="mt-6 text-sm">
-            {t("auth.resetDone")}{" "}
-            <Link href="/autentificare" className="text-primary underline">
-              {t("nav.login")}
-            </Link>
-          </p>
-        ) : (
-          <form onSubmit={setNewPassword} className="mt-8 space-y-4">
-            <div className="space-y-2">
-              <Label>{t("auth.newPassword")}</Label>
-              <Input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <Button type="submit" className="w-full">
-              {t("auth.resetSubmit")}
-            </Button>
-          </form>
-        )}
+        <p className="text-sm text-muted-foreground">{t("auth.loading")}</p>
       </div>
     );
   }
@@ -108,30 +85,26 @@ function ResetForm() {
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        {msg ? (
-          <p
-            className={
-              mailOk
-                ? "text-sm text-emerald-800"
-                : "text-sm text-amber-800 dark:text-amber-200"
-            }
-          >
-            {msg}
-          </p>
-        ) : null}
+        <TurnstileWidget onToken={onToken} />
+        {msg ? <p className="text-sm text-emerald-800">{msg}</p> : null}
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full" disabled={busy}>
           {t("auth.resetSend")}
         </Button>
       </form>
+      <p className="mt-6 text-center text-sm">
+        <Link href="/autentificare" className="text-primary underline">
+          {t("nav.login")}
+        </Link>
+      </p>
     </div>
   );
 }
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordRequestPage() {
   return (
     <Suspense>
-      <ResetForm />
+      <ResetRequestInner />
     </Suspense>
   );
 }

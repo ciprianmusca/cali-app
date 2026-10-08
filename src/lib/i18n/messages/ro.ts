@@ -68,6 +68,8 @@ export const ro = {
   "error.invalidLogin": "Email sau parolă incorectă.",
   "error.inactiveAccount":
     "Contul nu este activ. Deschideți linkul din email sau așteptați activarea de către un administrator / ranger.",
+  "error.rateLimited":
+    "Prea multe cereri. Reîncercați peste o oră.",
   "error.mustBeAdult": "Trebuie să confirmați că sunteți adult.",
   "error.emailExists": "Există deja un cont cu acest email.",
   "error.passwordMismatch": "Parolele nu coincid.",
@@ -506,10 +508,11 @@ export const ro = {
   "auth.gdprCheck": "Am citit",
   "auth.gdprPolicy": "Politica de date",
   "auth.resetTitle": "Resetare parolă",
-  "auth.resetSub": "Introduceți emailul. Veți primi un link de resetare.",
+  "auth.resetSub":
+    "Introduceți emailul. Dacă există un cont asociat, veți primi un email.",
   "auth.resetSend": "Trimite link",
-  "auth.resetSent": "Dacă există un cont, am trimis instrucțiunile.",
-  "auth.resetDemoLink": "Link local (mail neconfigurat):",
+  "auth.resetSent":
+    "Dacă există un cont asociat, veți primi un email cu instrucțiuni.",
   "auth.activateTitle": "Activare cont",
   "auth.activateWorking": "Se activează contul…",
   "auth.activateInvalid":
@@ -518,11 +521,9 @@ export const ro = {
     "Contul a fost creat (inactiv). Verificați emailul și deschideți linkul de activare înainte de autentificare.",
   "auth.activatePendingAdmin":
     "Contul a fost creat, dar rămâne inactiv. Un administrator sau un ranger trebuie să îl activeze (emailul de activare nu a putut fi trimis).",
-  "auth.activateDemoLink": "Link local de activare (mail neconfigurat):",
-  "auth.mailNotConfigured":
-    "Emailul de activare nu a putut fi trimis. Contactați administratorul (lipsește configurația mail pe server).",
-  "auth.resetMailFailed":
-    "Cererea a fost înregistrată, dar emailul nu a putut fi trimis. Contactați administratorul.",
+  "admin.resetMailSent": "Email de resetare trimis (dacă mailul e configurat).",
+  "admin.resetMailFailed":
+    "Cererea a fost salvată, dar emailul nu a putut fi trimis. Verificați Email Service.",
   "auth.newPassword": "Parolă nouă",
   "auth.resetSubmit": "Setează parola",
   "auth.resetDone": "Parola a fost actualizată. Puteți intra în cont.",

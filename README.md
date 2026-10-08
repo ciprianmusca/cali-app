@@ -37,28 +37,39 @@ npm run dev
 
 Conturile există în D1. **Lista publică** (fără admin) e pe **[/testeaza](/testeaza)** („Testează aplicația”). Observațiile din aceste conturi sunt marcate `isDemo` și **nu apar** pe harta publică, la validarea oficială sau în exportul FAIR.
 
-**Reset oficial:** migrarea `official_cleared_v1` mută **toate** observațiile (și toți userii în afară de admin) în zona de test. Aplicația oficială pornește goală; datele reale se încarcă din nou. Datele vechi rămân vizibile doar din conturile sandbox (`/testeaza`).
-
 Pe `/autentificare`, lista demo și câmpurile precompletate apar doar dacă `NEXT_PUBLIC_DEMO_MODE=true`.
 
-Conturile demo sunt **active** doar după acord GDPR (versiunea politicii e salvată pe utilizator).
+## Email (Cloudflare Email Service)
 
-**Email (activare cont + resetare parolă):** linkurile se trimit **doar pe email**, niciodată în UI pe producție. Pe Workers:
+Nu folosim Resend / SMTP raw. Trimiterea e nativă din Worker:
 
-1. **Resend** (recomandat):
-```bash
-npx wrangler secret put RESEND_API_KEY
-npx wrangler secret put MAIL_FROM          # ex. noreply@cali-lab.app (domeniu verificat în Resend)
-npx wrangler secret put MAIL_FROM_NAME     # opțional, implicit CALI-LAB
+```jsonc
+"send_email": [{ "name": "EMAIL", "remote": true }]
 ```
 
-2. sau **Cloudflare Email Service** (Workers Paid): binding `EMAIL` în `wrangler.jsonc`, domeniu onboarded în Email Service.
+Vars (în `wrangler.jsonc`):
 
-Local (`.dev.vars`): `RESEND_API_KEY=re_…` și `MAIL_FROM=…`. Tokenurile se salvează **mereu în D1**; pe localhost, API-ul poate returna linkul doar pentru depanare.
+- `MAIL_FROM=noreply@cali-lab.app`
+- `MAIL_FROM_NAME=CALI-LAB`
+- `MAIL_REPLY_TO=contact@cali-lab.app`
+- `APP_URL=https://cali-lab.app`
 
-Flux creare cont: userul rămâne mereu `inactiv` până la (1) linkul din email `/activare-cont?token=…` sau (2) activare manuală de admin/ranger („Activează” în Gestiune utilizatori). Fără `RESEND_API_KEY`, emailul nu pleacă — adminii primesc notificare în aplicație.
+**Condiții Cloudflare:** domeniul `cali-lab.app` activat în **Email Service → Email Sending** (Workers Paid), plus DNS (SPF/DKIM/DMARC).
 
-Autentificarea rulează pe server (sesiune JWT în cookie `httpOnly`). Parolele sunt stocate cu **PBKDF2** în D1; API-urile nu returnează niciodată câmpul `password`. Lista de utilizatori (`GET /api/users`) e doar pentru admin.
+**Secrete de setat:**
+
+```bash
+npx wrangler secret put TURNSTILE_SECRET_KEY   # cheia secretă Turnstile (producție)
+npx wrangler secret put AUTH_SECRET            # opțional, dacă mutați din vars
+```
+
+Local, fără binding EMAIL: mailurile sunt doar **logate în consolă**.
+
+Flux creare cont: user `inactiv` → email `/activare?token=…` (24h) sau activare manuală admin/ranger. Resetare: `/resetare-parola/confirmare?token=…` (60 min), single-use; după reset se invalidează sesiunile JWT (`session_version`).
+
+Anti-abuz: Turnstile pe înregistrare + resetare; max 3 mailuri/oră/email și 10/oră/IP (D1).
+
+Autentificarea rulează pe server (sesiune JWT în cookie `httpOnly`). Parolele sunt stocate cu **PBKDF2** în D1.
 
 ## Limbă / Language
 
@@ -79,7 +90,7 @@ Interfața este disponibilă în **română** și **engleză**. Selectorul **RO 
 | `GET /api/bootstrap` | Stare din D1 filtrată pe rol; migrare foto base64→R2 |
 | `GET /api/observations/:id/photo/:i` | Servește foto din R2 cu aceeași regulă de vizibilitate |
 | `GET /api/export` | GeoJSON FAIR (vizibilitate pe sesiune) / ZIP+CSV FAIR (doar admin). Query: `full=1`, `includeDetails=1` |
-| `GET /api/users` | Director utilizatori — **doar admin** |
+| `GET /api/users` | Director utilizatori — **doar admin** (fără conturi sandbox) |
 
 ### Vizibilitate observații (ROL-05 / SEC-04)
 
@@ -93,137 +104,11 @@ O singură regulă pe server (`src/lib/visibility.ts`), folosită de bootstrap, 
 1. Cloudflare Dashboard → **Storage & Databases** → **D1** → **Create**
 2. Nume: `cali-lab-db`
 3. Copiază **Database ID**
-4. În `wrangler.jsonc`, înlocuiește `REPLACE_WITH_D1_DATABASE_ID` cu ID-ul
-5. (Opțional) aplică migrările:
-   ```bash
-   npx wrangler d1 migrations apply cali-lab-db --remote
-   ```
-   Schema se creează și automat la primul `GET /api/bootstrap`.
-6. Commit + push → Workers Builds redeploy
 
-La primul bootstrap, conturile demo se însămânțează în D1 dacă tabela e goală.
-
-### Creare R2 (o singură dată)
-
-1. Cloudflare Dashboard → **R2 Object Storage** → **Create bucket**
-2. Nume: `cali-lab-photos`
-3. Binding-ul `PHOTOS` este deja în `wrangler.jsonc`
-4. Commit + push → Workers Builds redeploy
-
-La `GET /api/bootstrap`, orice `data:` rămas în D1 este mutat automat în R2.
-
-## Offline + sync
-
-CALI-LAB e PWA:
-- **Service Worker** cache-uiește shell-ul pentru teren fără semnal
-- Observațiile se salvează **local imediat** (foto în IndexedDB), apoi se încarcă în **D1 + R2** când e online
-- Bootstrap **îmbină** datele serverului cu observațiile locale nesincronizate (nu suprascrie coada)
-- O observație e marcată „synced” doar după răspunsul **200** cu `ids` confirmate
-- Bara sub header: Offline / În așteptare / Se încarcă
-
-Pe telefon: deschide o dată online → Adaugă pe ecranul principal.
-
-## Deploy pe Cloudflare → https://cali-lab.app
-
-Proiectul e pregătit cu `@opennextjs/cloudflare`. Domeniile din `wrangler.jsonc`:
-
-| Hostname | Rol |
-|----------|-----|
-| **cali-lab.app** | domeniu principal |
-| **www.cali-lab.app** | alias |
-
-`workers.dev` și `cali.ipsv.ro` nu mai sunt expuse pe Worker.
-
-**Condiție:** zona DNS `cali-lab.app` pe **același** cont Cloudflare ca Worker-ul `cali-lab`.
-
-### Atașare domeniu (după ce zona e Active)
-
-1. Cloudflare → **Workers & Pages** → Worker **cali-lab** → **Settings** → **Domains & Routes**
-2. **Add** → **Custom Domain** → `cali-lab.app` (și `www.cali-lab.app` dacă nu e deja din deploy)
-3. Sau doar `npm run deploy` / push pe `main` — Wrangler creează DNS + certificat automat pentru pattern-urile cu `custom_domain: true`
-4. Verifică: https://cali-lab.app (SSL poate dura câteva minute)
-
-**Atenție:** nu lăsa un CNAME manual pe apex/www care conflictă — Custom Domain gestionează DNS-ul.
-
-### Redirect de pe vechiul domeniu (opțional)
-
-În Cloudflare (zona `ipsv.ro`): **Redirect Rule** `cali.ipsv.ro/*` → `https://cali-lab.app/$1` (301), ca vechile linkuri să ajungă pe domeniul nou.
-
-### GitHub + Cloudflare (fără deploy local)
-
-Cloudflare nu citește Cursor Origin. Codul trebuie să fie pe **GitHub** (`ciprianmusca`), apoi Cloudflare îl construiește la fiecare push.
-
-#### A. Creează repo pe GitHub
-
-1. [github.com/new](https://github.com/new)
-2. Owner: `ciprianmusca`
-3. Repository name: `cali-app`
-4. Private (sau Public)
-5. **Nu** bifa „Add a README” / .gitignore / license (repo gol)
-6. Create repository
-
-#### B. Împinge codul din Origin pe GitHub (o singură dată)
+## Deploy
 
 ```bash
-curl -fsSL https://downloads.cursor.com/origin/install.sh | sh
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
-
-origin auth login
-origin repo clone ciprian-musca/cali-app
-cd cali-app
-
-git remote add github https://github.com/ciprianmusca/cali-app.git
-git push -u github main
-```
-
-La autentificare GitHub: [Personal Access Token](https://github.com/settings/tokens) cu `repo` (sau login via `gh auth login`).
-
-#### C. Leagă în Cloudflare
-
-1. Cloudflare → **Create an app** → **Continue with GitHub**
-2. Dacă `cali-app` nu apare: **Configure** Cloudflare GitHub App → bifează `cali-app` → salvează → refresh
-3. Selectează `ciprianmusca/cali-app` → **Next**
-4. Setări:
-
-| Câmp | Valoare |
-|------|---------|
-| Worker name | `cali-lab` (trebuie să coincidă cu `name` din `wrangler.jsonc`) |
-| Production branch | `main` |
-| Build command | `npm run cf:build` (`build` trebuie să fie `next build`, nu OpenNext) |
-| Deploy command | `npx wrangler deploy` |
-| Root directory | (gol) |
-| GitHub repo | `ciprianmusca/cali-app` |
-
-5. **Save and Deploy** — build în cloud.
-6. Verifică **Settings → Domains & Routes**: `cali-lab.app`, `www.cali-lab.app`. Dacă vezi încă `cali.ipsv.ro` sau `*.workers.dev`, șterge-le din dashboard (sau lasă deploy-ul să le scoată).
-
-La fiecare push pe GitHub `main`, Cloudflare redeploy-uiește automat.
-
-### Alternativ: deploy local cu Wrangler
-
-```bash
-npm install
-npx wrangler login
 npm run deploy
 ```
-## Demo AI acoperire sol
 
-Pe formularul **Sol** (`/observatii/nou/sol`), după fotografie: buton **Propune acoperirea (AI)**.
-
-| Mod | Cum |
-|-----|-----|
-| **Online** | `POST /api/ai/soil-cover` → Workers AI (`@cf/meta/llama-3.2-11b-vision-instruct`), binding `AI` în `wrangler.jsonc` |
-| **Offline** | Heuristică pe culori în browser (canvas) — fără rețea |
-
-Sugestia precompletează sliderele; utilizatorul corectează; rangerul validează. În payload se salvează `aiCoverSuggestion` (mode/model/at). Dacă Workers AI lipsește sau eșuează, clientul folosește automat modul offline.
-
-## Funcționalități (slice livrat)
-
-- Statistici publice, hartă Leaflet/OpenTopoMap, autentificare / înregistrare, GDPR
-- Formulare Fenologie, Perturbări, Sol (GPS accuracy/altitudine/oră, specie, 4 clase sol + puieți, tipuri perturbare extinse, comprimare poze, demo AI acoperire online/offline)
-- Listă observații, detalii, validare ranger, admin + export FAIR (ZIP: CSV + GeoJSON + datapackage/README, CC BY 4.0; pseudonime stabile; specii științifice + GBIF)
-- Footer vizibilitate UE / EFI / FORWARDS / ISV / APNC
-
-## Stack
-
-Next.js (App Router) · TypeScript · Tailwind CSS · shadcn/ui · Leaflet · Zustand · Recharts · Cloudflare Workers (OpenNext)
+Worker: `cali-lab` pe domeniul `cali-lab.app`.

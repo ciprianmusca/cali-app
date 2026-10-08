@@ -1,3 +1,17 @@
+/** Cloudflare Email Service binding (Workers Paid). */
+interface SendEmail {
+  send: (message: {
+    to: string | { email: string; name?: string } | (string | { email: string; name?: string })[];
+    from: string | { email: string; name?: string };
+    subject: string;
+    html?: string;
+    text?: string;
+    replyTo?: string | { email: string; name?: string };
+    cc?: string | { email: string; name?: string } | (string | { email: string; name?: string })[];
+    bcc?: string | { email: string; name?: string } | (string | { email: string; name?: string })[];
+  }) => Promise<{ messageId: string }>;
+}
+
 interface CloudflareEnv {
   DB: D1Database;
   PHOTOS: R2Bucket;
@@ -10,20 +24,15 @@ interface CloudflareEnv {
       inputs: Record<string, unknown>
     ) => Promise<unknown>;
   };
+  /** Outbound transactional email (Cloudflare Email Service). */
+  EMAIL?: SendEmail;
   AUTH_SECRET?: string;
-  /** Resend.com API key for activation / password-reset emails. */
-  RESEND_API_KEY?: string;
-  /** From address, e.g. noreply@cali-lab.app */
+  EXPORT_PSEUDO_SALT?: string;
+  TURNSTILE_SITE_KEY?: string;
+  /** Prefer wrangler secret in production. */
+  TURNSTILE_SECRET_KEY?: string;
   MAIL_FROM?: string;
   MAIL_FROM_NAME?: string;
-  /** Cloudflare Email Service binding (Workers Paid / Email Sending). */
-  EMAIL?: {
-    send: (msg: {
-      to: string;
-      from: string | { email: string; name?: string };
-      subject: string;
-      html?: string;
-      text?: string;
-    }) => Promise<{ messageId?: string }>;
-  };
+  MAIL_REPLY_TO?: string;
+  APP_URL?: string;
 }

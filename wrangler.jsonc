@@ -36,14 +36,18 @@
   },
   "send_email": [
     {
-      "name": "EMAIL"
+      "name": "EMAIL",
+      "remote": true
     }
   ],
   "vars": {
     "AUTH_SECRET": "ce3f0b71ac9ca5923bf3cf9be82314f3bbc3d7a2a0ad9d5c9c6f5dbd19f3e770",
     "EXPORT_PSEUDO_SALT": "cali-lab-export-pseudo-7f3a9c2e1b84d6a0",
     "TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
-    "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA"
+    "MAIL_FROM": "noreply@cali-lab.app",
+    "MAIL_FROM_NAME": "CALI-LAB",
+    "MAIL_REPLY_TO": "contact@cali-lab.app",
+    "APP_URL": "https://cali-lab.app"
   },
   "routes": [
     {

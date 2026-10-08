@@ -11,7 +11,11 @@ import {
   upsertUser,
 } from "@/lib/db";
 import { isProtectedSeedEmail } from "@/lib/constants";
-import { allowDevMailLinks, sendPasswordResetEmail } from "@/lib/mail";
+import {
+  appBaseUrl,
+  readMailEnv,
+  sendPasswordResetEmail,
+} from "@/lib/mail";
 import { randomTokenHex, sha256Hex } from "@/lib/token";
 import type { UserRole, UserStatus } from "@/lib/types";
 
@@ -55,7 +59,7 @@ export async function PATCH(
     }
 
     if (body.action === "reset_password") {
-      const minutes = existing.role === "admin" ? 240 : 5;
+      const minutes = 60;
       const raw = randomTokenHex(32);
       const tokenHash = await sha256Hex(raw);
       const expiresAt = new Date(Date.now() + minutes * 60_000).toISOString();
@@ -67,8 +71,8 @@ export async function PATCH(
         expiresAt,
         createdAt: new Date().toISOString(),
       });
-      const origin = new URL(request.url).origin;
-      const resetUrl = `${origin}/resetare-parola?token=${raw}`;
+      const mailEnv = await readMailEnv();
+      const resetUrl = `${appBaseUrl(mailEnv)}/resetare-parola/confirmare?token=${raw}`;
       const mail = await sendPasswordResetEmail({
         to: existing.email,
         resetUrl,
@@ -86,9 +90,6 @@ export async function PATCH(
       return NextResponse.json({
         ok: true,
         mailSent: mail.sent,
-        demoResetUrl: allowDevMailLinks(request.url)
-          ? mail.demoResetUrl
-          : undefined,
       });
     }
 

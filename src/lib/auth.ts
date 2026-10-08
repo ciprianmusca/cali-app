@@ -16,6 +16,8 @@ type SessionPayload = {
   email: string;
   role: UserRole;
   name: string;
+  /** Must match users.session_version or the JWT is rejected. */
+  sv: number;
 };
 
 export function toPublicUser(user: User): PublicUser {
@@ -45,13 +47,14 @@ async function getAuthSecret(): Promise<Uint8Array> {
 }
 
 export async function createSessionToken(
-  user: Pick<User, "id" | "email" | "role" | "name">
+  user: Pick<User, "id" | "email" | "role" | "name" | "sessionVersion">
 ): Promise<string> {
   const secret = await getAuthSecret();
   return new SignJWT({
     email: user.email,
     role: user.role,
     name: user.name,
+    sv: user.sessionVersion ?? 0,
   } satisfies Omit<SessionPayload, "sub">)
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(user.id)
@@ -72,6 +75,7 @@ export async function verifySessionToken(
       email: payload.email,
       role: payload.role as UserRole,
       name: String(payload.name ?? ""),
+      sv: typeof payload.sv === "number" ? payload.sv : 0,
     };
   } catch {
     return null;
@@ -110,7 +114,9 @@ export async function getSessionUser(): Promise<User | null> {
   const rows = await listUsersRaw(db);
   const row = rows.find((r) => r.id === session.sub);
   if (!row || row.status !== "activ") return null;
-  return userFromRow(row);
+  const user = userFromRow(row);
+  if ((user.sessionVersion ?? 0) !== session.sv) return null;
+  return user;
 }
 
 export async function requireUser(): Promise<

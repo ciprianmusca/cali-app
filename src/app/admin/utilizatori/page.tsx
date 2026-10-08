@@ -173,8 +173,8 @@ function UsersAdmin() {
       if (action === "reset_password") {
         setMsg(
           data.mailSent === false
-            ? t("auth.resetMailFailed")
-            : t("auth.resetSent")
+            ? t("admin.resetMailFailed")
+            : t("admin.resetMailSent")
         );
       } else {
         setMsg(t("admin.save"));
